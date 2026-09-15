@@ -1,956 +1,1063 @@
 <!DOCTYPE html>
-
 <html lang="ar" dir="rtl">
 
 <head>
+
   <meta charset="UTF-8">
 
-<meta
-name="viewport"
-content="width=device-width,
-initial-scale=1.0,
-maximum-scale=1.0,
-user-scalable=no"
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+  >
 
->
+  <meta
+    name="theme-color"
+    content="#16835b"
+  >
 
-  <meta name="theme-color" content="#176B45">
+  <meta
+    name="apple-mobile-web-app-capable"
+    content="yes"
+  >
 
-<meta
-name="apple-mobile-web-app-capable"
-content="yes"
+  <meta
+    name="apple-mobile-web-app-status-bar-style"
+    content="default"
+  >
 
->
+  <title>
+    شركة نوافذ البناء
+  </title>
 
-<meta
-name="apple-mobile-web-app-status-bar-style"
-content="default"
+  <link
+    rel="icon"
+    type="image/png"
+    href="icon.png"
+  >
 
->
+  <link
+    rel="stylesheet"
+    href="style.css"
+  >
 
-<meta
-name="apple-mobile-web-app-title"
-content="نوافذ البناء"
-
->
-
-  <link rel="apple-touch-icon" href="icon.png">
-  <link rel="manifest" href="manifest.json">
-
-  <link rel="stylesheet" href="style.css">
-
-  <title>شركة نوافذ البناء</title>
 </head>
+
 
 <body>
 
-<div class="iphone-app">
 
   <!-- =====================================================
-       HEADER
+  APP
   ====================================================== -->
 
-  <header class="app-header">
+  <div class="iphone-app">
 
-```
-<div class="top-line">
 
-  <div class="company-logo">
+    <!-- ===================================================
+    HEADER
+    ==================================================== -->
 
-    <img
-      src="icon.png"
-      alt="شعار شركة نوافذ البناء"
+    <header class="app-header">
+
+      <div class="company-brand">
+
+        <div class="company-logo">
+
+          <img
+            src="icon.png"
+            alt="شعار شركة نوافذ البناء"
+          >
+
+        </div>
+
+
+        <div class="company-name">
+
+          <h1>
+            شركة نوافذ البناء
+          </h1>
+
+          <p>
+            Nawafth ALbnaa Company
+          </p>
+
+        </div>
+
+      </div>
+
+
+      <div class="header-welcome">
+
+        <span>
+          لوحة الشركة
+        </span>
+
+        <strong>
+          الأقسام الرئيسية
+        </strong>
+
+      </div>
+
+    </header>
+
+
+
+    <!-- ===================================================
+    HOME PAGE
+    ==================================================== -->
+
+    <main
+      id="homePage"
+      class="page active"
     >
 
-  </div>
 
+      <section class="home-intro">
 
-  <div class="company-name">
+        <div class="intro-icon">
+          🏢
+        </div>
 
-    <h1>
-      شركة نوافذ البناء
-    </h1>
+        <div>
 
-    <span>
-      Nawafth ALbnaa Company
-    </span>
+          <h2>
+            الأقسام الرئيسية
+          </h2>
 
-  </div>
+          <p>
+            اختر القسم الذي تريد الدخول إليه
+          </p>
 
-</div>
+        </div>
 
+      </section>
 
-<div class="header-welcome">
 
-  <span>
-    لوحة الشركة
-  </span>
 
-  <strong>
-    الأقسام الرئيسية
-  </strong>
+      <!-- MAIN GRID -->
 
-</div>
-```
+      <section class="main-grid">
 
-  </header>
 
-  <!-- =====================================================
-       HOME
-  ====================================================== -->
+        <!-- STORAGE -->
 
-  <main
-    id="homePage"
-    class="page active"
-  >
+        <button
+          type="button"
+          class="main-card"
+          onclick="openStorage()"
+        >
 
-```
-<section class="intro">
+          <div class="card-top">
 
-  <span>
-    أهلاً بكم في شركة نوافذ البناء
-  </span>
+            <div class="main-icon green">
+              🏢
+            </div>
 
-  <h2>
-    الأقسام الرئيسية
-  </h2>
+            <div class="card-arrow">
+              ←
+            </div>
 
-  <p>
-    اختر القسم المطلوب للوصول إلى المعلومات والخدمات
-  </p>
+          </div>
 
-</section>
 
+          <div class="card-text">
 
-<section class="main-grid">
+            <h3>
+              المخازن
+            </h3>
 
+            <p>
+              إدارة المخازن والمواد
+            </p>
 
-  <!-- المخازن -->
+          </div>
 
-  <button
-    type="button"
-    class="main-card"
-    onclick="openStorage()"
-  >
+        </button>
 
-    <div class="card-top">
 
-      <div class="main-icon green">
-        🏢
-      </div>
 
-      <div class="card-arrow">
-        ←
-      </div>
+        <!-- KITCHEN -->
 
-    </div>
+        <button
+          type="button"
+          class="main-card"
+          onclick="showMessage('المطبخ')"
+        >
 
-    <div class="card-text">
+          <div class="card-top">
 
-      <h3>
-        المخازن
-      </h3>
+            <div class="main-icon gray">
+              🍽️
+            </div>
 
-      <p>
-        المستودعات والمخازن
-      </p>
+            <div class="card-arrow">
+              ←
+            </div>
 
-    </div>
+          </div>
 
-  </button>
 
+          <div class="card-text">
 
+            <h3>
+              المطبخ
+            </h3>
 
-  <!-- المطبخ -->
+            <p>
+              إدارة ومتابعة المطبخ
+            </p>
 
-  <button
-    type="button"
-    class="main-card"
-    onclick="showMessage('المطبخ')"
-  >
+          </div>
 
-    <div class="card-top">
+        </button>
 
-      <div class="main-icon gray">
-        🍽️
-      </div>
 
-      <div class="card-arrow">
-        ←
-      </div>
 
-    </div>
+        <!-- MEDICAL -->
 
-    <div class="card-text">
+        <button
+          type="button"
+          class="main-card"
+          onclick="showMessage('الأجهزة الطبية')"
+        >
 
-      <h3>
-        المطبخ
-      </h3>
+          <div class="card-top">
 
-      <p>
-        تجهيزات ومعدات المطبخ
-      </p>
+            <div class="main-icon green">
+              ⚕️
+            </div>
 
-    </div>
+            <div class="card-arrow">
+              ←
+            </div>
 
-  </button>
+          </div>
 
 
+          <div class="card-text">
 
-  <!-- الأجهزة الطبية -->
+            <h3>
+              الأجهزة الطبية
+            </h3>
 
-  <button
-    type="button"
-    class="main-card"
-    onclick="showMessage('الأجهزة الطبية')"
-  >
+            <p>
+              متابعة الأجهزة والمعدات الطبية
+            </p>
 
-    <div class="card-top">
+          </div>
 
-      <div class="main-icon green">
-        ⚕️
-      </div>
+        </button>
 
-      <div class="card-arrow">
-        ←
-      </div>
 
-    </div>
 
-    <div class="card-text">
+        <!-- REPORTS -->
 
-      <h3>
-        الأجهزة الطبية
-      </h3>
+        <button
+          type="button"
+          class="main-card"
+          onclick="openReports()"
+        >
 
-      <p>
-        الأجهزة والمعدات الطبية
-      </p>
+          <div class="card-top">
 
-    </div>
+            <div class="main-icon gray">
+              📋
+            </div>
 
-  </button>
+            <div class="card-arrow">
+              ←
+            </div>
 
+          </div>
 
 
-  <!-- التقرير اليومي -->
+          <div class="card-text">
 
-  <button
-    type="button"
-    class="main-card"
-    onclick="openReports()"
-  >
+            <h3>
+              التقرير اليومي
+            </h3>
 
-    <div class="card-top">
+            <p>
+              تسجيل ومتابعة التقارير اليومية
+            </p>
 
-      <div class="main-icon gray">
-        📋
-      </div>
+          </div>
 
-      <div class="card-arrow">
-        ←
-      </div>
+        </button>
 
-    </div>
 
-    <div class="card-text">
 
-      <h3>
-        التقرير اليومي
-      </h3>
+        <!-- =================================================
+        PURCHASES
+        ================================================== -->
 
-      <p>
-        متابعة وإدارة التقارير
-      </p>
+        <button
+          type="button"
+          class="main-card"
+          onclick="openPurchases()"
+        >
 
-    </div>
+          <div class="card-top">
 
-  </button>
+            <div class="main-icon green">
+              🛒
+            </div>
 
+            <div class="card-arrow">
+              ←
+            </div>
 
+          </div>
 
-  <!-- =================================================
-       المشتريات
-  ================================================== -->
 
-  <button
-    type="button"
-    class="main-card"
-    onclick="openPurchases()"
-  >
+          <div class="card-text">
 
-    <div class="card-top">
+            <h3>
+              المشتريات
+            </h3>
 
-      <div class="main-icon green">
-        🛒
-      </div>
+            <p>
+              طلبات شراء المواد والمستلزمات
+            </p>
 
-      <div class="card-arrow">
-        ←
-      </div>
+          </div>
 
-    </div>
+        </button>
 
-    <div class="card-text">
 
-      <h3>
-        المشتريات
-      </h3>
+      </section>
 
-      <p>
-        طلبات شراء وتجهيز المواد
-      </p>
+    </main>
 
-    </div>
 
-  </button>
 
+    <!-- ===================================================
+    STORAGE PAGE
+    ==================================================== -->
 
-</section>
-
-
-<section class="company-info">
-
-  <div class="company-info-icon">
-    ✓
-  </div>
-
-  <div class="company-info-text">
-
-    <strong>
-      شركة نوافذ البناء
-    </strong>
-
-    <span>
-      نظام إدارة ومتابعة الأقسام
-    </span>
-
-  </div>
-
-</section>
-```
-
-  </main>
-
-  <!-- =====================================================
-       STORAGE
-  ====================================================== -->
-
-  <main
-    id="storagePage"
-    class="page"
-  >
-
-```
-<div class="navigation">
-
-  <button
-    type="button"
-    onclick="goHome()"
-  >
-    → الرئيسية
-  </button>
-
-</div>
-
-
-<section class="intro">
-
-  <span>
-    شركة نوافذ البناء
-  </span>
-
-  <h2>
-    المخازن
-  </h2>
-
-  <p>
-    اختر المخزن المطلوب للوصول إلى محتوياته
-  </p>
-
-</section>
-
-
-<section class="storage-list">
-
-
-  <button
-    type="button"
-    class="storage-card"
-    onclick="showMessage('الحاويات')"
-  >
-
-    <div class="storage-icon green">
-      🚢
-    </div>
-
-    <div class="storage-text">
-
-      <h3>
-        الحاويات
-      </h3>
-
-      <p>
-        قسم الحاويات
-      </p>
-
-    </div>
-
-    <span>
-      ←
-    </span>
-
-  </button>
-
-
-
-  <button
-    type="button"
-    class="storage-card"
-    onclick="showMessage('القاعة')"
-  >
-
-    <div class="storage-icon gray">
-      🏭
-    </div>
-
-    <div class="storage-text">
-
-      <h3>
-        القاعة
-      </h3>
-
-      <p>
-        مخزن القاعة
-      </p>
-
-    </div>
-
-    <span>
-      ←
-    </span>
-
-  </button>
-
-
-
-  <button
-    type="button"
-    class="storage-card"
-    onclick="showMessage('مخزن بناية 6')"
-  >
-
-    <div class="storage-icon green">
-      🏢
-    </div>
-
-    <div class="storage-text">
-
-      <h3>
-        مخزن بناية 6
-      </h3>
-
-      <p>
-        مستودع بناية 6
-      </p>
-
-    </div>
-
-    <span>
-      ←
-    </span>
-
-  </button>
-
-</section>
-```
-
-  </main>
-
-  <!-- =====================================================
-       REPORTS LIST
-  ====================================================== -->
-
-  <main
-    id="reportsPage"
-    class="page"
-  >
-
-```
-<div class="navigation">
-
-  <button
-    type="button"
-    onclick="goHome()"
-  >
-    → الرئيسية
-  </button>
-
-</div>
-
-
-<section class="intro">
-
-  <span>
-    شركة نوافذ البناء
-  </span>
-
-  <h2>
-    التقرير اليومي
-  </h2>
-
-  <p>
-    التقارير اليومية المضافة
-  </p>
-
-</section>
-
-
-<div class="report-add-container">
-
-  <button
-    type="button"
-    class="add-report-button"
-    onclick="openAddReport()"
-  >
-
-    <span class="add-report-icon">
-      +
-    </span>
-
-    <span>
-      إضافة تقرير
-    </span>
-
-  </button>
-
-</div>
-
-
-<section
-  id="reportsList"
-  class="reports-list"
->
-
-</section>
-```
-
-  </main>
-
-  <!-- =====================================================
-       ADD REPORT
-  ====================================================== -->
-
-  <main
-    id="addReportPage"
-    class="page"
-  >
-
-```
-<div class="navigation">
-
-  <button
-    type="button"
-    onclick="openReports()"
-  >
-    → التقارير
-  </button>
-
-</div>
-
-
-<section class="intro">
-
-  <span>
-    شركة نوافذ البناء
-  </span>
-
-  <h2>
-    إضافة تقرير
-  </h2>
-
-  <p>
-    أدخل معلومات التقرير اليومي
-  </p>
-
-</section>
-
-
-<section class="report-form">
-
-
-  <div class="form-group">
-
-    <label for="reportDay">
-      اليوم
-    </label>
-
-    <select id="reportDay">
-
-      <option value="">
-        اختر اليوم
-      </option>
-
-      <option value="الأحد">
-        الأحد
-      </option>
-
-      <option value="الاثنين">
-        الاثنين
-      </option>
-
-      <option value="الثلاثاء">
-        الثلاثاء
-      </option>
-
-      <option value="الأربعاء">
-        الأربعاء
-      </option>
-
-      <option value="الخميس">
-        الخميس
-      </option>
-
-      <option value="الجمعة">
-        الجمعة
-      </option>
-
-      <option value="السبت">
-        السبت
-      </option>
-
-    </select>
-
-  </div>
-
-
-  <div class="form-group">
-
-    <label for="reportDate">
-      التاريخ
-    </label>
-
-    <input
-      type="date"
-      id="reportDate"
+    <main
+      id="storagePage"
+      class="page"
     >
 
-  </div>
 
+      <div class="navigation">
 
-  <div class="form-group">
+        <button
+          type="button"
+          onclick="goHome()"
+        >
+          → الرئيسية
+        </button>
 
-    <label for="reportText">
-      نص التقرير
-    </label>
-
-    <textarea
-      id="reportText"
-      rows="9"
-      placeholder="اكتب التقرير اليومي هنا..."
-    ></textarea>
-
-  </div>
-
-
-  <button
-    type="button"
-    class="save-report-button"
-    onclick="saveReport()"
-  >
-
-    حفظ التقرير
-
-  </button>
-
-
-  <button
-    type="button"
-    class="cancel-report-button"
-    onclick="openReports()"
-  >
-
-    إلغاء
-
-  </button>
-
-</section>
-```
-
-  </main>
-
-  <!-- =====================================================
-       PURCHASES
-  ====================================================== -->
-
-  <main
-    id="purchasesPage"
-    class="page"
-  >
-
-```
-<div class="navigation">
-
-  <button
-    type="button"
-    onclick="goHome()"
-  >
-    → الرئيسية
-  </button>
-
-</div>
-
-
-<section class="intro">
-
-  <span>
-    شركة نوافذ البناء
-  </span>
-
-  <h2>
-    المشتريات
-  </h2>
-
-  <p>
-    إدارة طلبات شراء المواد ومتابعة تجهيزها
-  </p>
-
-</section>
-
-
-<!-- طلب شراء -->
-
-<section class="purchase-action">
-
-  <button
-    type="button"
-    class="purchase-add-button"
-    onclick="openPurchaseForm()"
-  >
-
-    <span class="purchase-add-icon">
-      +
-    </span>
-
-    <span>
-      طلب شراء
-    </span>
-
-  </button>
-
-</section>
+      </div>
 
 
 
-<!-- نموذج طلب الشراء -->
+      <section class="intro">
 
-<section
-  id="purchaseForm"
-  class="purchase-form"
-  style="display:none;"
->
+        <div class="intro-icon">
+          🏢
+        </div>
 
-  <div class="purchase-form-header">
+        <div>
 
-    <div>
+          <h2>
+            المخازن
+          </h2>
 
-      <span>
+          <p>
+            اختر المخزن المطلوب
+          </p>
+
+        </div>
+
+      </section>
+
+
+
+      <section class="storage-list">
+
+
+        <button
+          type="button"
+          class="storage-card"
+          onclick="showMessage('الحاويات')"
+        >
+
+          <div class="storage-icon">
+            🚢
+          </div>
+
+          <div class="storage-text">
+
+            <h3>
+              الحاويات
+            </h3>
+
+            <p>
+              مخزن الحاويات
+            </p>
+
+          </div>
+
+          <div class="storage-arrow">
+            ←
+          </div>
+
+        </button>
+
+
+
+        <button
+          type="button"
+          class="storage-card"
+          onclick="showMessage('القاعة')"
+        >
+
+          <div class="storage-icon">
+            🏭
+          </div>
+
+          <div class="storage-text">
+
+            <h3>
+              القاعة
+            </h3>
+
+            <p>
+              مخزن القاعة
+            </p>
+
+          </div>
+
+          <div class="storage-arrow">
+            ←
+          </div>
+
+        </button>
+
+
+
+        <button
+          type="button"
+          class="storage-card"
+          onclick="showMessage('مخزن بناية 6')"
+        >
+
+          <div class="storage-icon">
+            🏢
+          </div>
+
+          <div class="storage-text">
+
+            <h3>
+              مخزن بناية 6
+            </h3>
+
+            <p>
+              مخزن بناية 6
+            </p>
+
+          </div>
+
+          <div class="storage-arrow">
+            ←
+          </div>
+
+        </button>
+
+
+      </section>
+
+    </main>
+
+
+
+    <!-- ===================================================
+    PURCHASES PAGE
+    ==================================================== -->
+
+    <main
+      id="purchasesPage"
+      class="page"
+    >
+
+
+      <!-- NAVIGATION -->
+
+      <div class="navigation">
+
+        <button
+          type="button"
+          onclick="goHome()"
+        >
+          → الرئيسية
+        </button>
+
+      </div>
+
+
+
+      <!-- INTRO -->
+
+      <section class="intro">
+
+        <div class="intro-icon">
+          🛒
+        </div>
+
+        <div>
+
+          <h2>
+            المشتريات
+          </h2>
+
+          <p>
+            إدارة طلبات شراء المواد والمستلزمات
+          </p>
+
+        </div>
+
+      </section>
+
+
+
+      <!-- =================================================
+      ADD PURCHASE BUTTON
+      ================================================== -->
+
+      <section class="purchase-action">
+
+        <button
+          type="button"
+          class="add-purchase-button"
+          onclick="openPurchaseForm()"
+        >
+
+          <span class="add-purchase-icon">
+            +
+          </span>
+
+          <span>
+            طلب شراء
+          </span>
+
+        </button>
+
+      </section>
+
+
+
+      <!-- =================================================
+      PURCHASE FORM
+      ================================================== -->
+
+      <section
+        id="purchaseForm"
+        class="purchase-form"
+        style="display: none;"
+      >
+
+
+        <div class="purchase-form-header">
+
+          <div>
+
+            <h3>
+              طلب شراء جديد
+            </h3>
+
+            <p>
+              أدخل تفاصيل المادة المطلوبة
+            </p>
+
+          </div>
+
+          <button
+            type="button"
+            class="close-purchase-form"
+            onclick="closePurchaseForm()"
+            aria-label="إغلاق"
+          >
+            ×
+          </button>
+
+        </div>
+
+
+
+        <!-- MATERIAL -->
+
+        <div class="form-group">
+
+          <label for="purchaseItem">
+            المادة المطلوبة
+          </label>
+
+          <input
+            id="purchaseItem"
+            type="text"
+            placeholder="مثال: إسمنت"
+            autocomplete="off"
+          >
+
+        </div>
+
+
+
+        <!-- UNIT -->
+
+        <div class="form-group">
+
+          <label for="purchaseUnit">
+            الوحدة
+          </label>
+
+          <input
+            id="purchaseUnit"
+            type="text"
+            placeholder="مثال: كيس، قطعة، متر، لتر"
+            autocomplete="off"
+          >
+
+        </div>
+
+
+
+        <!-- QUANTITY -->
+
+        <div class="form-group">
+
+          <label for="purchaseQuantity">
+            العدد
+          </label>
+
+          <input
+            id="purchaseQuantity"
+            type="number"
+            min="0.01"
+            step="any"
+            placeholder="أدخل العدد"
+          >
+
+        </div>
+
+
+
+        <!-- BUTTONS -->
+
+        <div class="purchase-form-buttons">
+
+          <button
+            type="button"
+            class="save-purchase-button"
+            onclick="addPurchase()"
+          >
+            إضافة
+          </button>
+
+
+          <button
+            type="button"
+            class="cancel-purchase-button"
+            onclick="closePurchaseForm()"
+          >
+            إلغاء
+          </button>
+
+        </div>
+
+
+      </section>
+
+
+
+      <!-- =================================================
+      PENDING PURCHASES
+      ================================================== -->
+
+      <section class="purchase-section">
+
+
+        <div class="purchase-section-header">
+
+          <div>
+
+            <h3>
+              طلبات الشراء
+            </h3>
+
+            <p>
+              الطلبات التي لم يتم شراؤها بعد
+            </p>
+
+          </div>
+
+
+          <span
+            id="pendingPurchaseCount"
+            class="purchase-count"
+          >
+            0
+          </span>
+
+        </div>
+
+
+
+        <div
+          id="pendingPurchases"
+          class="purchases-list"
+        >
+
+          <div class="empty-purchases">
+
+            <div class="empty-purchases-icon">
+              🛒
+            </div>
+
+            <strong>
+              لا توجد طلبات شراء
+            </strong>
+
+            <span>
+              اضغط على "طلب شراء" لإضافة مادة جديدة
+            </span>
+
+          </div>
+
+        </div>
+
+
+      </section>
+
+
+
+      <!-- =================================================
+      COMPLETED PURCHASES
+      ================================================== -->
+
+      <section class="purchase-section completed-purchases-section">
+
+
+        <div class="purchase-section-header">
+
+          <div>
+
+            <h3>
+              تم تجهيزه
+            </h3>
+
+            <p>
+              المواد التي تم شراؤها وتجهيزها
+            </p>
+
+          </div>
+
+
+          <span
+            id="completedPurchaseCount"
+            class="purchase-count completed-count"
+          >
+            0
+          </span>
+
+        </div>
+
+
+
+        <div
+          id="completedPurchases"
+          class="purchases-list"
+        >
+
+          <div class="empty-purchases completed-empty">
+
+            <div class="empty-purchases-icon">
+              📦
+            </div>
+
+            <strong>
+              لا توجد مواد مجهزة
+            </strong>
+
+            <span>
+              الطلبات التي يتم شراؤها ستظهر هنا
+            </span>
+
+          </div>
+
+        </div>
+
+
+      </section>
+
+
+    </main>
+
+
+
+    <!-- ===================================================
+    REPORTS PAGE
+    ==================================================== -->
+
+    <main
+      id="reportsPage"
+      class="page"
+    >
+
+
+      <div class="navigation">
+
+        <button
+          type="button"
+          onclick="goHome()"
+        >
+          → الرئيسية
+        </button>
+
+      </div>
+
+
+
+      <section class="intro">
+
+        <div class="intro-icon">
+          📋
+        </div>
+
+        <div>
+
+          <h2>
+            التقرير اليومي
+          </h2>
+
+          <p>
+            تسجيل ومتابعة التقارير اليومية
+          </p>
+
+        </div>
+
+      </section>
+
+
+
+      <!-- ADD REPORT -->
+
+      <div class="report-action">
+
+        <button
+          type="button"
+          class="add-report-button"
+          onclick="openAddReport()"
+        >
+
+          <span>
+            +
+          </span>
+
+          إضافة تقرير
+
+        </button>
+
+      </div>
+
+
+
+      <!-- REPORTS LIST -->
+
+      <section
+        id="reportsList"
+        class="reports-list"
+      >
+
+        <div class="empty-reports">
+
+          <div class="empty-reports-icon">
+            📋
+          </div>
+
+          <strong>
+            لا توجد تقارير حالياً
+          </strong>
+
+          <span>
+            اضغط على "إضافة تقرير" لإنشاء أول تقرير
+          </span>
+
+        </div>
+
+      </section>
+
+
+    </main>
+
+
+
+    <!-- ===================================================
+    ADD REPORT PAGE
+    ==================================================== -->
+
+    <main
+      id="addReportPage"
+      class="page"
+    >
+
+
+      <div class="navigation">
+
+        <button
+          type="button"
+          onclick="openReports()"
+        >
+          → التقارير
+        </button>
+
+      </div>
+
+
+
+      <section class="intro">
+
+        <div class="intro-icon">
+          📝
+        </div>
+
+        <div>
+
+          <h2>
+            إضافة تقرير
+          </h2>
+
+          <p>
+            أدخل تفاصيل التقرير اليومي
+          </p>
+
+        </div>
+
+      </section>
+
+
+
+      <!-- REPORT FORM -->
+
+      <section class="report-form">
+
+
+        <!-- DAY -->
+
+        <div class="form-group">
+
+          <label for="reportDay">
+            اليوم
+          </label>
+
+          <input
+            id="reportDay"
+            type="text"
+            readonly
+            placeholder="سيظهر اليوم تلقائياً"
+          >
+
+        </div>
+
+
+
+        <!-- DATE -->
+
+        <div class="form-group">
+
+          <label for="reportDate">
+            التاريخ
+          </label>
+
+          <input
+            id="reportDate"
+            type="date"
+          >
+
+        </div>
+
+
+
+        <!-- REPORT TEXT -->
+
+        <div class="form-group">
+
+          <label for="reportText">
+            تفاصيل التقرير
+          </label>
+
+          <textarea
+            id="reportText"
+            rows="7"
+            placeholder="اكتب تفاصيل التقرير هنا..."
+          ></textarea>
+
+        </div>
+
+
+
+        <!-- BUTTONS -->
+
+        <div class="report-form-buttons">
+
+          <button
+            type="button"
+            class="save-report-button"
+            onclick="saveReport()"
+          >
+            حفظ التقرير
+          </button>
+
+
+          <button
+            type="button"
+            class="cancel-report-button"
+            onclick="openReports()"
+          >
+            إلغاء
+          </button>
+
+        </div>
+
+
+      </section>
+
+
+    </main>
+
+
+
+    <!-- ===================================================
+    FOOTER
+    ==================================================== -->
+
+    <footer class="app-footer">
+
+      <strong>
         شركة نوافذ البناء
-      </span>
-
-      <h3>
-        تفاصيل طلب الشراء
-      </h3>
-
-    </div>
-
-  </div>
-
-
-  <div class="form-group">
-
-    <label for="purchaseItem">
-      المادة المطلوبة
-    </label>
-
-    <input
-      type="text"
-      id="purchaseItem"
-      placeholder="مثال: إسمنت، حديد، فلتر..."
-      autocomplete="off"
-    >
-
-  </div>
-
-
-  <div class="form-group">
-
-    <label for="purchaseUnit">
-      الوحدة
-    </label>
-
-    <input
-      type="text"
-      id="purchaseUnit"
-      placeholder="مثال: قطعة، كرتون، متر، لتر..."
-      autocomplete="off"
-    >
-
-  </div>
-
-
-  <div class="form-group">
-
-    <label for="purchaseQuantity">
-      العدد
-    </label>
-
-    <input
-      type="number"
-      id="purchaseQuantity"
-      min="1"
-      step="1"
-      placeholder="أدخل العدد"
-    >
-
-  </div>
-
-
-  <button
-    type="button"
-    class="save-purchase-button"
-    onclick="addPurchase()"
-  >
-
-    إضافة الطلب
-
-  </button>
-
-
-  <button
-    type="button"
-    class="cancel-purchase-button"
-    onclick="closePurchaseForm()"
-  >
-
-    إلغاء
-
-  </button>
-
-</section>
-
-
-
-<!-- =================================================
-     الطلبات الحالية
-================================================== -->
-
-<section class="purchase-section">
-
-  <div class="purchase-section-title">
-
-    <div class="section-title-icon">
-      🛒
-    </div>
-
-    <div>
-
-      <h3>
-        الطلبات الحالية
-      </h3>
+      </strong>
 
       <span>
-        المواد المطلوب شراؤها
+        Nawafth ALbnaa Company
       </span>
 
-    </div>
+    </footer>
 
-    <strong id="pendingPurchaseCount">
-      0
-    </strong>
 
   </div>
 
 
-  <div
-    id="pendingPurchases"
-    class="purchases-list"
-  >
-
-  </div>
-
-</section>
-
-
-
-<!-- =================================================
-     تم تجهيزه
-================================================== -->
-
-<section class="purchase-section completed-section">
-
-  <div class="purchase-section-title completed-title">
-
-    <div class="section-title-icon completed-icon">
-      ✓
-    </div>
-
-    <div>
-
-      <h3>
-        تم تجهيزه
-      </h3>
-
-      <span>
-        الطلبات التي تم شراؤها
-      </span>
-
-    </div>
-
-    <strong id="completedPurchaseCount">
-      0
-    </strong>
-
-  </div>
-
-
-  <div
-    id="completedPurchases"
-    class="purchases-list"
-  >
-
-  </div>
-
-</section>
-```
-
-  </main>
 
   <!-- =====================================================
-       FOOTER
+  JAVASCRIPT
   ====================================================== -->
 
-  <footer>
+  <script src="script.js"></script>
 
-```
-<strong>
-  شركة نوافذ البناء
-</strong>
-
-<span>
-  Nawafth ALbnaa Company
-</span>
-
-<small>
-  © 2026 جميع الحقوق محفوظة
-</small>
-```
-
-  </footer>
-
-</div>
-
-<script src="script.js"></script>
 
 </body>
+
 </html>
