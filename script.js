@@ -143,7 +143,7 @@ function addPurchase() {
     const numericQuantity = Number(quantity);
 
     if (!Number.isFinite(numericQuantity) || numericQuantity <= 0) {
-        alert("يرجى إدخال عدد صحيح أو عشري أكبر من صفر.");
+        alert("يرجى إدخال عدد أكبر من صفر.");
         quantityInput.focus();
         return;
     }
@@ -273,7 +273,7 @@ function createPurchaseHTML(purchase) {
 
         '</div>' +
 
-        '<small>تاريخ الطلب: ' +
+        '<small>📅 تاريخ الطلب: ' +
         date +
         '</small>' +
 
@@ -305,8 +305,12 @@ function createCompletedPurchaseHTML(purchase) {
         String(purchase.quantity)
     );
 
-    const date = formatPurchaseDate(
-        purchase.completedAt || purchase.createdAt
+    const orderDate = formatPurchaseDate(
+        purchase.createdAt
+    );
+
+    const completedDate = formatPurchaseDate(
+        purchase.completedAt
     );
 
     return (
@@ -334,9 +338,19 @@ function createCompletedPurchaseHTML(purchase) {
 
         '</div>' +
 
-        '<small>تم التجهيز: ' +
-        date +
-        '</small>' +
+        '<div class="purchase-dates">' +
+
+        '<div>' +
+        '<strong>📅 تاريخ الطلب:</strong> ' +
+        orderDate +
+        '</div>' +
+
+        '<div>' +
+        '<strong>✅ تاريخ التجهيز:</strong> ' +
+        completedDate +
+        '</div>' +
+
+        '</div>' +
 
         '</div>' +
 
