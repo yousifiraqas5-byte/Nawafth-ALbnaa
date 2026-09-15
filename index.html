@@ -1,0 +1,482 @@
+```html
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+  <title>Nawafth ALbnaa Company</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Tahoma, Arial, sans-serif;
+      background: #f4f6f8;
+      color: #17202a;
+      min-height: 100vh;
+    }
+
+    /* التطبيق */
+    .app {
+      width: 100%;
+      max-width: 430px;
+      min-height: 100vh;
+      margin: auto;
+      background: #f4f6f8;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* الهيدر */
+    header {
+      background: linear-gradient(135deg, #172b4d, #254b7c);
+      color: white;
+      padding: 28px 20px 25px;
+      border-radius: 0 0 28px 28px;
+      box-shadow: 0 5px 18px rgba(0,0,0,0.15);
+    }
+
+    .company-name {
+      text-align: center;
+      font-size: 21px;
+      font-weight: 800;
+      letter-spacing: 0.3px;
+      direction: ltr;
+    }
+
+    .company-subtitle {
+      text-align: center;
+      margin-top: 7px;
+      font-size: 13px;
+      opacity: 0.8;
+    }
+
+    /* المحتوى */
+    main {
+      padding: 24px 16px 35px;
+    }
+
+    .page-title {
+      font-size: 22px;
+      font-weight: 800;
+      margin-bottom: 6px;
+    }
+
+    .page-description {
+      color: #707b86;
+      font-size: 14px;
+      margin-bottom: 22px;
+    }
+
+    /* الشبكة */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 15px;
+    }
+
+    /* الكروت */
+    .card {
+      background: white;
+      border-radius: 22px;
+      min-height: 155px;
+      padding: 20px 15px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      cursor: pointer;
+      border: 1px solid #e8ebef;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.06);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .card:active {
+      transform: scale(0.96);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    .icon {
+      width: 68px;
+      height: 68px;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 34px;
+      margin-bottom: 13px;
+      background: #edf3fa;
+    }
+
+    .card-title {
+      font-size: 17px;
+      font-weight: 800;
+      color: #1d2a38;
+    }
+
+    .card-subtitle {
+      font-size: 11px;
+      color: #89939d;
+      margin-top: 5px;
+    }
+
+    /* صفحة الأقسام */
+    .page {
+      display: none;
+    }
+
+    .page.active {
+      display: block;
+    }
+
+    /* زر الرجوع */
+    .back-button {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      background: white;
+      border: 1px solid #e1e5e9;
+      color: #254b7c;
+      border-radius: 14px;
+      padding: 10px 15px;
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 20px;
+      cursor: pointer;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.05);
+    }
+
+    .back-button:active {
+      transform: scale(0.96);
+    }
+
+    .back-arrow {
+      font-size: 20px;
+      line-height: 12px;
+    }
+
+    /* كروت المخازن */
+    .storage-card {
+      background: white;
+      border-radius: 20px;
+      padding: 19px;
+      margin-bottom: 13px;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      border: 1px solid #e7eaee;
+      box-shadow: 0 4px 13px rgba(0,0,0,0.05);
+      cursor: pointer;
+      transition: transform 0.15s ease;
+    }
+
+    .storage-card:active {
+      transform: scale(0.98);
+    }
+
+    .storage-icon {
+      width: 55px;
+      height: 55px;
+      flex-shrink: 0;
+      background: #edf3fa;
+      border-radius: 17px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 27px;
+    }
+
+    .storage-info {
+      flex: 1;
+    }
+
+    .storage-title {
+      font-size: 16px;
+      font-weight: 800;
+      color: #1d2a38;
+    }
+
+    .storage-description {
+      font-size: 12px;
+      color: #89939d;
+      margin-top: 5px;
+    }
+
+    .arrow {
+      color: #9ba5ae;
+      font-size: 22px;
+    }
+
+    /* الفوتر */
+    footer {
+      text-align: center;
+      padding: 10px 20px 25px;
+      color: #9aa3ab;
+      font-size: 11px;
+    }
+
+    /* شاشات أكبر */
+    @media (min-width: 500px) {
+      body {
+        padding: 25px 0;
+        background: #dfe4e8;
+      }
+
+      .app {
+        border-radius: 35px;
+        min-height: calc(100vh - 50px);
+        box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+      }
+
+      header {
+        border-radius: 35px 35px 28px 28px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="app">
+
+  <!-- ========================= -->
+  <!-- الهيدر -->
+  <!-- ========================= -->
+
+  <header>
+    <div class="company-name">
+      Nawafth ALbnaa Company
+    </div>
+
+    <div class="company-subtitle">
+      نوافذ البناء
+    </div>
+  </header>
+
+
+  <!-- ========================= -->
+  <!-- الصفحة الرئيسية -->
+  <!-- ========================= -->
+
+  <section id="homePage" class="page active">
+
+    <main>
+
+      <div class="page-title">
+        الأقسام الرئيسية
+      </div>
+
+      <div class="page-description">
+        اختر القسم الذي تريد الدخول إليه
+      </div>
+
+
+      <div class="grid">
+
+        <!-- المخازن -->
+        <div class="card" onclick="openStorage()">
+          <div class="icon">🏢</div>
+
+          <div class="card-title">
+            المخازن
+          </div>
+
+          <div class="card-subtitle">
+            إدارة المخازن
+          </div>
+        </div>
+
+
+        <!-- المطبخ -->
+        <div class="card" onclick="showMessage('المطبخ')">
+          <div class="icon">🍳</div>
+
+          <div class="card-title">
+            المطبخ
+          </div>
+
+          <div class="card-subtitle">
+            قسم المطبخ
+          </div>
+        </div>
+
+
+        <!-- الأجهزة الطبية -->
+        <div class="card" onclick="showMessage('الأجهزة الطبية')">
+          <div class="icon">⚕️</div>
+
+          <div class="card-title">
+            الأجهزة الطبية
+          </div>
+
+          <div class="card-subtitle">
+            المعدات الطبية
+          </div>
+        </div>
+
+      </div>
+
+    </main>
+
+    <footer>
+      Nawafth ALbnaa Company © 2026
+    </footer>
+
+  </section>
+
+
+  <!-- ========================= -->
+  <!-- صفحة المخازن -->
+  <!-- ========================= -->
+
+  <section id="storagePage" class="page">
+
+    <main>
+
+      <button class="back-button" onclick="goHome()">
+        <span class="back-arrow">→</span>
+        رجوع
+      </button>
+
+
+      <div class="page-title">
+        المخازن
+      </div>
+
+      <div class="page-description">
+        اختر المخزن المطلوب
+      </div>
+
+
+      <!-- الحاويات -->
+      <div class="storage-card" onclick="showMessage('الحاويات')">
+
+        <div class="storage-icon">
+          🚢
+        </div>
+
+        <div class="storage-info">
+          <div class="storage-title">
+            الحاويات
+          </div>
+
+          <div class="storage-description">
+            قسم الحاويات
+          </div>
+        </div>
+
+        <div class="arrow">
+          ‹
+        </div>
+
+      </div>
+
+
+      <!-- القاعة -->
+      <div class="storage-card" onclick="showMessage('القاعة')">
+
+        <div class="storage-icon">
+          🏭
+        </div>
+
+        <div class="storage-info">
+          <div class="storage-title">
+            القاعة
+          </div>
+
+          <div class="storage-description">
+            مخزن القاعة
+          </div>
+        </div>
+
+        <div class="arrow">
+          ‹
+        </div>
+
+      </div>
+
+
+      <!-- مخزن بناية 6 -->
+      <div class="storage-card" onclick="showMessage('مخزن بناية 6')">
+
+        <div class="storage-icon">
+          🏢
+        </div>
+
+        <div class="storage-info">
+          <div class="storage-title">
+            مخزن بناية 6
+          </div>
+
+          <div class="storage-description">
+            مستودع بناية 6
+          </div>
+        </div>
+
+        <div class="arrow">
+          ‹
+        </div>
+
+      </div>
+
+    </main>
+
+    <footer>
+      Nawafth ALbnaa Company © 2026
+    </footer>
+
+  </section>
+
+
+</div>
+
+
+<script>
+
+  /* فتح المخازن */
+  function openStorage() {
+
+    document.getElementById("homePage").classList.remove("active");
+
+    document.getElementById("storagePage").classList.add("active");
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth"
+    });
+  }
+
+
+  /* الرجوع للرئيسية */
+  function goHome() {
+
+    document.getElementById("storagePage").classList.remove("active");
+
+    document.getElementById("homePage").classList.add("active");
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth"
+    });
+  }
+
+
+  /* رسالة مؤقتة للأقسام */
+  function showMessage(name) {
+
+    alert("تم اختيار: " + name);
+
+  }
+
+</script>
+
+</body>
+</html>
+```
