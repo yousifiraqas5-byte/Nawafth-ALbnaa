@@ -1,616 +1,469 @@
-```html
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 
 <head>
+  <meta charset="UTF-8">
 
-    <!-- =========================================
-         BASIC INFORMATION
-    ========================================== -->
+  <meta
+    name="viewport"
+    content="width=device-width,
+             initial-scale=1.0,
+             maximum-scale=1.0,
+             user-scalable=no"
+  >
 
-    <meta charset="UTF-8">
+  <!-- PWA -->
+  <meta name="theme-color" content="#176B45">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta
+    name="apple-mobile-web-app-status-bar-style"
+    content="default"
+  >
+  <meta
+    name="apple-mobile-web-app-title"
+    content="نوافذ البناء"
+  >
 
-    <meta
-        name="viewport"
-        content="width=device-width,
-                 initial-scale=1.0,
-                 maximum-scale=1.0,
-                 user-scalable=no"
-    >
+  <!-- App Icon -->
+  <link rel="apple-touch-icon" href="icon.png">
+  <link rel="manifest" href="manifest.json">
 
-    <meta
-        name="theme-color"
-        content="#176B45"
-    >
+  <!-- CSS -->
+  <link rel="stylesheet" href="style.css">
 
-    <meta
-        name="apple-mobile-web-app-capable"
-        content="yes"
-    >
-
-    <meta
-        name="apple-mobile-web-app-status-bar-style"
-        content="default"
-    >
-
-    <meta
-        name="apple-mobile-web-app-title"
-        content="نوافذ البناء"
-    >
-
-
-    <!-- =========================================
-         PWA
-    ========================================== -->
-
-    <link
-        rel="manifest"
-        href="manifest.json"
-    >
-
-    <link
-        rel="apple-touch-icon"
-        href="icon.png"
-    >
-
-
-    <!-- =========================================
-         STYLES
-    ========================================== -->
-
-    <link
-        rel="stylesheet"
-        href="style.css"
-    >
-
-
-    <!-- =========================================
-         PAGE TITLE
-    ========================================== -->
-
-    <title>
-        شركة نوافذ البناء
-    </title>
-
+  <title>شركة نوافذ البناء</title>
 </head>
-
 
 <body>
 
+  <div class="iphone-app">
 
-<!-- =====================================================
-     APPLICATION
-====================================================== -->
-
-<div class="iphone-app">
-
-
-    <!-- =================================================
+    <!-- ==============================
          HEADER
-    ================================================== -->
+    =============================== -->
 
     <header class="app-header">
 
+      <div class="top-line">
 
-        <!-- COMPANY BRAND -->
+        <!-- شعار الشركة -->
+        <div class="company-logo">
+          <img
+            src="icon.png"
+            alt="شعار شركة نوافذ البناء"
+          >
+        </div>
 
-        <div class="top-line">
+        <!-- اسم الشركة -->
+        <div class="company-name">
 
+          <h1>
+            شركة نوافذ البناء
+          </h1>
 
-            <!-- COMPANY LOGO -->
-
-            <div
-                class="company-logo"
-                aria-label="Nawafth ALbnaa"
-            >
-                NB
-            </div>
-
-
-            <!-- COMPANY NAME -->
-
-            <div class="company-name">
-
-                <h1>
-                    شركة نوافذ البناء
-                </h1>
-
-                <span>
-                    Nawafth ALbnaa Company
-                </span>
-
-            </div>
-
+          <span>
+            Nawafth ALbnaa Company
+          </span>
 
         </div>
 
+      </div>
 
-        <!-- HEADER TITLE -->
 
-        <div class="header-welcome">
+      <!-- عنوان الهيدر -->
 
-            <span>
-                لوحة الشركة
-            </span>
+      <div class="header-welcome">
 
-            <strong>
-                الأقسام الرئيسية
-            </strong>
+        <span>
+          لوحة الشركة
+        </span>
 
-        </div>
+        <strong>
+          الأقسام الرئيسية
+        </strong>
 
+      </div>
 
     </header>
 
 
-
-    <!-- =================================================
+    <!-- ==============================
          HOME PAGE
-    ================================================== -->
+    =============================== -->
 
     <main
-        id="homePage"
-        class="page active"
+      id="homePage"
+      class="page active"
     >
 
+      <!-- المقدمة -->
 
-        <!-- INTRO -->
+      <section class="intro">
 
-        <section class="intro">
+        <span>
+          أهلاً بكم في شركة نوافذ البناء
+        </span>
 
-            <span>
-                أهلاً بكم في شركة نوافذ البناء
-            </span>
+        <h2>
+          الأقسام الرئيسية
+        </h2>
 
-            <h2>
-                الأقسام الرئيسية
-            </h2>
+        <p>
+          اختر القسم المطلوب للوصول إلى المعلومات والخدمات
+        </p>
 
-            <p>
-                اختر القسم المطلوب للوصول إلى المعلومات والخدمات
-            </p>
-
-        </section>
-
+      </section>
 
 
-        <!-- =================================================
-             MAIN SECTIONS
-        ================================================== -->
+      <!-- الأقسام -->
 
-        <section
-            class="main-grid"
-            aria-label="الأقسام الرئيسية"
+      <section
+        class="main-grid"
+        aria-label="الأقسام الرئيسية"
+      >
+
+
+        <!-- المخازن -->
+
+        <button
+          type="button"
+          class="main-card"
+          onclick="openStorage()"
         >
 
+          <div class="card-top">
 
-            <!-- =============================================
-                 STORAGE
-            ============================================== -->
-
-            <button
-                type="button"
-                class="main-card"
-                onclick="openStorage()"
-                aria-label="فتح المخازن"
-            >
-
-                <div class="card-top">
-
-
-                    <div class="main-icon green">
-                        🏢
-                    </div>
-
-
-                    <div
-                        class="card-arrow"
-                        aria-hidden="true"
-                    >
-                        ←
-                    </div>
-
-
-                </div>
-
-
-                <div class="card-text">
-
-                    <h3>
-                        المخازن
-                    </h3>
-
-                    <p>
-                        المستودعات والمخازن
-                    </p>
-
-                </div>
-
-            </button>
-
-
-
-            <!-- =============================================
-                 KITCHEN
-            ============================================== -->
-
-            <button
-                type="button"
-                class="main-card"
-                onclick="showMessage('المطبخ')"
-                aria-label="فتح قسم المطبخ"
-            >
-
-                <div class="card-top">
-
-
-                    <div class="main-icon gray">
-                        🍽️
-                    </div>
-
-
-                    <div
-                        class="card-arrow"
-                        aria-hidden="true"
-                    >
-                        ←
-                    </div>
-
-
-                </div>
-
-
-                <div class="card-text">
-
-                    <h3>
-                        المطبخ
-                    </h3>
-
-                    <p>
-                        تجهيزات ومعدات المطبخ
-                    </p>
-
-                </div>
-
-            </button>
-
-
-
-            <!-- =============================================
-                 MEDICAL EQUIPMENT
-            ============================================== -->
-
-            <button
-                type="button"
-                class="main-card"
-                onclick="showMessage('الأجهزة الطبية')"
-                aria-label="فتح قسم الأجهزة الطبية"
-            >
-
-                <div class="card-top">
-
-
-                    <div class="main-icon green">
-                        ⚕️
-                    </div>
-
-
-                    <div
-                        class="card-arrow"
-                        aria-hidden="true"
-                    >
-                        ←
-                    </div>
-
-
-                </div>
-
-
-                <div class="card-text">
-
-                    <h3>
-                        الأجهزة الطبية
-                    </h3>
-
-                    <p>
-                        الأجهزة والمعدات الطبية
-                    </p>
-
-                </div>
-
-            </button>
-
-
-
-            <!-- =============================================
-                 DAILY REPORT
-            ============================================== -->
-
-            <button
-                type="button"
-                class="main-card"
-                onclick="showMessage('التقرير اليومي')"
-                aria-label="فتح التقرير اليومي"
-            >
-
-                <div class="card-top">
-
-
-                    <div class="main-icon gray">
-                        📋
-                    </div>
-
-
-                    <div
-                        class="card-arrow"
-                        aria-hidden="true"
-                    >
-                        ←
-                    </div>
-
-
-                </div>
-
-
-                <div class="card-text">
-
-                    <h3>
-                        التقرير اليومي
-                    </h3>
-
-                    <p>
-                        متابعة وإدارة التقرير اليومي
-                    </p>
-
-                </div>
-
-            </button>
-
-
-        </section>
-
-
-
-        <!-- =================================================
-             COMPANY INFO
-        ================================================== -->
-
-        <section class="company-info">
-
-
-            <div class="company-info-icon">
-                ✓
+            <div class="main-icon green">
+              🏢
             </div>
 
-
-            <div class="company-info-text">
-
-                <strong>
-                    شركة نوافذ البناء
-                </strong>
-
-                <span>
-                    نظام إدارة ومتابعة الأقسام
-                </span>
-
+            <div class="card-arrow">
+              ←
             </div>
 
+          </div>
 
-        </section>
+          <div class="card-text">
+
+            <h3>
+              المخازن
+            </h3>
+
+            <p>
+              المستودعات والمخازن
+            </p>
+
+          </div>
+
+        </button>
 
 
-    </main>
+        <!-- المطبخ -->
+
+        <button
+          type="button"
+          class="main-card"
+          onclick="showMessage('المطبخ')"
+        >
+
+          <div class="card-top">
+
+            <div class="main-icon gray">
+              🍽️
+            </div>
+
+            <div class="card-arrow">
+              ←
+            </div>
+
+          </div>
+
+          <div class="card-text">
+
+            <h3>
+              المطبخ
+            </h3>
+
+            <p>
+              تجهيزات ومعدات المطبخ
+            </p>
+
+          </div>
+
+        </button>
 
 
+        <!-- الأجهزة الطبية -->
 
-    <!-- =================================================
-         STORAGE PAGE
-    ================================================== -->
+        <button
+          type="button"
+          class="main-card"
+          onclick="showMessage('الأجهزة الطبية')"
+        >
 
-    <main
-        id="storagePage"
-        class="page"
-    >
+          <div class="card-top">
+
+            <div class="main-icon green">
+              ⚕️
+            </div>
+
+            <div class="card-arrow">
+              ←
+            </div>
+
+          </div>
+
+          <div class="card-text">
+
+            <h3>
+              الأجهزة الطبية
+            </h3>
+
+            <p>
+              الأجهزة والمعدات الطبية
+            </p>
+
+          </div>
+
+        </button>
 
 
-        <!-- NAVIGATION -->
+        <!-- التقرير اليومي -->
 
-        <div class="navigation">
+        <button
+          type="button"
+          class="main-card"
+          onclick="showMessage('التقرير اليومي')"
+        >
 
-            <button
-                type="button"
-                onclick="goHome()"
-            >
-                → الرئيسية
-            </button>
+          <div class="card-top">
+
+            <div class="main-icon gray">
+              📋
+            </div>
+
+            <div class="card-arrow">
+              ←
+            </div>
+
+          </div>
+
+          <div class="card-text">
+
+            <h3>
+              التقرير اليومي
+            </h3>
+
+            <p>
+              متابعة وإدارة التقرير اليومي
+            </p>
+
+          </div>
+
+        </button>
+
+      </section>
+
+
+      <!-- معلومات الشركة -->
+
+      <section class="company-info">
+
+        <div class="company-info-icon">
+          ✓
+        </div>
+
+        <div class="company-info-text">
+
+          <strong>
+            شركة نوافذ البناء
+          </strong>
+
+          <span>
+            نظام إدارة ومتابعة الأقسام
+          </span>
 
         </div>
 
-
-        <!-- PAGE INTRO -->
-
-        <section class="intro">
-
-            <span>
-                شركة نوافذ البناء
-            </span>
-
-            <h2>
-                المخازن
-            </h2>
-
-            <p>
-                اختر المخزن المطلوب للوصول إلى محتوياته
-            </p>
-
-        </section>
-
-
-
-        <!-- STORAGE LIST -->
-
-        <section
-            class="storage-list"
-            aria-label="قائمة المخازن"
-        >
-
-
-            <!-- =============================================
-                 CONTAINERS
-            ============================================== -->
-
-            <button
-                type="button"
-                class="storage-card"
-                onclick="showMessage('الحاويات')"
-                aria-label="فتح الحاويات"
-            >
-
-                <div class="storage-icon green">
-                    🚢
-                </div>
-
-
-                <div class="storage-text">
-
-                    <h3>
-                        الحاويات
-                    </h3>
-
-                    <p>
-                        قسم الحاويات
-                    </p>
-
-                </div>
-
-
-                <span aria-hidden="true">
-                    ←
-                </span>
-
-            </button>
-
-
-
-            <!-- =============================================
-                 HALL
-            ============================================== -->
-
-            <button
-                type="button"
-                class="storage-card"
-                onclick="showMessage('القاعة')"
-                aria-label="فتح القاعة"
-            >
-
-                <div class="storage-icon gray">
-                    🏭
-                </div>
-
-
-                <div class="storage-text">
-
-                    <h3>
-                        القاعة
-                    </h3>
-
-                    <p>
-                        مخزن القاعة
-                    </p>
-
-                </div>
-
-
-                <span aria-hidden="true">
-                    ←
-                </span>
-
-            </button>
-
-
-
-            <!-- =============================================
-                 BUILDING 6
-            ============================================== -->
-
-            <button
-                type="button"
-                class="storage-card"
-                onclick="showMessage('مخزن بناية 6')"
-                aria-label="فتح مخزن بناية 6"
-            >
-
-                <div class="storage-icon green">
-                    🏢
-                </div>
-
-
-                <div class="storage-text">
-
-                    <h3>
-                        مخزن بناية 6
-                    </h3>
-
-                    <p>
-                        مستودع بناية 6
-                    </p>
-
-                </div>
-
-
-                <span aria-hidden="true">
-                    ←
-                </span>
-
-            </button>
-
-
-        </section>
-
+      </section>
 
     </main>
 
 
+    <!-- ==============================
+         STORAGE PAGE
+    =============================== -->
 
-    <!-- =================================================
+    <main
+      id="storagePage"
+      class="page"
+    >
+
+      <!-- زر الرجوع -->
+
+      <div class="navigation">
+
+        <button
+          type="button"
+          onclick="goHome()"
+        >
+          → الرئيسية
+        </button>
+
+      </div>
+
+
+      <!-- عنوان الصفحة -->
+
+      <section class="intro">
+
+        <span>
+          شركة نوافذ البناء
+        </span>
+
+        <h2>
+          المخازن
+        </h2>
+
+        <p>
+          اختر المخزن المطلوب للوصول إلى محتوياته
+        </p>
+
+      </section>
+
+
+      <!-- قائمة المخازن -->
+
+      <section
+        class="storage-list"
+        aria-label="قائمة المخازن"
+      >
+
+
+        <!-- الحاويات -->
+
+        <button
+          type="button"
+          class="storage-card"
+          onclick="showMessage('الحاويات')"
+        >
+
+          <div class="storage-icon green">
+            🚢
+          </div>
+
+          <div class="storage-text">
+
+            <h3>
+              الحاويات
+            </h3>
+
+            <p>
+              قسم الحاويات
+            </p>
+
+          </div>
+
+          <span>
+            ←
+          </span>
+
+        </button>
+
+
+        <!-- القاعة -->
+
+        <button
+          type="button"
+          class="storage-card"
+          onclick="showMessage('القاعة')"
+        >
+
+          <div class="storage-icon gray">
+            🏭
+          </div>
+
+          <div class="storage-text">
+
+            <h3>
+              القاعة
+            </h3>
+
+            <p>
+              مخزن القاعة
+            </p>
+
+          </div>
+
+          <span>
+            ←
+          </span>
+
+        </button>
+
+
+        <!-- مخزن بناية 6 -->
+
+        <button
+          type="button"
+          class="storage-card"
+          onclick="showMessage('مخزن بناية 6')"
+        >
+
+          <div class="storage-icon green">
+            🏢
+          </div>
+
+          <div class="storage-text">
+
+            <h3>
+              مخزن بناية 6
+            </h3>
+
+            <p>
+              مستودع بناية 6
+            </p>
+
+          </div>
+
+          <span>
+            ←
+          </span>
+
+        </button>
+
+      </section>
+
+    </main>
+
+
+    <!-- ==============================
          FOOTER
-    ================================================== -->
+    =============================== -->
 
     <footer>
 
+      <strong>
+        شركة نوافذ البناء
+      </strong>
 
-        <strong>
-            شركة نوافذ البناء
-        </strong>
+      <span>
+        Nawafth ALbnaa Company
+      </span>
 
-
-        <span>
-            Nawafth ALbnaa Company
-        </span>
-
-
-        <small>
-            © 2026 جميع الحقوق محفوظة
-        </small>
-
+      <small>
+        © 2026 جميع الحقوق محفوظة
+      </small>
 
     </footer>
 
-
-</div>
-
+  </div>
 
 
-<!-- =====================================================
-     JAVASCRIPT
-====================================================== -->
+  <!-- JavaScript -->
 
-<script
-    src="script.js"
-></script>
-
+  <script src="script.js"></script>
 
 </body>
 
 </html>
-```
