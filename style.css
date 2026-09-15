@@ -776,3 +776,137 @@ footer span {
 
 }
 ```
+```css
+/* =========================================================
+   COMPANY INFORMATION CARD
+   ========================================================= */
+
+.company-info {
+  margin:
+    0
+    16px
+    25px;
+
+  padding:
+    15px;
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 13px;
+
+  background:
+    linear-gradient(
+      145deg,
+      #ffffff,
+      #f7f9f8
+    );
+
+  border:
+    1px solid
+    #dfe5e2;
+
+  border-radius:
+    20px;
+
+  box-shadow:
+    0 5px 16px
+    rgba(30, 45, 37, 0.055);
+}
+
+
+/* علامة الصح */
+
+.company-info-icon {
+  width: 45px;
+  height: 45px;
+
+  flex-shrink: 0;
+
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 15px;
+
+  background:
+    #e2f0e9;
+
+  color:
+    #176b45;
+
+  border:
+    1px solid
+    #d1e6da;
+
+  font-size: 19px;
+
+  font-weight: 900;
+}
+
+
+/* نص البطاقة */
+
+.company-info-text {
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 4px;
+}
+
+.company-info-text strong {
+  color:
+    #26312b;
+
+  font-size:
+    14px;
+
+  font-weight:
+    800;
+}
+
+.company-info-text span {
+  color:
+    #8a938f;
+
+  font-size:
+    11px;
+
+  font-weight:
+    500;
+}
+
+
+/* =========================================================
+   FOOTER IMPROVEMENT
+   ========================================================= */
+
+footer {
+  display: flex;
+
+  flex-direction: column;
+
+  align-items: center;
+
+  gap: 3px;
+}
+
+footer strong {
+  font-weight: 800;
+}
+
+footer span {
+  font-size: 10px;
+}
+
+footer small {
+  margin-top: 3px;
+
+  color: #a0a8a4;
+
+  font-size: 9px;
+}
+```
