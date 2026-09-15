@@ -1,923 +1,731 @@
-/* =========================================================
-   PAGE NAVIGATION
-========================================================= */
+const PURCHASES_KEY = "nawafth_albnaa_purchases";
+const REPORTS_KEY = "nawafth_albnaa_daily_reports";
 
 function showPage(pageId) {
-  const pages = document.querySelectorAll(".page");
+    const pages = document.querySelectorAll(".page");
 
-  pages.forEach(function (page) {
-    page.classList.remove("active");
-  });
-
-  const selectedPage = document.getElementById(pageId);
-
-  if (selectedPage) {
-    selectedPage.classList.add("active");
-
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth"
+    pages.forEach(function(page) {
+        page.classList.remove("active");
     });
-  }
+
+    const targetPage = document.getElementById(pageId);
+
+    if (targetPage) {
+        targetPage.classList.add("active");
+        window.scrollTo({
+            top: 0,
+            behavior: "smooth"
+        });
+    }
 }
-
-
-/* =========================================================
-   HOME
-========================================================= */
 
 function goHome() {
-  showPage("homePage");
+    showPage("homePage");
 }
-
-
-/* =========================================================
-   STORAGE
-========================================================= */
 
 function openStorage() {
-  showPage("storagePage");
+    showPage("storagePage");
 }
 
-
-/* =========================================================
-   TEMPORARY SECTIONS
-========================================================= */
-
-function showMessage(name) {
-  alert(
-    "تم اختيار قسم: " +
-    name +
-    "\n\nسيتم إضافة محتوى هذا القسم لاحقاً."
-  );
+function showMessage(sectionName) {
+    alert("قسم " + sectionName + " سيكون متاحاً قريباً.");
 }
-
-
-/* =========================================================
-   PURCHASES
-========================================================= */
-
-const PURCHASES_KEY = "nawafth_albnaa_purchases";
-
-
-function getPurchases() {
-  try {
-    const saved = localStorage.getItem(PURCHASES_KEY);
-
-    if (!saved) {
-      return [];
-    }
-
-    const data = JSON.parse(saved);
-
-    if (!Array.isArray(data)) {
-      return [];
-    }
-
-    return data;
-
-  } catch (error) {
-    console.error("خطأ في قراءة المشتريات:", error);
-    return [];
-  }
-}
-
-
-function savePurchases(purchases) {
-  try {
-    localStorage.setItem(
-      PURCHASES_KEY,
-      JSON.stringify(purchases)
-    );
-
-    return true;
-
-  } catch (error) {
-    console.error("خطأ في حفظ المشتريات:", error);
-    return false;
-  }
-}
-
 
 function openPurchases() {
-  showPage("purchasesPage");
-
-  closePurchaseForm();
-
-  renderPurchases();
+    showPage("purchasesPage");
+    closePurchaseForm();
+    renderPurchases();
 }
-
 
 function openPurchaseForm() {
-  const form = document.getElementById("purchaseForm");
+    const form = document.getElementById("purchaseForm");
 
-  if (!form) {
-    return;
-  }
-
-  form.style.display = "block";
-
-  const item = document.getElementById("purchaseItem");
-  const unit = document.getElementById("purchaseUnit");
-  const quantity = document.getElementById("purchaseQuantity");
-
-  if (item) {
-    item.value = "";
-  }
-
-  if (unit) {
-    unit.value = "";
-  }
-
-  if (quantity) {
-    quantity.value = "";
-  }
-
-  setTimeout(function () {
-    if (item) {
-      item.focus();
+    if (form) {
+        form.style.display = "block";
     }
-  }, 100);
-}
 
+    const item = document.getElementById("purchaseItem");
+
+    if (item) {
+        item.focus();
+    }
+}
 
 function closePurchaseForm() {
-  const form = document.getElementById("purchaseForm");
+    const form = document.getElementById("purchaseForm");
 
-  if (form) {
-    form.style.display = "none";
-  }
+    if (form) {
+        form.style.display = "none";
+    }
+
+    const item = document.getElementById("purchaseItem");
+    const unit = document.getElementById("purchaseUnit");
+    const quantity = document.getElementById("purchaseQuantity");
+
+    if (item) {
+        item.value = "";
+    }
+
+    if (unit) {
+        unit.value = "";
+    }
+
+    if (quantity) {
+        quantity.value = "";
+    }
 }
 
+function getPurchases() {
+    try {
+        const saved = localStorage.getItem(PURCHASES_KEY);
+
+        if (!saved) {
+            return [];
+        }
+
+        const purchases = JSON.parse(saved);
+
+        if (!Array.isArray(purchases)) {
+            return [];
+        }
+
+        return purchases;
+    } catch (error) {
+        console.error("خطأ في قراءة المشتريات:", error);
+        return [];
+    }
+}
+
+function savePurchases(purchases) {
+    try {
+        localStorage.setItem(
+            PURCHASES_KEY,
+            JSON.stringify(purchases)
+        );
+    } catch (error) {
+        console.error("خطأ في حفظ المشتريات:", error);
+        alert("حدث خطأ أثناء حفظ طلب الشراء.");
+    }
+}
 
 function addPurchase() {
-  const itemInput =
-    document.getElementById("purchaseItem");
+    const itemInput = document.getElementById("purchaseItem");
+    const unitInput = document.getElementById("purchaseUnit");
+    const quantityInput = document.getElementById("purchaseQuantity");
 
-  const unitInput =
-    document.getElementById("purchaseUnit");
+    if (!itemInput || !unitInput || !quantityInput) {
+        alert("تعذر العثور على حقول طلب الشراء.");
+        return;
+    }
 
-  const quantityInput =
-    document.getElementById("purchaseQuantity");
+    const item = itemInput.value.trim();
+    const unit = unitInput.value.trim();
+    const quantity = quantityInput.value.trim();
 
-  if (!itemInput || !unitInput || !quantityInput) {
-    alert("تعذر العثور على حقول طلب الشراء.");
-    return;
-  }
+    if (!item) {
+        alert("يرجى كتابة المادة المطلوبة.");
+        itemInput.focus();
+        return;
+    }
 
-  const item = itemInput.value.trim();
-  const unit = unitInput.value.trim();
-  const quantityText = quantityInput.value.trim();
+    if (!unit) {
+        alert("يرجى كتابة الوحدة.");
+        unitInput.focus();
+        return;
+    }
 
-  if (!item) {
-    alert("يرجى إدخال المادة المطلوبة.");
-    itemInput.focus();
-    return;
-  }
+    if (!quantity) {
+        alert("يرجى كتابة العدد.");
+        quantityInput.focus();
+        return;
+    }
 
-  if (!unit) {
-    alert("يرجى إدخال الوحدة.");
-    unitInput.focus();
-    return;
-  }
+    const numericQuantity = Number(quantity);
 
-  if (!quantityText) {
-    alert("يرجى إدخال العدد.");
-    quantityInput.focus();
-    return;
-  }
+    if (!Number.isFinite(numericQuantity) || numericQuantity <= 0) {
+        alert("يرجى إدخال عدد صحيح أو عشري أكبر من صفر.");
+        quantityInput.focus();
+        return;
+    }
 
-  const quantity = Number(quantityText);
+    const purchases = getPurchases();
 
-  if (!Number.isFinite(quantity) || quantity <= 0) {
-    alert("يرجى إدخال عدد أكبر من صفر.");
-    quantityInput.focus();
-    return;
-  }
+    const newPurchase = {
+        id: Date.now().toString(),
+        item: item,
+        unit: unit,
+        quantity: numericQuantity,
+        status: "pending",
+        createdAt: new Date().toISOString(),
+        completedAt: null
+    };
 
-  const purchases = getPurchases();
+    purchases.unshift(newPurchase);
 
-  const newPurchase = {
-    id: Date.now(),
-    item: item,
-    unit: unit,
-    quantity: quantity,
-    status: "pending",
-    createdAt: new Date().toISOString(),
-    completedAt: null
-  };
+    savePurchases(purchases);
 
-  purchases.unshift(newPurchase);
+    closePurchaseForm();
+    renderPurchases();
 
-  const saved = savePurchases(purchases);
-
-  if (!saved) {
-    alert("حدث خطأ أثناء حفظ طلب الشراء.");
-    return;
-  }
-
-  itemInput.value = "";
-  unitInput.value = "";
-  quantityInput.value = "";
-
-  closePurchaseForm();
-
-  renderPurchases();
-
-  alert("تمت إضافة طلب الشراء بنجاح.");
+    alert("تمت إضافة طلب الشراء بنجاح.");
 }
-
 
 function renderPurchases() {
-  const pendingList =
-    document.getElementById("pendingPurchases");
+    const pendingContainer = document.getElementById("pendingPurchases");
+    const completedContainer = document.getElementById("completedPurchases");
 
-  const completedList =
-    document.getElementById("completedPurchases");
+    const pendingCount = document.getElementById("pendingPurchaseCount");
+    const completedCount = document.getElementById("completedPurchaseCount");
 
-  if (!pendingList || !completedList) {
-    return;
-  }
+    const purchases = getPurchases();
 
-  const purchases = getPurchases();
-
-  const pending = purchases.filter(function (purchase) {
-    return purchase.status !== "completed";
-  });
-
-  const completed = purchases.filter(function (purchase) {
-    return purchase.status === "completed";
-  });
-
-  const pendingCount =
-    document.getElementById("pendingPurchaseCount");
-
-  const completedCount =
-    document.getElementById("completedPurchaseCount");
-
-  if (pendingCount) {
-    pendingCount.textContent = pending.length;
-  }
-
-  if (completedCount) {
-    completedCount.textContent = completed.length;
-  }
-
-
-  /* الطلبات الحالية */
-
-  if (pending.length === 0) {
-
-    pendingList.innerHTML =
-      '<div class="empty-purchases">' +
-        '<div class="empty-purchases-icon">🛒</div>' +
-        '<strong>لا توجد طلبات شراء</strong>' +
-        '<span>اضغط على "طلب شراء" لإضافة مادة جديدة</span>' +
-      '</div>';
-
-  } else {
-
-    pendingList.innerHTML = pending
-      .map(function (purchase) {
-        return createPurchaseHTML(purchase);
-      })
-      .join("");
-  }
-
-
-  /* الطلبات المكتملة */
-
-  if (completed.length === 0) {
-
-    completedList.innerHTML =
-      '<div class="empty-purchases completed-empty">' +
-        '<div class="empty-purchases-icon">📦</div>' +
-        '<strong>لا توجد مواد مجهزة</strong>' +
-        '<span>الطلبات التي يتم شراؤها ستظهر هنا</span>' +
-      '</div>';
-
-  } else {
-
-    completedList.innerHTML = completed
-      .map(function (purchase) {
-        return createCompletedPurchaseHTML(purchase);
-      })
-      .join("");
-  }
-}
-
-
-function createPurchaseHTML(purchase) {
-  const safeItem = escapeHTML(purchase.item);
-  const safeUnit = escapeHTML(purchase.unit);
-  const safeQuantity = escapeHTML(String(purchase.quantity));
-  const date = formatPurchaseDate(purchase.createdAt);
-
-  return (
-    '<article class="purchase-card">' +
-
-      '<div class="purchase-card-main">' +
-
-        '<div class="purchase-item-icon">' +
-          '🛒' +
-        '</div>' +
-
-        '<div class="purchase-item-details">' +
-
-          '<h4>' +
-            safeItem +
-          '</h4>' +
-
-          '<div class="purchase-details">' +
-
-            '<span>' +
-              'الوحدة: ' +
-              '<strong>' +
-                safeUnit +
-              '</strong>' +
-            '</span>' +
-
-            '<span>' +
-              'العدد: ' +
-              '<strong>' +
-                safeQuantity +
-              '</strong>' +
-            '</span>' +
-
-          '</div>' +
-
-          '<div class="purchase-created-date">' +
-            date +
-          '</div>' +
-
-        '</div>' +
-
-      '</div>' +
-
-      '<button ' +
-        'type="button" ' +
-        'class="purchase-complete-button" ' +
-        'onclick="completePurchase(' + purchase.id + ')" ' +
-        'title="تأشير الطلب بأنه تم الشراء">' +
-
-        '<span class="purchase-check-icon">✓</span>' +
-
-        '<span>تم الشراء</span>' +
-
-      '</button>' +
-
-    '</article>'
-  );
-}
-
-
-function createCompletedPurchaseHTML(purchase) {
-  const safeItem = escapeHTML(purchase.item);
-  const safeUnit = escapeHTML(purchase.unit);
-  const safeQuantity = escapeHTML(String(purchase.quantity));
-  const date = formatPurchaseDate(purchase.completedAt);
-
-  return (
-    '<article class="purchase-card completed-purchase-card">' +
-
-      '<div class="purchase-card-main">' +
-
-        '<div class="purchase-item-icon completed-purchase-icon">' +
-          '✓' +
-        '</div>' +
-
-        '<div class="purchase-item-details">' +
-
-          '<h4>' +
-            safeItem +
-          '</h4>' +
-
-          '<div class="purchase-details">' +
-
-            '<span>' +
-              'الوحدة: ' +
-              '<strong>' +
-                safeUnit +
-              '</strong>' +
-            '</span>' +
-
-            '<span>' +
-              'العدد: ' +
-              '<strong>' +
-                safeQuantity +
-              '</strong>' +
-            '</span>' +
-
-          '</div>' +
-
-          '<div class="purchase-completed-label">' +
-            '✓ تم تجهيزه' +
-          '</div>' +
-
-          '<div class="purchase-created-date">' +
-            'تم الشراء: ' + date +
-          '</div>' +
-
-        '</div>' +
-
-      '</div>' +
-
-      '<button ' +
-        'type="button" ' +
-        'class="purchase-return-button" ' +
-        'onclick="returnPurchase(' + purchase.id + ')" ' +
-        'title="إرجاع الطلب">' +
-
-        '↩' +
-
-      '</button>' +
-
-    '</article>'
-  );
-}
-
-
-function completePurchase(purchaseId) {
-  const purchases = getPurchases();
-
-  const purchase = purchases.find(function (item) {
-    return item.id === purchaseId;
-  });
-
-  if (!purchase) {
-    return;
-  }
-
-  const confirmed = confirm(
-    'هل تم شراء المادة "' +
-    purchase.item +
-    '"؟'
-  );
-
-  if (!confirmed) {
-    return;
-  }
-
-  purchase.status = "completed";
-  purchase.completedAt = new Date().toISOString();
-
-  const saved = savePurchases(purchases);
-
-  if (!saved) {
-    alert("حدث خطأ أثناء تحديث الطلب.");
-    return;
-  }
-
-  renderPurchases();
-}
-
-
-function returnPurchase(purchaseId) {
-  const purchases = getPurchases();
-
-  const purchase = purchases.find(function (item) {
-    return item.id === purchaseId;
-  });
-
-  if (!purchase) {
-    return;
-  }
-
-  const confirmed = confirm(
-    "هل تريد إعادة هذه المادة إلى طلبات الشراء؟"
-  );
-
-  if (!confirmed) {
-    return;
-  }
-
-  purchase.status = "pending";
-  purchase.completedAt = null;
-
-  const saved = savePurchases(purchases);
-
-  if (!saved) {
-    alert("حدث خطأ أثناء إعادة الطلب.");
-    return;
-  }
-
-  renderPurchases();
-}
-
-
-function formatPurchaseDate(dateString) {
-  if (!dateString) {
-    return "";
-  }
-
-  try {
-    const date = new Date(dateString);
-
-    if (Number.isNaN(date.getTime())) {
-      return "";
-    }
-
-    return date.toLocaleString("ar-IQ", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit"
+    const pendingPurchases = purchases.filter(function(purchase) {
+        return purchase.status !== "completed";
     });
 
-  } catch (error) {
-    return "";
-  }
-}
+    const completedPurchases = purchases.filter(function(purchase) {
+        return purchase.status === "completed";
+    });
 
-
-/* =========================================================
-   REPORTS
-========================================================= */
-
-const REPORTS_KEY =
-  "nawafth_albnaa_daily_reports";
-
-
-function getReports() {
-  try {
-    const savedReports =
-      localStorage.getItem(REPORTS_KEY);
-
-    if (!savedReports) {
-      return [];
+    if (pendingCount) {
+        pendingCount.textContent = pendingPurchases.length;
     }
 
-    const reports =
-      JSON.parse(savedReports);
-
-    if (!Array.isArray(reports)) {
-      return [];
+    if (completedCount) {
+        completedCount.textContent = completedPurchases.length;
     }
 
-    return reports;
+    if (pendingContainer) {
+        if (pendingPurchases.length === 0) {
+            pendingContainer.innerHTML =
+                '<div class="empty-purchases">' +
+                '<div class="empty-purchases-icon">🛒</div>' +
+                '<p>لا توجد طلبات شراء حالياً</p>' +
+                '<span>اضغط على "طلب شراء" لإضافة مادة جديدة</span>' +
+                '</div>';
+        } else {
+            pendingContainer.innerHTML = "";
 
-  } catch (error) {
-    console.error(
-      "خطأ في قراءة التقارير:",
-      error
+            pendingPurchases.forEach(function(purchase) {
+                pendingContainer.insertAdjacentHTML(
+                    "beforeend",
+                    createPurchaseHTML(purchase)
+                );
+            });
+        }
+    }
+
+    if (completedContainer) {
+        if (completedPurchases.length === 0) {
+            completedContainer.innerHTML =
+                '<div class="empty-purchases completed-empty">' +
+                '<div class="empty-purchases-icon">📦</div>' +
+                '<p>لا توجد مواد تم تجهيزها</p>' +
+                '<span>الطلبات التي يتم شراؤها ستظهر هنا</span>' +
+                '</div>';
+        } else {
+            completedContainer.innerHTML = "";
+
+            completedPurchases.forEach(function(purchase) {
+                completedContainer.insertAdjacentHTML(
+                    "beforeend",
+                    createCompletedPurchaseHTML(purchase)
+                );
+            });
+        }
+    }
+}
+
+function createPurchaseHTML(purchase) {
+    const item = escapeHTML(purchase.item);
+    const unit = escapeHTML(purchase.unit);
+
+    const quantity = escapeHTML(
+        String(purchase.quantity)
     );
 
-    return [];
-  }
-}
-
-
-function saveReports(reports) {
-  try {
-    localStorage.setItem(
-      REPORTS_KEY,
-      JSON.stringify(reports)
+    const date = formatPurchaseDate(
+        purchase.createdAt
     );
 
-    return true;
+    return (
+        '<div class="purchase-card pending-purchase">' +
 
-  } catch (error) {
-    console.error(
-      "خطأ في حفظ التقارير:",
-      error
-    );
+        '<div class="purchase-card-main">' +
 
-    return false;
-  }
-}
+        '<div class="purchase-card-icon">🛒</div>' +
 
+        '<div class="purchase-card-info">' +
 
-function openReports() {
-  showPage("reportsPage");
-  renderReports();
-}
+        '<h4>' + item + '</h4>' +
 
+        '<div class="purchase-details">' +
 
-function openAddReport() {
-  showPage("addReportPage");
-  prepareReportForm();
-}
+        '<span>' +
+        '<strong>الوحدة:</strong> ' +
+        unit +
+        '</span>' +
 
+        '<span>' +
+        '<strong>العدد:</strong> ' +
+        quantity +
+        '</span>' +
 
-function prepareReportForm() {
-  const dayInput =
-    document.getElementById("reportDay");
+        '</div>' +
 
-  const dateInput =
-    document.getElementById("reportDate");
+        '<small>تاريخ الطلب: ' +
+        date +
+        '</small>' +
 
-  if (
-    dateInput &&
-    !dateInput.value
-  ) {
-
-    const today = new Date();
-
-    const year = today.getFullYear();
-
-    const month =
-      String(today.getMonth() + 1)
-        .padStart(2, "0");
-
-    const day =
-      String(today.getDate())
-        .padStart(2, "0");
-
-    dateInput.value =
-      year + "-" +
-      month + "-" +
-      day;
-  }
-
-  if (
-    dateInput &&
-    dayInput &&
-    dateInput.value
-  ) {
-    updateDayFromDate();
-  }
-
-  if (dateInput) {
-    dateInput.onchange =
-      updateDayFromDate;
-  }
-}
-
-
-function updateDayFromDate() {
-  const dateInput =
-    document.getElementById("reportDate");
-
-  const dayInput =
-    document.getElementById("reportDay");
-
-  if (
-    !dateInput ||
-    !dayInput ||
-    !dateInput.value
-  ) {
-    return;
-  }
-
-  const date =
-    new Date(
-      dateInput.value +
-      "T12:00:00"
-    );
-
-  const days = [
-    "الأحد",
-    "الاثنين",
-    "الثلاثاء",
-    "الأربعاء",
-    "الخميس",
-    "الجمعة",
-    "السبت"
-  ];
-
-  dayInput.value =
-    days[date.getDay()];
-}
-
-
-function saveReport() {
-  const dayInput =
-    document.getElementById("reportDay");
-
-  const dateInput =
-    document.getElementById("reportDate");
-
-  const textInput =
-    document.getElementById("reportText");
-
-  if (
-    !dayInput ||
-    !dateInput ||
-    !textInput
-  ) {
-    return;
-  }
-
-  const day =
-    dayInput.value.trim();
-
-  const date =
-    dateInput.value.trim();
-
-  const text =
-    textInput.value.trim();
-
-  if (!day) {
-    alert("يرجى اختيار اليوم.");
-    dayInput.focus();
-    return;
-  }
-
-  if (!date) {
-    alert("يرجى اختيار التاريخ.");
-    dateInput.focus();
-    return;
-  }
-
-  if (!text) {
-    alert("يرجى كتابة التقرير.");
-    textInput.focus();
-    return;
-  }
-
-  const reports = getReports();
-
-  const newReport = {
-    id: Date.now(),
-    day: day,
-    date: date,
-    text: text,
-    createdAt: new Date().toISOString()
-  };
-
-  reports.unshift(newReport);
-
-  const saved =
-    saveReports(reports);
-
-  if (!saved) {
-    alert("حدث خطأ أثناء حفظ التقرير.");
-    return;
-  }
-
-  dayInput.value = "";
-  dateInput.value = "";
-  textInput.value = "";
-
-  alert("تم حفظ التقرير بنجاح.");
-
-  openReports();
-}
-
-
-function renderReports() {
-  const reportsList =
-    document.getElementById("reportsList");
-
-  if (!reportsList) {
-    return;
-  }
-
-  const reports = getReports();
-
-  if (reports.length === 0) {
-
-    reportsList.innerHTML =
-      '<div class="empty-reports">' +
-        '<div class="empty-reports-icon">📋</div>' +
-        '<strong>لا توجد تقارير حالياً</strong>' +
-        '<span>اضغط على "إضافة تقرير" لإنشاء أول تقرير</span>' +
-      '</div>';
-
-    return;
-  }
-
-  reportsList.innerHTML =
-    reports
-      .map(function (report) {
-        return createReportHTML(report);
-      })
-      .join("");
-}
-
-
-function createReportHTML(report) {
-  const safeDay =
-    escapeHTML(report.day);
-
-  const safeDate =
-    formatDate(report.date);
-
-  const safeText =
-    escapeHTML(report.text);
-
-  return (
-    '<article class="report-card">' +
-
-      '<div class="report-card-header">' +
-
-        '<div class="report-date-box">' +
-
-          '<div class="report-date-icon">' +
-            '📅' +
-          '</div>' +
-
-          '<div class="report-date-text">' +
-
-            '<strong>' +
-              safeDay +
-            '</strong>' +
-
-            '<span>' +
-              safeDate +
-            '</span>' +
-
-          '</div>' +
+        '</div>' +
 
         '</div>' +
 
         '<button ' +
-          'type="button" ' +
-          'class="delete-report-button" ' +
-          'onclick="deleteReport(' + report.id + ')" ' +
-          'aria-label="حذف التقرير">' +
-          '🗑️' +
+        'type="button" ' +
+        'class="complete-purchase-button" ' +
+        'onclick="completePurchase(\'' +
+        purchase.id +
+        '\')">' +
+
+        '<span>✓</span>' +
+        '<span>تم الشراء</span>' +
+
         '</button>' +
 
-      '</div>' +
-
-      '<div class="report-body">' +
-
-        '<div class="report-body-title">' +
-          'تفاصيل التقرير' +
-        '</div>' +
-
-        '<div class="report-body-text">' +
-          safeText +
-        '</div>' +
-
-      '</div>' +
-
-    '</article>'
-  );
+        '</div>'
+    );
 }
 
+function createCompletedPurchaseHTML(purchase) {
+    const item = escapeHTML(purchase.item);
+    const unit = escapeHTML(purchase.unit);
 
-function formatDate(dateString) {
-  if (!dateString) {
-    return "";
-  }
-
-  const parts =
-    dateString.split("-");
-
-  if (parts.length !== 3) {
-    return escapeHTML(dateString);
-  }
-
-  return (
-    parts[2] +
-    "/" +
-    parts[1] +
-    "/" +
-    parts[0]
-  );
-}
-
-
-function deleteReport(reportId) {
-  const confirmed =
-    confirm(
-      "هل أنت متأكد من حذف هذا التقرير؟"
+    const quantity = escapeHTML(
+        String(purchase.quantity)
     );
 
-  if (!confirmed) {
-    return;
-  }
+    const date = formatPurchaseDate(
+        purchase.completedAt || purchase.createdAt
+    );
 
-  let reports = getReports();
+    return (
+        '<div class="purchase-card completed-purchase">' +
 
-  reports =
-    reports.filter(function (report) {
-      return report.id !== reportId;
+        '<div class="purchase-card-main">' +
+
+        '<div class="purchase-card-icon completed-icon">✓</div>' +
+
+        '<div class="purchase-card-info">' +
+
+        '<h4>' + item + '</h4>' +
+
+        '<div class="purchase-details">' +
+
+        '<span>' +
+        '<strong>الوحدة:</strong> ' +
+        unit +
+        '</span>' +
+
+        '<span>' +
+        '<strong>العدد:</strong> ' +
+        quantity +
+        '</span>' +
+
+        '</div>' +
+
+        '<small>تم التجهيز: ' +
+        date +
+        '</small>' +
+
+        '</div>' +
+
+        '</div>' +
+
+        '<button ' +
+        'type="button" ' +
+        'class="return-purchase-button" ' +
+        'onclick="returnPurchase(\'' +
+        purchase.id +
+        '\')">' +
+
+        '<span>↩</span>' +
+        '<span>إرجاع</span>' +
+
+        '</button>' +
+
+        '</div>'
+    );
+}
+
+function completePurchase(id) {
+    const purchases = getPurchases();
+
+    const purchase = purchases.find(function(item) {
+        return item.id === id;
     });
 
-  saveReports(reports);
+    if (!purchase) {
+        return;
+    }
 
-  renderReports();
+    const confirmed = confirm(
+        'هل تم شراء المادة "' +
+        purchase.item +
+        '"؟'
+    );
+
+    if (!confirmed) {
+        return;
+    }
+
+    purchase.status = "completed";
+    purchase.completedAt = new Date().toISOString();
+
+    savePurchases(purchases);
+    renderPurchases();
 }
 
+function returnPurchase(id) {
+    const purchases = getPurchases();
 
-/* =========================================================
-   SECURITY
-========================================================= */
+    const purchase = purchases.find(function(item) {
+        return item.id === id;
+    });
+
+    if (!purchase) {
+        return;
+    }
+
+    const confirmed = confirm(
+        'هل تريد إرجاع المادة "' +
+        purchase.item +
+        '" إلى طلبات الشراء؟'
+    );
+
+    if (!confirmed) {
+        return;
+    }
+
+    purchase.status = "pending";
+    purchase.completedAt = null;
+
+    savePurchases(purchases);
+    renderPurchases();
+}
+
+function formatPurchaseDate(dateString) {
+    if (!dateString) {
+        return "";
+    }
+
+    const date = new Date(dateString);
+
+    if (Number.isNaN(date.getTime())) {
+        return "";
+    }
+
+    return date.toLocaleDateString("ar-IQ", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit"
+    });
+}
+
+function getReports() {
+    try {
+        const saved = localStorage.getItem(REPORTS_KEY);
+
+        if (!saved) {
+            return [];
+        }
+
+        const reports = JSON.parse(saved);
+
+        if (!Array.isArray(reports)) {
+            return [];
+        }
+
+        return reports;
+    } catch (error) {
+        console.error("خطأ في قراءة التقارير:", error);
+        return [];
+    }
+}
+
+function saveReports(reports) {
+    try {
+        localStorage.setItem(
+            REPORTS_KEY,
+            JSON.stringify(reports)
+        );
+    } catch (error) {
+        console.error("خطأ في حفظ التقارير:", error);
+        alert("حدث خطأ أثناء حفظ التقرير.");
+    }
+}
+
+function openReports() {
+    showPage("reportsPage");
+    renderReports();
+}
+
+function openAddReport() {
+    showPage("addReportPage");
+    prepareReportForm();
+}
+
+function prepareReportForm() {
+    const dateInput = document.getElementById("reportDate");
+    const dayInput = document.getElementById("reportDay");
+    const textInput = document.getElementById("reportText");
+
+    if (dateInput) {
+        const today = new Date();
+
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, "0");
+        const day = String(today.getDate()).padStart(2, "0");
+
+        dateInput.value =
+            year + "-" + month + "-" + day;
+
+        updateDayFromDate();
+    }
+
+    if (dayInput && !dayInput.value) {
+        updateDayFromDate();
+    }
+
+    if (textInput) {
+        textInput.value = "";
+    }
+}
+
+function updateDayFromDate() {
+    const dateInput = document.getElementById("reportDate");
+    const dayInput = document.getElementById("reportDay");
+
+    if (!dateInput || !dayInput || !dateInput.value) {
+        return;
+    }
+
+    const date = new Date(
+        dateInput.value + "T00:00:00"
+    );
+
+    if (Number.isNaN(date.getTime())) {
+        return;
+    }
+
+    const days = [
+        "الأحد",
+        "الاثنين",
+        "الثلاثاء",
+        "الأربعاء",
+        "الخميس",
+        "الجمعة",
+        "السبت"
+    ];
+
+    dayInput.value = days[date.getDay()];
+}
+
+function saveReport() {
+    const dateInput = document.getElementById("reportDate");
+    const dayInput = document.getElementById("reportDay");
+    const textInput = document.getElementById("reportText");
+
+    if (!dateInput || !dayInput || !textInput) {
+        alert("تعذر العثور على حقول التقرير.");
+        return;
+    }
+
+    const date = dateInput.value;
+    const day = dayInput.value.trim();
+    const text = textInput.value.trim();
+
+    if (!date) {
+        alert("يرجى اختيار تاريخ التقرير.");
+        return;
+    }
+
+    if (!text) {
+        alert("يرجى كتابة تفاصيل التقرير.");
+        textInput.focus();
+        return;
+    }
+
+    const reports = getReports();
+
+    const newReport = {
+        id: Date.now().toString(),
+        date: date,
+        day: day,
+        text: text,
+        createdAt: new Date().toISOString()
+    };
+
+    reports.unshift(newReport);
+
+    saveReports(reports);
+
+    openReports();
+
+    alert("تم حفظ التقرير بنجاح.");
+}
+
+function renderReports() {
+    const container = document.getElementById("reportsList");
+
+    if (!container) {
+        return;
+    }
+
+    const reports = getReports();
+
+    if (reports.length === 0) {
+        container.innerHTML =
+            '<div class="empty-reports">' +
+            '<div class="empty-reports-icon">📋</div>' +
+            '<h3>لا توجد تقارير</h3>' +
+            '<p>اضغط على إضافة تقرير لإنشاء أول تقرير يومي.</p>' +
+            '</div>';
+
+        return;
+    }
+
+    container.innerHTML = "";
+
+    reports.forEach(function(report) {
+        container.insertAdjacentHTML(
+            "beforeend",
+            createReportHTML(report)
+        );
+    });
+}
+
+function createReportHTML(report) {
+    const day = escapeHTML(report.day || "");
+    const text = escapeHTML(report.text || "");
+    const date = formatDate(report.date);
+
+    return (
+        '<div class="report-card">' +
+
+        '<div class="report-card-header">' +
+
+        '<div>' +
+        '<span class="report-day">' +
+        day +
+        '</span>' +
+        '<span class="report-date">' +
+        date +
+        '</span>' +
+        '</div>' +
+
+        '<button ' +
+        'type="button" ' +
+        'class="delete-report-button" ' +
+        'onclick="deleteReport(\'' +
+        report.id +
+        '\')">' +
+        'حذف' +
+        '</button>' +
+
+        '</div>' +
+
+        '<div class="report-card-body">' +
+        text +
+        '</div>' +
+
+        '</div>'
+    );
+}
+
+function formatDate(dateString) {
+    if (!dateString) {
+        return "";
+    }
+
+    const date = new Date(
+        dateString + "T00:00:00"
+    );
+
+    if (Number.isNaN(date.getTime())) {
+        return dateString;
+    }
+
+    return date.toLocaleDateString("ar-IQ", {
+        year: "numeric",
+        month: "long",
+        day: "numeric"
+    });
+}
+
+function deleteReport(id) {
+    const reports = getReports();
+
+    const report = reports.find(function(item) {
+        return item.id === id;
+    });
+
+    if (!report) {
+        return;
+    }
+
+    const confirmed = confirm(
+        "هل تريد حذف هذا التقرير؟"
+    );
+
+    if (!confirmed) {
+        return;
+    }
+
+    const filteredReports = reports.filter(function(item) {
+        return item.id !== id;
+    });
+
+    saveReports(filteredReports);
+    renderReports();
+}
 
 function escapeHTML(value) {
-  return String(value)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
+    return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
 }
 
+document.addEventListener("DOMContentLoaded", function() {
+    renderPurchases();
+    renderReports();
 
-/* =========================================================
-   PREVENT DOUBLE TAP ZOOM
-========================================================= */
+    const reportDate = document.getElementById("reportDate");
+
+    if (reportDate) {
+        reportDate.addEventListener(
+            "change",
+            updateDayFromDate
+        );
+    }
+});
 
 document.addEventListener(
-  "dblclick",
-  function (event) {
-    event.preventDefault();
-  },
-  {
-    passive: false
-  }
+    "touchend",
+    function(event) {
+        const now = Date.now();
+
+        if (
+            window.lastTouchEnd &&
+            now - window.lastTouchEnd <= 300
+        ) {
+            event.preventDefault();
+        }
+
+        window.lastTouchEnd = now;
+    },
+    false
 );
