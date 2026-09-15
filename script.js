@@ -1,521 +1,38 @@
 /* =========================================================
-   GENERAL
+   PAGE NAVIGATION
 ========================================================= */
 
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
+function showPage(pageId) {
 
-html {
-  scroll-behavior: smooth;
-}
+  const pages = document.querySelectorAll(".page");
 
-body {
-  min-height: 100vh;
+  pages.forEach(function (page) {
+    page.classList.remove("active");
+  });
 
-  background: #d7dcda;
+  const selectedPage = document.getElementById(pageId);
 
-  color: #26312b;
+  if (selectedPage) {
 
-  font-family:
-    -apple-system,
-    BlinkMacSystemFont,
-    "SF Pro Display",
-    "SF Pro Text",
-    "Helvetica Neue",
-    "Segoe UI",
-    Tahoma,
-    Arial,
-    sans-serif;
+    selectedPage.classList.add("active");
 
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth"
+    });
 
-
-/* =========================================================
-   APP
-========================================================= */
-
-.iphone-app {
-  width: 100%;
-  max-width: 430px;
-  min-height: 100vh;
-
-  margin: 0 auto;
-
-  background: #f4f6f5;
-
-  overflow: hidden;
-
-  box-shadow:
-    0 0 45px rgba(0, 0, 0, 0.12);
-}
-
-
-/* =========================================================
-   HEADER
-========================================================= */
-
-.app-header {
-  position: relative;
-
-  padding: 22px 18px 25px;
-
-  color: #ffffff;
-
-  background:
-    linear-gradient(
-      145deg,
-      #176b45,
-      #124f35
-    );
-
-  border-radius: 0 0 30px 30px;
-
-  box-shadow:
-    0 8px 22px rgba(18, 79, 53, 0.20);
-}
-
-
-/* =========================================================
-   COMPANY TOP
-========================================================= */
-
-.top-line {
-  display: flex;
-
-  align-items: center;
-
-  gap: 13px;
-}
-
-
-/* =========================================================
-   LOGO
-========================================================= */
-
-.company-logo {
-  width: 60px;
-  height: 60px;
-
-  flex-shrink: 0;
-
-  display: flex;
-
-  align-items: center;
-  justify-content: center;
-
-  background: #ffffff;
-
-  border-radius: 18px;
-
-  overflow: hidden;
-
-  border: 2px solid rgba(255, 255, 255, 0.85);
-
-  box-shadow:
-    0 6px 16px rgba(0, 0, 0, 0.15);
-}
-
-.company-logo img {
-  width: 100%;
-  height: 100%;
-
-  object-fit: cover;
-
-  display: block;
-}
-
-
-/* =========================================================
-   COMPANY NAME
-========================================================= */
-
-.company-name {
-  display: flex;
-
-  flex-direction: column;
-
-  gap: 4px;
-
-  min-width: 0;
-}
-
-.company-name h1 {
-  font-size: 19px;
-
-  line-height: 1.25;
-
-  font-weight: 800;
-
-  letter-spacing: -0.3px;
-}
-
-.company-name span {
-  font-size: 10px;
-
-  opacity: 0.82;
-
-  direction: ltr;
-
-  text-align: right;
-}
-
-
-/* =========================================================
-   HEADER WELCOME
-========================================================= */
-
-.header-welcome {
-  margin-top: 23px;
-
-  display: flex;
-
-  flex-direction: column;
-
-  gap: 4px;
-}
-
-.header-welcome span {
-  font-size: 11px;
-
-  opacity: 0.72;
-}
-
-.header-welcome strong {
-  font-size: 22px;
-
-  font-weight: 800;
-}
-
-
-/* =========================================================
-   PAGES
-========================================================= */
-
-.page {
-  display: none;
-
-  padding-top: 4px;
-
-  animation:
-    pageIn 0.25s ease;
-}
-
-.page.active {
-  display: block;
-}
-
-
-@keyframes pageIn {
-
-  from {
-    opacity: 0;
-
-    transform:
-      translateY(8px);
   }
-
-  to {
-    opacity: 1;
-
-    transform:
-      translateY(0);
-  }
-
 }
 
 
 /* =========================================================
-   INTRO
+   HOME
 ========================================================= */
 
-.intro {
-  padding: 23px 18px 17px;
-}
+function goHome() {
 
-.intro span {
-  color: #176b45;
+  showPage("homePage");
 
-  font-size: 11px;
-
-  font-weight: 700;
-}
-
-.intro h2 {
-  margin-top: 5px;
-
-  color: #25312b;
-
-  font-size: 24px;
-
-  font-weight: 850;
-
-  letter-spacing: -0.5px;
-}
-
-.intro p {
-  margin-top: 5px;
-
-  color: #89928d;
-
-  font-size: 12px;
-
-  line-height: 1.6;
-}
-
-
-/* =========================================================
-   MAIN GRID
-========================================================= */
-
-.main-grid {
-  display: grid;
-
-  grid-template-columns:
-    repeat(2, 1fr);
-
-  gap: 13px;
-
-  padding: 0 16px;
-}
-
-
-/* =========================================================
-   MAIN CARD
-========================================================= */
-
-.main-card {
-  min-height: 174px;
-
-  padding: 17px;
-
-  border: 1px solid #e1e6e3;
-
-  border-radius: 23px;
-
-  background: #ffffff;
-
-  text-align: right;
-
-  cursor: pointer;
-
-  box-shadow:
-    0 5px 16px rgba(30, 45, 37, 0.06);
-
-  transition:
-    transform 0.15s ease,
-    box-shadow 0.15s ease;
-
-  font-family: inherit;
-
-  appearance: none;
-}
-
-.main-card:active {
-  transform: scale(0.97);
-
-  box-shadow:
-    0 2px 8px rgba(30, 45, 37, 0.08);
-}
-
-
-/* =========================================================
-   CARD TOP
-========================================================= */
-
-.card-top {
-  display: flex;
-
-  align-items: center;
-
-  justify-content: space-between;
-}
-
-
-/* =========================================================
-   MAIN ICON
-========================================================= */
-
-.main-icon {
-  width: 52px;
-  height: 52px;
-
-  display: flex;
-
-  align-items: center;
-  justify-content: center;
-
-  border-radius: 17px;
-
-  font-size: 25px;
-}
-
-.main-icon.green {
-  background: #e2f0e9;
-}
-
-.main-icon.gray {
-  background: #edf0ef;
-}
-
-
-/* =========================================================
-   CARD ARROW
-========================================================= */
-
-.card-arrow {
-  width: 30px;
-  height: 30px;
-
-  display: flex;
-
-  align-items: center;
-  justify-content: center;
-
-  border-radius: 50%;
-
-  background: #f1f4f2;
-
-  color: #176b45;
-
-  font-size: 15px;
-
-  font-weight: 800;
-}
-
-
-/* =========================================================
-   CARD TEXT
-========================================================= */
-
-.card-text {
-  margin-top: 27px;
-}
-
-.card-text h3 {
-  color: #26312b;
-
-  font-size: 16px;
-
-  font-weight: 800;
-}
-
-.card-text p {
-  margin-top: 5px;
-
-  color: #929a96;
-
-  font-size: 10px;
-
-  line-height: 1.5;
-}
-
-
-/* =========================================================
-   COMPANY INFO
-========================================================= */
-
-.company-info {
-  margin: 19px 16px 25px;
-
-  padding: 14px;
-
-  display: flex;
-
-  align-items: center;
-
-  gap: 12px;
-
-  background:
-    linear-gradient(
-      145deg,
-      #ffffff,
-      #f7f9f8
-    );
-
-  border: 1px solid #dfe5e2;
-
-  border-radius: 20px;
-
-  box-shadow:
-    0 5px 16px rgba(30, 45, 37, 0.05);
-}
-
-.company-info-icon {
-  width: 44px;
-  height: 44px;
-
-  flex-shrink: 0;
-
-  display: flex;
-
-  align-items: center;
-  justify-content: center;
-
-  border-radius: 14px;
-
-  background: #e2f0e9;
-
-  color: #176b45;
-
-  border: 1px solid #d1e6da;
-
-  font-size: 18px;
-
-  font-weight: 900;
-}
-
-.company-info-text {
-  display: flex;
-
-  flex-direction: column;
-
-  gap: 3px;
-}
-
-.company-info-text strong {
-  color: #26312b;
-
-  font-size: 13px;
-
-  font-weight: 800;
-}
-
-.company-info-text span {
-  color: #8a938f;
-
-  font-size: 10px;
-}
-
-
-/* =========================================================
-   NAVIGATION
-========================================================= */
-
-.navigation {
-  padding: 18px 16px 0;
-}
-
-.navigation button {
-  border: none;
-
-  background: transparent;
-
-  color: #176b45;
-
-  font-family: inherit;
-
-  font-size: 13px;
-
-  font-weight: 750;
-
-  cursor: pointer;
-
-  padding: 7px 0;
 }
 
 
@@ -523,281 +40,616 @@ body {
    STORAGE
 ========================================================= */
 
-.storage-list {
-  display: flex;
+function openStorage() {
 
-  flex-direction: column;
+  showPage("storagePage");
 
-  gap: 11px;
-
-  padding: 0 16px 25px;
-}
-
-.storage-card {
-  width: 100%;
-
-  min-height: 78px;
-
-  padding: 12px 14px;
-
-  display: flex;
-
-  align-items: center;
-
-  gap: 12px;
-
-  border: 1px solid #e0e5e2;
-
-  border-radius: 19px;
-
-  background: #ffffff;
-
-  cursor: pointer;
-
-  font-family: inherit;
-
-  text-align: right;
-
-  box-shadow:
-    0 4px 13px rgba(30, 45, 37, 0.05);
-
-  transition:
-    transform 0.15s ease;
-}
-
-.storage-card:active {
-  transform: scale(0.98);
-}
-
-.storage-icon {
-  width: 47px;
-  height: 47px;
-
-  flex-shrink: 0;
-
-  display: flex;
-
-  align-items: center;
-  justify-content: center;
-
-  border-radius: 15px;
-
-  font-size: 22px;
-}
-
-.storage-icon.green {
-  background: #e2f0e9;
-}
-
-.storage-icon.gray {
-  background: #edf0ef;
-}
-
-.storage-text {
-  flex: 1;
-}
-
-.storage-text h3 {
-  color: #26312b;
-
-  font-size: 14px;
-
-  font-weight: 800;
-}
-
-.storage-text p {
-  margin-top: 3px;
-
-  color: #929a96;
-
-  font-size: 10px;
-}
-
-.storage-card > span {
-  color: #176b45;
-
-  font-size: 17px;
-
-  font-weight: 800;
 }
 
 
 /* =========================================================
-   REPORT ADD BUTTON
+   TEMPORARY SECTIONS
 ========================================================= */
 
-.report-add-container {
-  padding:
-    0 16px 15px;
+function showMessage(name) {
+
+  alert(
+    "تم اختيار قسم: " +
+    name +
+    "\n\nسيتم إضافة محتوى هذا القسم لاحقاً."
+  );
+
 }
 
-.add-report-button {
-  width: 100%;
 
-  min-height: 58px;
+/* =========================================================
+   REPORT STORAGE KEY
+========================================================= */
 
-  display: flex;
+const REPORTS_KEY = "nawafth_albnaa_daily_reports";
 
-  align-items: center;
 
-  justify-content: center;
+/* =========================================================
+   GET REPORTS
+========================================================= */
 
-  gap: 10px;
+function getReports() {
 
-  border: none;
+  try {
 
-  border-radius: 18px;
+    const savedReports =
+      localStorage.getItem(REPORTS_KEY);
 
-  background:
-    linear-gradient(
-      145deg,
-      #176b45,
-      #124f35
+    if (!savedReports) {
+
+      return [];
+
+    }
+
+    return JSON.parse(savedReports);
+
+  } catch (error) {
+
+    console.error(
+      "خطأ في قراءة التقارير:",
+      error
     );
 
-  color: #ffffff;
+    return [];
 
-  font-family: inherit;
+  }
 
-  font-size: 14px;
-
-  font-weight: 800;
-
-  cursor: pointer;
-
-  box-shadow:
-    0 7px 16px
-    rgba(23, 107, 69, 0.20);
-
-  transition:
-    transform 0.15s ease;
-}
-
-.add-report-button:active {
-  transform: scale(0.98);
-}
-
-.add-report-icon {
-  width: 29px;
-  height: 29px;
-
-  display: flex;
-
-  align-items: center;
-  justify-content: center;
-
-  border-radius: 50%;
-
-  background:
-    rgba(255, 255, 255, 0.18);
-
-  font-size: 20px;
-
-  line-height: 1;
 }
 
 
 /* =========================================================
-   REPORTS LIST
+   SAVE REPORTS
 ========================================================= */
 
-.reports-list {
-  display: flex;
+function saveReports(reports) {
 
-  flex-direction: column;
+  try {
 
-  gap: 12px;
+    localStorage.setItem(
+      REPORTS_KEY,
+      JSON.stringify(reports)
+    );
 
-  padding:
-    0 16px 25px;
+    return true;
+
+  } catch (error) {
+
+    console.error(
+      "خطأ في حفظ التقارير:",
+      error
+    );
+
+    return false;
+
+  }
+
 }
 
 
 /* =========================================================
-   REPORT CARD
+   OPEN REPORTS
 ========================================================= */
 
-.report-card {
-  padding: 16px;
+function openReports() {
 
-  background: #ffffff;
+  showPage("reportsPage");
 
-  border:
-    1px solid
-    #e0e5e2;
+  renderReports();
 
-  border-radius: 20px;
-
-  box-shadow:
-    0 5px 15px
-    rgba(30, 45, 37, 0.055);
 }
 
 
 /* =========================================================
-   REPORT HEADER
+   OPEN ADD REPORT
 ========================================================= */
 
-.report-card-header {
-  display: flex;
+function openAddReport() {
 
-  align-items: center;
+  showPage("addReportPage");
 
-  justify-content: space-between;
+  prepareReportForm();
 
-  gap: 10px;
-
-  padding-bottom: 12px;
-
-  border-bottom:
-    1px solid
-    #edf0ee;
 }
 
-.report-date-box {
-  display: flex;
 
-  align-items: center;
+/* =========================================================
+   PREPARE REPORT FORM
+========================================================= */
 
-  gap: 10px;
+function prepareReportForm() {
+
+  const dayInput =
+    document.getElementById("reportDay");
+
+  const dateInput =
+    document.getElementById("reportDate");
+
+  const textInput =
+    document.getElementById("reportText");
+
+
+  /*
+     إذا الحقول فارغة،
+     نضع تاريخ اليوم تلقائياً
+  */
+
+  if (
+    dateInput &&
+    !dateInput.value
+  ) {
+
+    const today =
+      new Date();
+
+    const year =
+      today.getFullYear();
+
+    const month =
+      String(
+        today.getMonth() + 1
+      ).padStart(2, "0");
+
+    const day =
+      String(
+        today.getDate()
+      ).padStart(2, "0");
+
+    dateInput.value =
+      `${year}-${month}-${day}`;
+
+  }
+
+
+  /*
+     اختيار اليوم تلقائياً
+     حسب التاريخ
+  */
+
+  if (
+    dateInput &&
+    dayInput &&
+    dateInput.value
+  ) {
+
+    updateDayFromDate();
+
+  }
+
+
+  /*
+     عند تغيير التاريخ
+     يتغير اليوم تلقائياً
+  */
+
+  if (dateInput) {
+
+    dateInput.onchange =
+      updateDayFromDate;
+
+  }
+
 }
 
-.report-date-icon {
-  width: 42px;
-  height: 42px;
 
-  display: flex;
+/* =========================================================
+   UPDATE DAY FROM DATE
+========================================================= */
 
-  align-items: center;
-  justify-content: center;
+function updateDayFromDate() {
 
-  border-radius: 13px;
+  const dateInput =
+    document.getElementById("reportDate");
 
-  background: #e2f0e9;
+  const dayInput =
+    document.getElementById("reportDay");
 
-  font-size: 20px;
+
+  if (
+    !dateInput ||
+    !dayInput ||
+    !dateInput.value
+  ) {
+
+    return;
+
+  }
+
+
+  const date =
+    new Date(
+      dateInput.value +
+      "T12:00:00"
+    );
+
+
+  const days = [
+
+    "الأحد",
+    "الاثنين",
+    "الثلاثاء",
+    "الأربعاء",
+    "الخميس",
+    "الجمعة",
+    "السبت"
+
+  ];
+
+
+  const dayName =
+    days[date.getDay()];
+
+
+  dayInput.value =
+    dayName;
+
 }
 
-.report-date-text {
-  display: flex;
 
-  flex-direction: column;
+/* =========================================================
+   SAVE NEW REPORT
+========================================================= */
 
-  gap: 3px;
+function saveReport() {
+
+  const dayInput =
+    document.getElementById("reportDay");
+
+  const dateInput =
+    document.getElementById("reportDate");
+
+  const textInput =
+    document.getElementById("reportText");
+
+
+  if (
+    !dayInput ||
+    !dateInput ||
+    !textInput
+  ) {
+
+    return;
+
+  }
+
+
+  const day =
+    dayInput.value.trim();
+
+  const date =
+    dateInput.value.trim();
+
+  const text =
+    textInput.value.trim();
+
+
+  /* التحقق من اليوم */
+
+  if (!day) {
+
+    alert(
+      "يرجى اختيار اليوم."
+    );
+
+    dayInput.focus();
+
+    return;
+
+  }
+
+
+  /* التحقق من التاريخ */
+
+  if (!date) {
+
+    alert(
+      "يرجى اختيار التاريخ."
+    );
+
+    dateInput.focus();
+
+    return;
+
+  }
+
+
+  /* التحقق من التقرير */
+
+  if (!text) {
+
+    alert(
+      "يرجى كتابة التقرير."
+    );
+
+    textInput.focus();
+
+    return;
+
+  }
+
+
+  /*
+     قراءة التقارير الموجودة
+  */
+
+  const reports =
+    getReports();
+
+
+  /*
+     إنشاء التقرير الجديد
+  */
+
+  const newReport = {
+
+    id:
+      Date.now(),
+
+    day:
+      day,
+
+    date:
+      date,
+
+    text:
+      text,
+
+    createdAt:
+      new Date().toISOString()
+
+  };
+
+
+  /*
+     إضافة التقرير في البداية
+  */
+
+  reports.unshift(
+    newReport
+  );
+
+
+  /*
+     الحفظ
+  */
+
+  const saved =
+    saveReports(reports);
+
+
+  if (!saved) {
+
+    alert(
+      "حدث خطأ أثناء حفظ التقرير."
+    );
+
+    return;
+
+  }
+
+
+  /*
+     تنظيف الحقول
+  */
+
+  dayInput.value = "";
+
+  dateInput.value = "";
+
+  textInput.value = "";
+
+
+  /*
+     رسالة نجاح
+  */
+
+  alert(
+    "تم حفظ التقرير بنجاح."
+  );
+
+
+  /*
+     العودة إلى قائمة التقارير
+  */
+
+  openReports();
+
 }
 
-.report-date-text strong {
-  color: #26312b;
 
-  font-size: 13px;
+/* =========================================================
+   DISPLAY REPORTS
+========================================================= */
 
-  font-weight: 800;
+function renderReports() {
+
+  const reportsList =
+    document.getElementById("reportsList");
+
+
+  if (!reportsList) {
+
+    return;
+
+  }
+
+
+  const reports =
+    getReports();
+
+
+  /*
+     لا توجد تقارير
+  */
+
+  if (
+    reports.length === 0
+  ) {
+
+    reportsList.innerHTML = `
+
+      <div class="empty-reports">
+
+        <div class="empty-reports-icon">
+          📋
+        </div>
+
+        <strong>
+          لا توجد تقارير حالياً
+        </strong>
+
+        <span>
+          اضغط على "إضافة تقرير" لإنشاء أول تقرير
+        </span>
+
+      </div>
+
+    `;
+
+    return;
+
+  }
+
+
+  /*
+     عرض التقارير
+  */
+
+  reportsList.innerHTML =
+    reports
+      .map(function (report) {
+
+        return createReportHTML(
+          report
+        );
+
+      })
+      .join("");
+
 }
 
-.report-date-text span {
-  color: #89928d;
 
-  font-size: 10px;
+/* =========================================================
+   CREATE REPORT HTML
+========================================================= */
+
+function createReportHTML(report) {
+
+  const safeDay =
+    escapeHTML(
+      report.day
+    );
+
+  const safeDate =
+    formatDate(
+      report.date
+    );
+
+  const safeText =
+    escapeHTML(
+      report.text
+    );
+
+
+  return `
+
+    <article class="report-card">
+
+      <div class="report-card-header">
+
+        <div class="report-date-box">
+
+          <div class="report-date-icon">
+            📅
+          </div>
+
+          <div class="report-date-text">
+
+            <strong>
+              ${safeDay}
+            </strong>
+
+            <span>
+              ${safeDate}
+            </span>
+
+          </div>
+
+        </div>
+
+
+        <button
+          type="button"
+          class="delete-report-button"
+          onclick="deleteReport(${report.id})"
+          aria-label="حذف التقرير"
+          title="حذف التقرير"
+        >
+          🗑️
+        </button>
+
+      </div>
+
+
+      <div class="report-body">
+
+        <div class="report-body-title">
+          تفاصيل التقرير
+        </div>
+
+        <div class="report-body-text">
+          ${safeText}
+        </div>
+
+      </div>
+
+    </article>
+
+  `;
+
+}
+
+
+/* =========================================================
+   FORMAT DATE
+========================================================= */
+
+function formatDate(dateString) {
+
+  if (!dateString) {
+
+    return "";
+
+  }
+
+
+  const parts =
+    dateString.split("-");
+
+
+  if (
+    parts.length !== 3
+  ) {
+
+    return escapeHTML(
+      dateString
+    );
+
+  }
+
+
+  return (
+    parts[2] +
+    "/" +
+    parts[1] +
+    "/" +
+    parts[0]
+  );
+
 }
 
 
@@ -805,435 +657,94 @@ body {
    DELETE REPORT
 ========================================================= */
 
-.delete-report-button {
-  width: 34px;
-  height: 34px;
-
-  display: flex;
-
-  align-items: center;
-  justify-content: center;
-
-  border: none;
-
-  border-radius: 11px;
-
-  background: #f8eeee;
-
-  color: #b54b4b;
-
-  font-size: 16px;
-
-  cursor: pointer;
-}
-
-
-/* =========================================================
-   REPORT BODY
-========================================================= */
-
-.report-body {
-  padding-top: 13px;
-}
-
-.report-body-title {
-  margin-bottom: 6px;
-
-  color: #176b45;
-
-  font-size: 10px;
-
-  font-weight: 800;
-}
-
-.report-body-text {
-  color: #4d5752;
-
-  font-size: 12px;
-
-  line-height: 1.8;
-
-  white-space: pre-wrap;
-
-  word-break: break-word;
-}
-
-
-/* =========================================================
-   EMPTY REPORTS
-========================================================= */
-
-.empty-reports {
-  padding: 35px 20px;
-
-  display: flex;
-
-  flex-direction: column;
-
-  align-items: center;
-
-  text-align: center;
-
-  background: #ffffff;
-
-  border:
-    1px dashed
-    #d4dcd7;
-
-  border-radius: 20px;
-}
-
-.empty-reports-icon {
-  width: 60px;
-  height: 60px;
-
-  display: flex;
-
-  align-items: center;
-  justify-content: center;
-
-  margin-bottom: 12px;
-
-  border-radius: 20px;
-
-  background: #edf3ef;
-
-  font-size: 28px;
-}
-
-.empty-reports strong {
-  color: #39443e;
-
-  font-size: 14px;
-
-  font-weight: 800;
-}
-
-.empty-reports span {
-  margin-top: 5px;
-
-  color: #929a96;
-
-  font-size: 10px;
-}
-
-
-/* =========================================================
-   REPORT FORM
-========================================================= */
-
-.report-form {
-  padding:
-    0 16px 30px;
-}
-
-
-/* =========================================================
-   FORM GROUP
-========================================================= */
-
-.form-group {
-  margin-bottom: 17px;
-}
-
-.form-group label {
-  display: block;
-
-  margin-bottom: 7px;
-
-  color: #36413b;
-
-  font-size: 12px;
-
-  font-weight: 800;
-}
-
-
-/* =========================================================
-   INPUT / SELECT / TEXTAREA
-========================================================= */
-
-.form-group input,
-.form-group select,
-.form-group textarea {
-
-  width: 100%;
-
-  border:
-    1px solid
-    #dce3df;
-
-  border-radius: 16px;
-
-  background:
-    #ffffff;
-
-  color:
-    #26312b;
-
-  font-family:
-    inherit;
-
-  font-size:
-    13px;
-
-  outline:
-    none;
-
-  transition:
-    border-color 0.15s ease,
-    box-shadow 0.15s ease;
-}
-
-
-.form-group input,
-.form-group select {
-
-  height:
-    52px;
-
-  padding:
-    0 14px;
-}
-
-
-.form-group textarea {
-
-  min-height:
-    190px;
-
-  padding:
-    14px;
-
-  resize:
-    vertical;
-
-  line-height:
-    1.8;
-}
-
-
-/* =========================================================
-   INPUT FOCUS
-========================================================= */
-
-.form-group input:focus,
-.form-group select:focus,
-.form-group textarea:focus {
-
-  border-color:
-    #176b45;
-
-  box-shadow:
-    0 0 0 3px
-    rgba(23, 107, 69, 0.09);
-}
-
-
-/* =========================================================
-   PLACEHOLDER
-========================================================= */
-
-.form-group textarea::placeholder {
-
-  color:
-    #a8afac;
-}
-
-
-/* =========================================================
-   SAVE BUTTON
-========================================================= */
-
-.save-report-button {
-
-  width:
-    100%;
-
-  height:
-    55px;
-
-  border:
-    none;
-
-  border-radius:
-    17px;
-
-  background:
-    linear-gradient(
-      145deg,
-      #176b45,
-      #124f35
+function deleteReport(reportId) {
+
+  const confirmed =
+    confirm(
+      "هل أنت متأكد من حذف هذا التقرير؟"
     );
 
-  color:
-    #ffffff;
 
-  font-family:
-    inherit;
+  if (!confirmed) {
 
-  font-size:
-    14px;
+    return;
 
-  font-weight:
-    800;
-
-  cursor:
-    pointer;
-
-  box-shadow:
-    0 7px 17px
-    rgba(23, 107, 69, 0.20);
-
-  transition:
-    transform 0.15s ease;
-}
-
-.save-report-button:active {
-
-  transform:
-    scale(0.98);
-}
-
-
-/* =========================================================
-   CANCEL BUTTON
-========================================================= */
-
-.cancel-report-button {
-
-  width:
-    100%;
-
-  height:
-    50px;
-
-  margin-top:
-    9px;
-
-  border:
-    1px solid
-    #dce3df;
-
-  border-radius:
-    16px;
-
-  background:
-    #ffffff;
-
-  color:
-    #65706a;
-
-  font-family:
-    inherit;
-
-  font-size:
-    13px;
-
-  font-weight:
-    700;
-
-  cursor:
-    pointer;
-}
-
-
-/* =========================================================
-   FOOTER
-========================================================= */
-
-footer {
-
-  padding:
-    8px 16px 22px;
-
-  display:
-    flex;
-
-  flex-direction:
-    column;
-
-  align-items:
-    center;
-
-  gap:
-    3px;
-
-  text-align:
-    center;
-}
-
-footer strong {
-
-  color:
-    #53605a;
-
-  font-size:
-    11px;
-
-  font-weight:
-    800;
-}
-
-footer span {
-
-  color:
-    #9aa29e;
-
-  font-size:
-    9px;
-}
-
-footer small {
-
-  margin-top:
-    3px;
-
-  color:
-    #adb4b0;
-
-  font-size:
-    8px;
-}
-
-
-/* =========================================================
-   MOBILE
-========================================================= */
-
-@media (max-width: 430px) {
-
-  .iphone-app {
-
-    min-height:
-      100vh;
-
-    box-shadow:
-      none;
   }
 
+
+  let reports =
+    getReports();
+
+
+  reports =
+    reports.filter(
+      function (report) {
+
+        return report.id !== reportId;
+
+      }
+    );
+
+
+  saveReports(
+    reports
+  );
+
+
+  renderReports();
+
 }
 
 
 /* =========================================================
-   DESKTOP PREVIEW
+   SECURITY
+   منع إدخال HTML داخل التقرير
 ========================================================= */
 
-@media (min-width: 431px) {
+function escapeHTML(value) {
 
-  body {
+  return String(value)
 
-    padding:
-      25px 0;
-  }
+    .replace(
+      /&/g,
+      "&amp;"
+    )
 
-  .iphone-app {
+    .replace(
+      /</g,
+      "&lt;"
+    )
 
-    min-height:
-      calc(100vh - 50px);
+    .replace(
+      />/g,
+      "&gt;"
+    )
 
-    border-radius:
-      34px;
-  }
+    .replace(
+      /"/g,
+      "&quot;"
+    )
+
+    .replace(
+      /'/g,
+      "&#039;"
+    );
 
 }
+
+
+/* =========================================================
+   PREVENT DOUBLE TAP ZOOM
+========================================================= */
+
+document.addEventListener(
+  "dblclick",
+  function (event) {
+
+    event.preventDefault();
+
+  },
+  {
+    passive: false
+  }
+);
