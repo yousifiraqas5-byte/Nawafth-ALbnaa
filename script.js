@@ -1,33 +1,33 @@
-```javascript
-// ==========================================
-// التنقل بين الصفحات
-// ==========================================
+/* =========================================================
+   PAGE NAVIGATION
+========================================================= */
 
 function showPage(pageId) {
 
-  // إخفاء كل الصفحات
-  document.querySelectorAll(".page").forEach(function(page) {
+  const pages = document.querySelectorAll(".page");
+
+  pages.forEach(function (page) {
     page.classList.remove("active");
   });
 
-  // إظهار الصفحة المطلوبة
-  const page = document.getElementById(pageId);
+  const selectedPage = document.getElementById(pageId);
 
-  if (page) {
-    page.classList.add("active");
+  if (selectedPage) {
+
+    selectedPage.classList.add("active");
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth"
+    });
+
   }
-
-  // الرجوع إلى أعلى الصفحة
-  window.scrollTo({
-    top: 0,
-    behavior: "smooth"
-  });
 }
 
 
-// ==========================================
-// فتح المخازن
-// ==========================================
+/* =========================================================
+   OPEN STORAGE
+========================================================= */
 
 function openStorage() {
 
@@ -36,9 +36,9 @@ function openStorage() {
 }
 
 
-// ==========================================
-// الرجوع للرئيسية
-// ==========================================
+/* =========================================================
+   RETURN HOME
+========================================================= */
 
 function goHome() {
 
@@ -47,16 +47,31 @@ function goHome() {
 }
 
 
-// ==========================================
-// الأقسام التي لم نبرمج صفحاتها بعد
-// ==========================================
+/* =========================================================
+   TEMPORARY SECTIONS
+========================================================= */
 
 function showMessage(name) {
 
   alert(
-    "تم اختيار قسم: " + name +
+    "تم اختيار قسم: " +
+    name +
     "\n\nسيتم إضافة محتوى هذا القسم لاحقاً."
   );
 
 }
-```
+
+
+/* =========================================================
+   PREVENT DOUBLE TAP ZOOM
+========================================================= */
+
+document.addEventListener(
+  "dblclick",
+  function (event) {
+
+    event.preventDefault();
+
+  },
+  { passive: false }
+);
