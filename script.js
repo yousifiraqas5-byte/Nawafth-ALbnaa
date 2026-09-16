@@ -1,5 +1,24 @@
-const PURCHASES_KEY = "nawafth_albnaa_purchases";
-const REPORTS_KEY = "nawafth_albnaa_daily_reports";
+const PURCHASES_COLLECTION = "purchases";
+const REPORTS_COLLECTION = "reports";
+
+let purchasesCache = [];
+let reportsCache = [];
+
+
+// =====================================================
+// أدوات عامة
+// =====================================================
+
+function getFirestoreDB() {
+    if (!window.firebaseDb) {
+        console.error("Firebase Firestore غير جاهز.");
+        alert("الاتصال بقاعدة البيانات غير جاهز. أعد تحميل الصفحة.");
+        return null;
+    }
+
+    return window.firebaseDb;
+}
+
 
 function showPage(pageId) {
     const pages = document.querySelectorAll(".page");
@@ -12,6 +31,7 @@ function showPage(pageId) {
 
     if (targetPage) {
         targetPage.classList.add("active");
+
         window.scrollTo({
             top: 0,
             behavior: "smooth"
@@ -19,23 +39,32 @@ function showPage(pageId) {
     }
 }
 
+
 function goHome() {
     showPage("homePage");
 }
+
 
 function openStorage() {
     showPage("storagePage");
 }
 
+
 function showMessage(sectionName) {
     alert("قسم " + sectionName + " سيكون متاحاً قريباً.");
 }
+
+
+// =====================================================
+// المشتريات
+// =====================================================
 
 function openPurchases() {
     showPage("purchasesPage");
     closePurchaseForm();
     renderPurchases();
 }
+
 
 function openPurchaseForm() {
     const form = document.getElementById("purchaseForm");
@@ -50,6 +79,7 @@ function openPurchaseForm() {
         item.focus();
     }
 }
+
 
 function closePurchaseForm() {
     const form = document.getElementById("purchaseForm");
@@ -75,40 +105,82 @@ function closePurchaseForm() {
     }
 }
 
-function getPurchases() {
+
+// =====================================================
+// قراءة المشتريات من Firebase
+// =====================================================
+
+async function getPurchases() {
+    const db = getFirestoreDB();
+
+    if (!db) {
+        return [];
+    }
+
     try {
-        const saved = localStorage.getItem(PURCHASES_KEY);
+        const { collection, getDocs, query, orderBy } =
+            await import(
+                "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js"
+            );
 
-        if (!saved) {
-            return [];
+        const purchasesRef = collection(
+            db,
+            PURCHASES_COLLECTION
+        );
+
+        let snapshot;
+
+        try {
+            const purchasesQuery = query(
+                purchasesRef,
+                orderBy("createdAt", "desc")
+            );
+
+            snapshot = await getDocs(purchasesQuery);
+
+        } catch (orderError) {
+            console.warn(
+                "تعذر الترتيب حسب createdAt، سيتم جلب البيانات بدون ترتيب.",
+                orderError
+            );
+
+            snapshot = await getDocs(purchasesRef);
         }
 
-        const purchases = JSON.parse(saved);
+        const purchases = [];
 
-        if (!Array.isArray(purchases)) {
-            return [];
-        }
+        snapshot.forEach(function(docSnapshot) {
+            purchases.push({
+                id: docSnapshot.id,
+                ...docSnapshot.data()
+            });
+        });
+
+        purchasesCache = purchases;
 
         return purchases;
+
     } catch (error) {
-        console.error("خطأ في قراءة المشتريات:", error);
+        console.error(
+            "خطأ في قراءة المشتريات من Firebase:",
+            error
+        );
+
+        alert(
+            "تعذر تحميل المشتريات من قاعدة البيانات.\n\n" +
+            "تأكد من اتصال الإنترنت وقواعد Firestore."
+        );
+
         return [];
     }
 }
 
-function savePurchases(purchases) {
-    try {
-        localStorage.setItem(
-            PURCHASES_KEY,
-            JSON.stringify(purchases)
-        );
-    } catch (error) {
-        console.error("خطأ في حفظ المشتريات:", error);
-        alert("حدث خطأ أثناء حفظ طلب الشراء.");
-    }
-}
 
-function addPurchase() {
+// =====================================================
+// إضافة طلب شراء
+// =====================================================
+
+async function addPurchase() {
     const itemInput = document.getElementById("purchaseItem");
     const unitInput = document.getElementById("purchaseUnit");
     const quantityInput = document.getElementById("purchaseQuantity");
@@ -142,42 +214,82 @@ function addPurchase() {
 
     const numericQuantity = Number(quantity);
 
-    if (!Number.isFinite(numericQuantity) || numericQuantity <= 0) {
+    if (
+        !Number.isFinite(numericQuantity) ||
+        numericQuantity <= 0
+    ) {
         alert("يرجى إدخال عدد أكبر من صفر.");
         quantityInput.focus();
         return;
     }
 
-    const purchases = getPurchases();
+    const db = getFirestoreDB();
 
-    const newPurchase = {
-        id: Date.now().toString(),
-        item: item,
-        unit: unit,
-        quantity: numericQuantity,
-        status: "pending",
-        createdAt: new Date().toISOString(),
-        completedAt: null
-    };
+    if (!db) {
+        return;
+    }
 
-    purchases.unshift(newPurchase);
+    try {
+        const { collection, addDoc, serverTimestamp } =
+            await import(
+                "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js"
+            );
 
-    savePurchases(purchases);
+        const now = new Date().toISOString();
 
-    closePurchaseForm();
-    renderPurchases();
+        await addDoc(
+            collection(db, PURCHASES_COLLECTION),
+            {
+                item: item,
+                unit: unit,
+                quantity: numericQuantity,
+                status: "pending",
 
-    alert("تمت إضافة طلب الشراء بنجاح.");
+                createdAt: now,
+                completedAt: null,
+
+                firebaseCreatedAt: serverTimestamp()
+            }
+        );
+
+        closePurchaseForm();
+
+        await renderPurchases();
+
+        alert("تمت إضافة طلب الشراء بنجاح.");
+
+    } catch (error) {
+        console.error(
+            "خطأ في إضافة طلب الشراء:",
+            error
+        );
+
+        alert(
+            "حدث خطأ أثناء حفظ طلب الشراء.\n\n" +
+            "افتح Console إذا أردت معرفة تفاصيل الخطأ."
+        );
+    }
 }
 
-function renderPurchases() {
-    const pendingContainer = document.getElementById("pendingPurchases");
-    const completedContainer = document.getElementById("completedPurchases");
 
-    const pendingCount = document.getElementById("pendingPurchaseCount");
-    const completedCount = document.getElementById("completedPurchaseCount");
+// =====================================================
+// عرض المشتريات
+// =====================================================
 
-    const purchases = getPurchases();
+async function renderPurchases() {
+    const pendingContainer =
+        document.getElementById("pendingPurchases");
+
+    const completedContainer =
+        document.getElementById("completedPurchases");
+
+    const pendingCount =
+        document.getElementById("pendingPurchaseCount");
+
+    const completedCount =
+        document.getElementById("completedPurchaseCount");
+
+    const purchases = await getPurchases();
 
     const pendingPurchases = purchases.filter(function(purchase) {
         return purchase.status !== "completed";
@@ -188,55 +300,81 @@ function renderPurchases() {
     });
 
     if (pendingCount) {
-        pendingCount.textContent = pendingPurchases.length;
+        pendingCount.textContent =
+            pendingPurchases.length;
     }
 
     if (completedCount) {
-        completedCount.textContent = completedPurchases.length;
+        completedCount.textContent =
+            completedPurchases.length;
     }
 
+
+    // الطلبات الحالية
+
     if (pendingContainer) {
+
         if (pendingPurchases.length === 0) {
+
             pendingContainer.innerHTML =
                 '<div class="empty-purchases">' +
                 '<div class="empty-purchases-icon">🛒</div>' +
                 '<p>لا توجد طلبات شراء حالياً</p>' +
                 '<span>اضغط على "طلب شراء" لإضافة مادة جديدة</span>' +
                 '</div>';
+
         } else {
+
             pendingContainer.innerHTML = "";
 
             pendingPurchases.forEach(function(purchase) {
+
                 pendingContainer.insertAdjacentHTML(
                     "beforeend",
                     createPurchaseHTML(purchase)
                 );
+
             });
         }
     }
 
+
+    // المواد المجهزة
+
     if (completedContainer) {
+
         if (completedPurchases.length === 0) {
+
             completedContainer.innerHTML =
                 '<div class="empty-purchases completed-empty">' +
                 '<div class="empty-purchases-icon">📦</div>' +
                 '<p>لا توجد مواد تم تجهيزها</p>' +
                 '<span>الطلبات التي يتم شراؤها ستظهر هنا</span>' +
                 '</div>';
+
         } else {
+
             completedContainer.innerHTML = "";
 
             completedPurchases.forEach(function(purchase) {
+
                 completedContainer.insertAdjacentHTML(
                     "beforeend",
                     createCompletedPurchaseHTML(purchase)
                 );
+
             });
         }
     }
 }
 
+
+// =====================================================
+// بطاقة الطلب
+// =====================================================
+
 function createPurchaseHTML(purchase) {
+
     const item = escapeHTML(purchase.item);
     const unit = escapeHTML(purchase.unit);
 
@@ -257,7 +395,9 @@ function createPurchaseHTML(purchase) {
 
         '<div class="purchase-card-info">' +
 
-        '<h4>' + item + '</h4>' +
+        '<h4>' +
+        item +
+        '</h4>' +
 
         '<div class="purchase-details">' +
 
@@ -297,7 +437,13 @@ function createPurchaseHTML(purchase) {
     );
 }
 
+
+// =====================================================
+// بطاقة المادة المجهزة
+// =====================================================
+
 function createCompletedPurchaseHTML(purchase) {
+
     const item = escapeHTML(purchase.item);
     const unit = escapeHTML(purchase.unit);
 
@@ -322,7 +468,9 @@ function createCompletedPurchaseHTML(purchase) {
 
         '<div class="purchase-card-info">' +
 
-        '<h4>' + item + '</h4>' +
+        '<h4>' +
+        item +
+        '</h4>' +
 
         '<div class="purchase-details">' +
 
@@ -372,10 +520,14 @@ function createCompletedPurchaseHTML(purchase) {
     );
 }
 
-function completePurchase(id) {
-    const purchases = getPurchases();
 
-    const purchase = purchases.find(function(item) {
+// =====================================================
+// تحويل الطلب إلى تم الشراء
+// =====================================================
+
+async function completePurchase(id) {
+
+    const purchase = purchasesCache.find(function(item) {
         return item.id === id;
     });
 
@@ -393,17 +545,56 @@ function completePurchase(id) {
         return;
     }
 
-    purchase.status = "completed";
-    purchase.completedAt = new Date().toISOString();
+    const db = getFirestoreDB();
 
-    savePurchases(purchases);
-    renderPurchases();
+    if (!db) {
+        return;
+    }
+
+    try {
+
+        const {
+            doc,
+            updateDoc
+        } = await import(
+            "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js"
+        );
+
+        await updateDoc(
+            doc(
+                db,
+                PURCHASES_COLLECTION,
+                id
+            ),
+            {
+                status: "completed",
+                completedAt: new Date().toISOString()
+            }
+        );
+
+        await renderPurchases();
+
+    } catch (error) {
+
+        console.error(
+            "خطأ في إكمال طلب الشراء:",
+            error
+        );
+
+        alert(
+            "حدث خطأ أثناء تحديث حالة الطلب."
+        );
+    }
 }
 
-function returnPurchase(id) {
-    const purchases = getPurchases();
 
-    const purchase = purchases.find(function(item) {
+// =====================================================
+// إرجاع المادة إلى الطلبات
+// =====================================================
+
+async function returnPurchase(id) {
+
+    const purchase = purchasesCache.find(function(item) {
         return item.id === id;
     });
 
@@ -421,14 +612,55 @@ function returnPurchase(id) {
         return;
     }
 
-    purchase.status = "pending";
-    purchase.completedAt = null;
+    const db = getFirestoreDB();
 
-    savePurchases(purchases);
-    renderPurchases();
+    if (!db) {
+        return;
+    }
+
+    try {
+
+        const {
+            doc,
+            updateDoc
+        } = await import(
+            "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js"
+        );
+
+        await updateDoc(
+            doc(
+                db,
+                PURCHASES_COLLECTION,
+                id
+            ),
+            {
+                status: "pending",
+                completedAt: null
+            }
+        );
+
+        await renderPurchases();
+
+    } catch (error) {
+
+        console.error(
+            "خطأ في إرجاع الطلب:",
+            error
+        );
+
+        alert(
+            "حدث خطأ أثناء إرجاع الطلب."
+        );
+    }
 }
 
+
+// =====================================================
+// تاريخ المشتريات
+// =====================================================
+
 function formatPurchaseDate(dateString) {
+
     if (!dateString) {
         return "";
     }
@@ -439,98 +671,204 @@ function formatPurchaseDate(dateString) {
         return "";
     }
 
-    return date.toLocaleDateString("ar-IQ", {
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit"
-    });
+    return date.toLocaleDateString(
+        "ar-IQ",
+        {
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit"
+        }
+    );
 }
 
-function getReports() {
+
+// =====================================================
+// التقارير
+// =====================================================
+
+async function getReports() {
+
+    const db = getFirestoreDB();
+
+    if (!db) {
+        return [];
+    }
+
     try {
-        const saved = localStorage.getItem(REPORTS_KEY);
 
-        if (!saved) {
-            return [];
+        const {
+            collection,
+            getDocs,
+            query,
+            orderBy
+        } = await import(
+            "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js"
+        );
+
+        const reportsRef = collection(
+            db,
+            REPORTS_COLLECTION
+        );
+
+        let snapshot;
+
+        try {
+
+            const reportsQuery = query(
+                reportsRef,
+                orderBy("createdAt", "desc")
+            );
+
+            snapshot = await getDocs(
+                reportsQuery
+            );
+
+        } catch (orderError) {
+
+            console.warn(
+                "تعذر ترتيب التقارير حسب createdAt.",
+                orderError
+            );
+
+            snapshot = await getDocs(
+                reportsRef
+            );
         }
 
-        const reports = JSON.parse(saved);
+        const reports = [];
 
-        if (!Array.isArray(reports)) {
-            return [];
-        }
+        snapshot.forEach(function(docSnapshot) {
+
+            reports.push({
+                id: docSnapshot.id,
+                ...docSnapshot.data()
+            });
+
+        });
+
+        reportsCache = reports;
 
         return reports;
+
     } catch (error) {
-        console.error("خطأ في قراءة التقارير:", error);
+
+        console.error(
+            "خطأ في قراءة التقارير:",
+            error
+        );
+
+        alert(
+            "تعذر تحميل التقارير من قاعدة البيانات."
+        );
+
         return [];
     }
 }
 
-function saveReports(reports) {
-    try {
-        localStorage.setItem(
-            REPORTS_KEY,
-            JSON.stringify(reports)
-        );
-    } catch (error) {
-        console.error("خطأ في حفظ التقارير:", error);
-        alert("حدث خطأ أثناء حفظ التقرير.");
-    }
+
+// =====================================================
+// صفحة التقارير
+// =====================================================
+
+async function openReports() {
+
+    showPage("reportsPage");
+
+    await renderReports();
 }
 
-function openReports() {
-    showPage("reportsPage");
-    renderReports();
-}
 
 function openAddReport() {
+
     showPage("addReportPage");
+
     prepareReportForm();
 }
 
+
 function prepareReportForm() {
-    const dateInput = document.getElementById("reportDate");
-    const dayInput = document.getElementById("reportDay");
-    const textInput = document.getElementById("reportText");
+
+    const dateInput =
+        document.getElementById("reportDate");
+
+    const dayInput =
+        document.getElementById("reportDay");
+
+    const textInput =
+        document.getElementById("reportText");
+
 
     if (dateInput) {
+
         const today = new Date();
 
-        const year = today.getFullYear();
-        const month = String(today.getMonth() + 1).padStart(2, "0");
-        const day = String(today.getDate()).padStart(2, "0");
+        const year =
+            today.getFullYear();
+
+        const month =
+            String(
+                today.getMonth() + 1
+            ).padStart(2, "0");
+
+        const day =
+            String(
+                today.getDate()
+            ).padStart(2, "0");
 
         dateInput.value =
-            year + "-" + month + "-" + day;
+            year +
+            "-" +
+            month +
+            "-" +
+            day;
 
         updateDayFromDate();
     }
+
 
     if (dayInput && !dayInput.value) {
         updateDayFromDate();
     }
+
 
     if (textInput) {
         textInput.value = "";
     }
 }
 
-function updateDayFromDate() {
-    const dateInput = document.getElementById("reportDate");
-    const dayInput = document.getElementById("reportDay");
 
-    if (!dateInput || !dayInput || !dateInput.value) {
+// =====================================================
+// تحديد يوم الأسبوع
+// =====================================================
+
+function updateDayFromDate() {
+
+    const dateInput =
+        document.getElementById("reportDate");
+
+    const dayInput =
+        document.getElementById("reportDay");
+
+
+    if (
+        !dateInput ||
+        !dayInput ||
+        !dateInput.value
+    ) {
         return;
     }
 
+
     const date = new Date(
-        dateInput.value + "T00:00:00"
+        dateInput.value +
+        "T00:00:00"
     );
+
 
     if (Number.isNaN(date.getTime())) {
         return;
     }
+
 
     const days = [
         "الأحد",
@@ -542,100 +880,225 @@ function updateDayFromDate() {
         "السبت"
     ];
 
-    dayInput.value = days[date.getDay()];
+
+    dayInput.value =
+        days[date.getDay()];
 }
 
-function saveReport() {
-    const dateInput = document.getElementById("reportDate");
-    const dayInput = document.getElementById("reportDay");
-    const textInput = document.getElementById("reportText");
 
-    if (!dateInput || !dayInput || !textInput) {
-        alert("تعذر العثور على حقول التقرير.");
+// =====================================================
+// حفظ التقرير في Firebase
+// =====================================================
+
+async function saveReport() {
+
+    const dateInput =
+        document.getElementById("reportDate");
+
+    const dayInput =
+        document.getElementById("reportDay");
+
+    const textInput =
+        document.getElementById("reportText");
+
+
+    if (
+        !dateInput ||
+        !dayInput ||
+        !textInput
+    ) {
+
+        alert(
+            "تعذر العثور على حقول التقرير."
+        );
+
         return;
     }
 
-    const date = dateInput.value;
-    const day = dayInput.value.trim();
-    const text = textInput.value.trim();
+
+    const date =
+        dateInput.value;
+
+    const day =
+        dayInput.value.trim();
+
+    const text =
+        textInput.value.trim();
+
 
     if (!date) {
-        alert("يرجى اختيار تاريخ التقرير.");
+
+        alert(
+            "يرجى اختيار تاريخ التقرير."
+        );
+
         return;
     }
+
 
     if (!text) {
-        alert("يرجى كتابة تفاصيل التقرير.");
+
+        alert(
+            "يرجى كتابة تفاصيل التقرير."
+        );
+
         textInput.focus();
+
         return;
     }
 
-    const reports = getReports();
 
-    const newReport = {
-        id: Date.now().toString(),
-        date: date,
-        day: day,
-        text: text,
-        createdAt: new Date().toISOString()
-    };
+    const db = getFirestoreDB();
 
-    reports.unshift(newReport);
+    if (!db) {
+        return;
+    }
 
-    saveReports(reports);
 
-    openReports();
+    try {
 
-    alert("تم حفظ التقرير بنجاح.");
+        const {
+            collection,
+            addDoc,
+            serverTimestamp
+        } = await import(
+            "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js"
+        );
+
+
+        await addDoc(
+            collection(
+                db,
+                REPORTS_COLLECTION
+            ),
+            {
+                date: date,
+                day: day,
+                text: text,
+
+                createdAt:
+                    new Date().toISOString(),
+
+                firebaseCreatedAt:
+                    serverTimestamp()
+            }
+        );
+
+
+        await openReports();
+
+
+        alert(
+            "تم حفظ التقرير بنجاح."
+        );
+
+
+    } catch (error) {
+
+        console.error(
+            "خطأ في حفظ التقرير:",
+            error
+        );
+
+        alert(
+            "حدث خطأ أثناء حفظ التقرير."
+        );
+    }
 }
 
-function renderReports() {
-    const container = document.getElementById("reportsList");
+
+// =====================================================
+// عرض التقارير
+// =====================================================
+
+async function renderReports() {
+
+    const container =
+        document.getElementById(
+            "reportsList"
+        );
+
 
     if (!container) {
         return;
     }
 
-    const reports = getReports();
+
+    const reports =
+        await getReports();
+
 
     if (reports.length === 0) {
+
         container.innerHTML =
             '<div class="empty-reports">' +
+
             '<div class="empty-reports-icon">📋</div>' +
+
             '<h3>لا توجد تقارير</h3>' +
-            '<p>اضغط على إضافة تقرير لإنشاء أول تقرير يومي.</p>' +
+
+            '<p>' +
+            'اضغط على إضافة تقرير لإنشاء أول تقرير يومي.' +
+            '</p>' +
+
             '</div>';
 
         return;
     }
 
+
     container.innerHTML = "";
 
+
     reports.forEach(function(report) {
+
         container.insertAdjacentHTML(
             "beforeend",
             createReportHTML(report)
         );
+
     });
 }
 
+
+// =====================================================
+// بطاقة التقرير
+// =====================================================
+
 function createReportHTML(report) {
-    const day = escapeHTML(report.day || "");
-    const text = escapeHTML(report.text || "");
-    const date = formatDate(report.date);
+
+    const day =
+        escapeHTML(
+            report.day || ""
+        );
+
+    const text =
+        escapeHTML(
+            report.text || ""
+        );
+
+    const date =
+        formatDate(
+            report.date
+        );
+
 
     return (
+
         '<div class="report-card">' +
 
         '<div class="report-card-header">' +
 
         '<div>' +
+
         '<span class="report-day">' +
         day +
         '</span>' +
+
         '<span class="report-date">' +
         date +
         '</span>' +
+
         '</div>' +
 
         '<button ' +
@@ -644,7 +1107,9 @@ function createReportHTML(report) {
         'onclick="deleteReport(\'' +
         report.id +
         '\')">' +
+
         'حذف' +
+
         '</button>' +
 
         '</div>' +
@@ -657,89 +1122,213 @@ function createReportHTML(report) {
     );
 }
 
+
+// =====================================================
+// تنسيق تاريخ التقرير
+// =====================================================
+
 function formatDate(dateString) {
+
     if (!dateString) {
         return "";
     }
 
-    const date = new Date(
-        dateString + "T00:00:00"
-    );
 
-    if (Number.isNaN(date.getTime())) {
+    const date =
+        new Date(
+            dateString +
+            "T00:00:00"
+        );
+
+
+    if (
+        Number.isNaN(
+            date.getTime()
+        )
+    ) {
         return dateString;
     }
 
-    return date.toLocaleDateString("ar-IQ", {
-        year: "numeric",
-        month: "long",
-        day: "numeric"
-    });
+
+    return date.toLocaleDateString(
+        "ar-IQ",
+        {
+            year: "numeric",
+            month: "long",
+            day: "numeric"
+        }
+    );
 }
 
-function deleteReport(id) {
-    const reports = getReports();
 
-    const report = reports.find(function(item) {
-        return item.id === id;
-    });
+// =====================================================
+// حذف التقرير
+// =====================================================
+
+async function deleteReport(id) {
+
+    const report =
+        reportsCache.find(
+            function(item) {
+                return item.id === id;
+            }
+        );
+
 
     if (!report) {
         return;
     }
 
-    const confirmed = confirm(
-        "هل تريد حذف هذا التقرير؟"
-    );
+
+    const confirmed =
+        confirm(
+            "هل تريد حذف هذا التقرير؟"
+        );
+
 
     if (!confirmed) {
         return;
     }
 
-    const filteredReports = reports.filter(function(item) {
-        return item.id !== id;
-    });
 
-    saveReports(filteredReports);
-    renderReports();
-}
+    const db =
+        getFirestoreDB();
 
-function escapeHTML(value) {
-    return String(value)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
-}
 
-document.addEventListener("DOMContentLoaded", function() {
-    renderPurchases();
-    renderReports();
+    if (!db) {
+        return;
+    }
 
-    const reportDate = document.getElementById("reportDate");
 
-    if (reportDate) {
-        reportDate.addEventListener(
-            "change",
-            updateDayFromDate
+    try {
+
+        const {
+            doc,
+            deleteDoc
+        } = await import(
+            "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js"
+        );
+
+
+        await deleteDoc(
+            doc(
+                db,
+                REPORTS_COLLECTION,
+                id
+            )
+        );
+
+
+        await renderReports();
+
+
+    } catch (error) {
+
+        console.error(
+            "خطأ في حذف التقرير:",
+            error
+        );
+
+
+        alert(
+            "حدث خطأ أثناء حذف التقرير."
         );
     }
-});
+}
+
+
+// =====================================================
+// حماية النصوص من HTML
+// =====================================================
+
+function escapeHTML(value) {
+
+    return String(value)
+
+        .replace(
+            /&/g,
+            "&amp;"
+        )
+
+        .replace(
+            /</g,
+            "&lt;"
+        )
+
+        .replace(
+            />/g,
+            "&gt;"
+        )
+
+        .replace(
+            /"/g,
+            "&quot;"
+        )
+
+        .replace(
+            /'/g,
+            "&#039;"
+        );
+}
+
+
+// =====================================================
+// عند فتح الصفحة
+// =====================================================
+
+document.addEventListener(
+    "DOMContentLoaded",
+    async function() {
+
+        await renderPurchases();
+
+        await renderReports();
+
+
+        const reportDate =
+            document.getElementById(
+                "reportDate"
+            );
+
+
+        if (reportDate) {
+
+            reportDate.addEventListener(
+                "change",
+                updateDayFromDate
+            );
+        }
+
+    }
+);
+
+
+// =====================================================
+// منع الضغط المزدوج على الهاتف
+// =====================================================
 
 document.addEventListener(
     "touchend",
     function(event) {
-        const now = Date.now();
+
+        const now =
+            Date.now();
+
 
         if (
             window.lastTouchEnd &&
-            now - window.lastTouchEnd <= 300
+            now -
+            window.lastTouchEnd <=
+            300
         ) {
+
             event.preventDefault();
         }
 
-        window.lastTouchEnd = now;
+
+        window.lastTouchEnd =
+            now;
+
     },
     false
 );
