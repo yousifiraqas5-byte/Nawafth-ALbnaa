@@ -6,13 +6,22 @@ let reportsCache = [];
 
 
 // =====================================================
-// أدوات عامة
+// التحقق من Firebase
 // =====================================================
 
 function getFirestoreDB() {
+
     if (!window.firebaseDb) {
-        console.error("Firebase Firestore غير جاهز.");
-        alert("الاتصال بقاعدة البيانات غير جاهز. أعد تحميل الصفحة.");
+
+        console.error(
+            "Firebase Firestore غير جاهز.",
+            window.firebaseDb
+        );
+
+        alert(
+            "قاعدة البيانات غير جاهزة. أعد تحميل الصفحة."
+        );
+
         return null;
     }
 
@@ -20,16 +29,28 @@ function getFirestoreDB() {
 }
 
 
+// =====================================================
+// الصفحات
+// =====================================================
+
 function showPage(pageId) {
-    const pages = document.querySelectorAll(".page");
+
+    const pages =
+        document.querySelectorAll(".page");
 
     pages.forEach(function(page) {
+
         page.classList.remove("active");
+
     });
 
-    const targetPage = document.getElementById(pageId);
+
+    const targetPage =
+        document.getElementById(pageId);
+
 
     if (targetPage) {
+
         targetPage.classList.add("active");
 
         window.scrollTo({
@@ -41,17 +62,27 @@ function showPage(pageId) {
 
 
 function goHome() {
+
     showPage("homePage");
+
 }
 
 
 function openStorage() {
+
     showPage("storagePage");
+
 }
 
 
 function showMessage(sectionName) {
-    alert("قسم " + sectionName + " سيكون متاحاً قريباً.");
+
+    alert(
+        "قسم " +
+        sectionName +
+        " سيكون متاحاً قريباً."
+    );
+
 }
 
 
@@ -60,119 +91,219 @@ function showMessage(sectionName) {
 // =====================================================
 
 function openPurchases() {
+
     showPage("purchasesPage");
+
     closePurchaseForm();
+
     renderPurchases();
+
 }
 
 
 function openPurchaseForm() {
-    const form = document.getElementById("purchaseForm");
+
+    const form =
+        document.getElementById(
+            "purchaseForm"
+        );
+
 
     if (form) {
+
         form.style.display = "block";
+
     }
 
-    const item = document.getElementById("purchaseItem");
+
+    const item =
+        document.getElementById(
+            "purchaseItem"
+        );
+
 
     if (item) {
+
         item.focus();
+
     }
+
 }
 
 
 function closePurchaseForm() {
-    const form = document.getElementById("purchaseForm");
+
+    const form =
+        document.getElementById(
+            "purchaseForm"
+        );
+
 
     if (form) {
+
         form.style.display = "none";
+
     }
 
-    const item = document.getElementById("purchaseItem");
-    const unit = document.getElementById("purchaseUnit");
-    const quantity = document.getElementById("purchaseQuantity");
+
+    const item =
+        document.getElementById(
+            "purchaseItem"
+        );
+
+
+    const unit =
+        document.getElementById(
+            "purchaseUnit"
+        );
+
+
+    const quantity =
+        document.getElementById(
+            "purchaseQuantity"
+        );
+
 
     if (item) {
+
         item.value = "";
+
     }
+
 
     if (unit) {
+
         unit.value = "";
+
     }
 
+
     if (quantity) {
+
         quantity.value = "";
+
     }
+
 }
 
 
 // =====================================================
-// قراءة المشتريات من Firebase
+// قراءة المشتريات
 // =====================================================
 
 async function getPurchases() {
-    const db = getFirestoreDB();
+
+    const db =
+        getFirestoreDB();
+
 
     if (!db) {
+
         return [];
+
     }
 
+
     try {
-        const { collection, getDocs, query, orderBy } =
+
+        const {
+            collection,
+            getDocs,
+            query,
+            orderBy
+        } =
             await import(
                 "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js"
             );
 
-        const purchasesRef = collection(
-            db,
-            PURCHASES_COLLECTION
-        );
+
+        const purchasesRef =
+            collection(
+                db,
+                PURCHASES_COLLECTION
+            );
+
 
         let snapshot;
 
-        try {
-            const purchasesQuery = query(
-                purchasesRef,
-                orderBy("createdAt", "desc")
-            );
 
-            snapshot = await getDocs(purchasesQuery);
+        try {
+
+            const purchasesQuery =
+                query(
+                    purchasesRef,
+                    orderBy(
+                        "createdAt",
+                        "desc"
+                    )
+                );
+
+
+            snapshot =
+                await getDocs(
+                    purchasesQuery
+                );
+
 
         } catch (orderError) {
+
             console.warn(
-                "تعذر الترتيب حسب createdAt، سيتم جلب البيانات بدون ترتيب.",
+                "تعذر ترتيب المشتريات. سيتم جلبها بدون ترتيب.",
                 orderError
             );
 
-            snapshot = await getDocs(purchasesRef);
+
+            snapshot =
+                await getDocs(
+                    purchasesRef
+                );
+
         }
+
 
         const purchases = [];
 
-        snapshot.forEach(function(docSnapshot) {
-            purchases.push({
-                id: docSnapshot.id,
-                ...docSnapshot.data()
-            });
-        });
 
-        purchasesCache = purchases;
+        snapshot.forEach(
+            function(docSnapshot) {
+
+                purchases.push({
+
+                    id:
+                        docSnapshot.id,
+
+                    ...docSnapshot.data()
+
+                });
+
+            }
+        );
+
+
+        purchasesCache =
+            purchases;
+
 
         return purchases;
 
+
     } catch (error) {
+
         console.error(
-            "خطأ في قراءة المشتريات من Firebase:",
+            "خطأ في قراءة المشتريات:",
             error
         );
 
+
         alert(
-            "تعذر تحميل المشتريات من قاعدة البيانات.\n\n" +
-            "تأكد من اتصال الإنترنت وقواعد Firestore."
+            "تعذر تحميل المشتريات من قاعدة البيانات."
         );
 
+
         return [];
+
     }
+
 }
 
 
@@ -181,94 +312,207 @@ async function getPurchases() {
 // =====================================================
 
 async function addPurchase() {
-    const itemInput = document.getElementById("purchaseItem");
-    const unitInput = document.getElementById("purchaseUnit");
-    const quantityInput = document.getElementById("purchaseQuantity");
 
-    if (!itemInput || !unitInput || !quantityInput) {
-        alert("تعذر العثور على حقول طلب الشراء.");
-        return;
-    }
+    const itemInput =
+        document.getElementById(
+            "purchaseItem"
+        );
 
-    const item = itemInput.value.trim();
-    const unit = unitInput.value.trim();
-    const quantity = quantityInput.value.trim();
 
-    if (!item) {
-        alert("يرجى كتابة المادة المطلوبة.");
-        itemInput.focus();
-        return;
-    }
+    const unitInput =
+        document.getElementById(
+            "purchaseUnit"
+        );
 
-    if (!unit) {
-        alert("يرجى كتابة الوحدة.");
-        unitInput.focus();
-        return;
-    }
 
-    if (!quantity) {
-        alert("يرجى كتابة العدد.");
-        quantityInput.focus();
-        return;
-    }
+    const quantityInput =
+        document.getElementById(
+            "purchaseQuantity"
+        );
 
-    const numericQuantity = Number(quantity);
 
     if (
-        !Number.isFinite(numericQuantity) ||
+        !itemInput ||
+        !unitInput ||
+        !quantityInput
+    ) {
+
+        alert(
+            "تعذر العثور على حقول طلب الشراء."
+        );
+
+        return;
+
+    }
+
+
+    const item =
+        itemInput.value.trim();
+
+
+    const unit =
+        unitInput.value.trim();
+
+
+    const quantity =
+        quantityInput.value.trim();
+
+
+    if (!item) {
+
+        alert(
+            "يرجى كتابة المادة المطلوبة."
+        );
+
+        itemInput.focus();
+
+        return;
+
+    }
+
+
+    if (!unit) {
+
+        alert(
+            "يرجى كتابة الوحدة."
+        );
+
+        unitInput.focus();
+
+        return;
+
+    }
+
+
+    if (!quantity) {
+
+        alert(
+            "يرجى كتابة العدد."
+        );
+
+        quantityInput.focus();
+
+        return;
+
+    }
+
+
+    const numericQuantity =
+        Number(quantity);
+
+
+    if (
+        !Number.isFinite(
+            numericQuantity
+        ) ||
         numericQuantity <= 0
     ) {
-        alert("يرجى إدخال عدد أكبر من صفر.");
+
+        alert(
+            "يرجى إدخال عدد أكبر من صفر."
+        );
+
         quantityInput.focus();
+
         return;
+
     }
 
-    const db = getFirestoreDB();
+
+    const db =
+        getFirestoreDB();
+
 
     if (!db) {
+
         return;
+
     }
 
+
     try {
-        const { collection, addDoc, serverTimestamp } =
+
+        const {
+            collection,
+            addDoc
+        } =
             await import(
                 "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js"
             );
 
-        const now = new Date().toISOString();
 
-        await addDoc(
-            collection(db, PURCHASES_COLLECTION),
-            {
-                item: item,
-                unit: unit,
-                quantity: numericQuantity,
-                status: "pending",
+        const now =
+            new Date().toISOString();
 
-                createdAt: now,
-                completedAt: null,
 
-                firebaseCreatedAt: serverTimestamp()
-            }
+        const purchaseData = {
+
+            item:
+                item,
+
+            unit:
+                unit,
+
+            quantity:
+                numericQuantity,
+
+            status:
+                "pending",
+
+            createdAt:
+                now,
+
+            completedAt:
+                null
+
+        };
+
+
+        const docRef =
+            await addDoc(
+
+                collection(
+                    db,
+                    PURCHASES_COLLECTION
+                ),
+
+                purchaseData
+
+            );
+
+
+        console.log(
+            "تم حفظ طلب الشراء:",
+            docRef.id
         );
+
 
         closePurchaseForm();
 
+
         await renderPurchases();
 
-        alert("تمت إضافة طلب الشراء بنجاح.");
+
+        alert(
+            "تمت إضافة طلب الشراء بنجاح."
+        );
+
 
     } catch (error) {
+
         console.error(
             "خطأ في إضافة طلب الشراء:",
             error
         );
 
+
         alert(
             "حدث خطأ أثناء حفظ طلب الشراء.\n\n" +
-            "افتح Console إذا أردت معرفة تفاصيل الخطأ."
+            error.message
         );
+
     }
+
 }
 
 
@@ -277,36 +521,74 @@ async function addPurchase() {
 // =====================================================
 
 async function renderPurchases() {
+
     const pendingContainer =
-        document.getElementById("pendingPurchases");
+        document.getElementById(
+            "pendingPurchases"
+        );
+
 
     const completedContainer =
-        document.getElementById("completedPurchases");
+        document.getElementById(
+            "completedPurchases"
+        );
+
 
     const pendingCount =
-        document.getElementById("pendingPurchaseCount");
+        document.getElementById(
+            "pendingPurchaseCount"
+        );
+
 
     const completedCount =
-        document.getElementById("completedPurchaseCount");
+        document.getElementById(
+            "completedPurchaseCount"
+        );
 
-    const purchases = await getPurchases();
 
-    const pendingPurchases = purchases.filter(function(purchase) {
-        return purchase.status !== "completed";
-    });
+    const purchases =
+        await getPurchases();
 
-    const completedPurchases = purchases.filter(function(purchase) {
-        return purchase.status === "completed";
-    });
+
+    const pendingPurchases =
+        purchases.filter(
+            function(purchase) {
+
+                return (
+                    purchase.status !==
+                    "completed"
+                );
+
+            }
+        );
+
+
+    const completedPurchases =
+        purchases.filter(
+            function(purchase) {
+
+                return (
+                    purchase.status ===
+                    "completed"
+                );
+
+            }
+        );
+
 
     if (pendingCount) {
+
         pendingCount.textContent =
             pendingPurchases.length;
+
     }
 
+
     if (completedCount) {
+
         completedCount.textContent =
             completedPurchases.length;
+
     }
 
 
@@ -314,28 +596,48 @@ async function renderPurchases() {
 
     if (pendingContainer) {
 
-        if (pendingPurchases.length === 0) {
+        if (
+            pendingPurchases.length === 0
+        ) {
 
             pendingContainer.innerHTML =
+
                 '<div class="empty-purchases">' +
+
                 '<div class="empty-purchases-icon">🛒</div>' +
+
                 '<p>لا توجد طلبات شراء حالياً</p>' +
-                '<span>اضغط على "طلب شراء" لإضافة مادة جديدة</span>' +
+
+                '<span>' +
+                'اضغط على "طلب شراء" لإضافة مادة جديدة' +
+                '</span>' +
+
                 '</div>';
 
         } else {
 
-            pendingContainer.innerHTML = "";
+            pendingContainer.innerHTML =
+                "";
 
-            pendingPurchases.forEach(function(purchase) {
 
-                pendingContainer.insertAdjacentHTML(
-                    "beforeend",
-                    createPurchaseHTML(purchase)
-                );
+            pendingPurchases.forEach(
+                function(purchase) {
 
-            });
+                    pendingContainer.insertAdjacentHTML(
+
+                        "beforeend",
+
+                        createPurchaseHTML(
+                            purchase
+                        )
+
+                    );
+
+                }
+            );
+
         }
+
     }
 
 
@@ -343,29 +645,50 @@ async function renderPurchases() {
 
     if (completedContainer) {
 
-        if (completedPurchases.length === 0) {
+        if (
+            completedPurchases.length === 0
+        ) {
 
             completedContainer.innerHTML =
+
                 '<div class="empty-purchases completed-empty">' +
+
                 '<div class="empty-purchases-icon">📦</div>' +
+
                 '<p>لا توجد مواد تم تجهيزها</p>' +
-                '<span>الطلبات التي يتم شراؤها ستظهر هنا</span>' +
+
+                '<span>' +
+                'الطلبات التي يتم شراؤها ستظهر هنا' +
+                '</span>' +
+
                 '</div>';
 
         } else {
 
-            completedContainer.innerHTML = "";
+            completedContainer.innerHTML =
+                "";
 
-            completedPurchases.forEach(function(purchase) {
 
-                completedContainer.insertAdjacentHTML(
-                    "beforeend",
-                    createCompletedPurchaseHTML(purchase)
-                );
+            completedPurchases.forEach(
+                function(purchase) {
 
-            });
+                    completedContainer.insertAdjacentHTML(
+
+                        "beforeend",
+
+                        createCompletedPurchaseHTML(
+                            purchase
+                        )
+
+                    );
+
+                }
+            );
+
         }
+
     }
+
 }
 
 
@@ -375,18 +698,34 @@ async function renderPurchases() {
 
 function createPurchaseHTML(purchase) {
 
-    const item = escapeHTML(purchase.item);
-    const unit = escapeHTML(purchase.unit);
+    const item =
+        escapeHTML(
+            purchase.item
+        );
 
-    const quantity = escapeHTML(
-        String(purchase.quantity)
-    );
 
-    const date = formatPurchaseDate(
-        purchase.createdAt
-    );
+    const unit =
+        escapeHTML(
+            purchase.unit
+        );
+
+
+    const quantity =
+        escapeHTML(
+            String(
+                purchase.quantity
+            )
+        );
+
+
+    const date =
+        formatPurchaseDate(
+            purchase.createdAt
+        );
+
 
     return (
+
         '<div class="purchase-card pending-purchase">' +
 
         '<div class="purchase-card-main">' +
@@ -434,7 +773,9 @@ function createPurchaseHTML(purchase) {
         '</button>' +
 
         '</div>'
+
     );
+
 }
 
 
@@ -442,24 +783,44 @@ function createPurchaseHTML(purchase) {
 // بطاقة المادة المجهزة
 // =====================================================
 
-function createCompletedPurchaseHTML(purchase) {
+function createCompletedPurchaseHTML(
+    purchase
+) {
 
-    const item = escapeHTML(purchase.item);
-    const unit = escapeHTML(purchase.unit);
+    const item =
+        escapeHTML(
+            purchase.item
+        );
 
-    const quantity = escapeHTML(
-        String(purchase.quantity)
-    );
 
-    const orderDate = formatPurchaseDate(
-        purchase.createdAt
-    );
+    const unit =
+        escapeHTML(
+            purchase.unit
+        );
 
-    const completedDate = formatPurchaseDate(
-        purchase.completedAt
-    );
+
+    const quantity =
+        escapeHTML(
+            String(
+                purchase.quantity
+            )
+        );
+
+
+    const orderDate =
+        formatPurchaseDate(
+            purchase.createdAt
+        );
+
+
+    const completedDate =
+        formatPurchaseDate(
+            purchase.completedAt
+        );
+
 
     return (
+
         '<div class="purchase-card completed-purchase">' +
 
         '<div class="purchase-card-main">' +
@@ -517,129 +878,196 @@ function createCompletedPurchaseHTML(purchase) {
         '</button>' +
 
         '</div>'
+
     );
+
 }
 
 
 // =====================================================
-// تحويل الطلب إلى تم الشراء
+// تم الشراء
 // =====================================================
 
 async function completePurchase(id) {
 
-    const purchase = purchasesCache.find(function(item) {
-        return item.id === id;
-    });
+    const purchase =
+        purchasesCache.find(
+            function(item) {
+
+                return (
+                    item.id === id
+                );
+
+            }
+        );
+
 
     if (!purchase) {
+
         return;
+
     }
 
-    const confirmed = confirm(
-        'هل تم شراء المادة "' +
-        purchase.item +
-        '"؟'
-    );
+
+    const confirmed =
+        confirm(
+            'هل تم شراء المادة "' +
+            purchase.item +
+            '"؟'
+        );
+
 
     if (!confirmed) {
+
         return;
+
     }
 
-    const db = getFirestoreDB();
+
+    const db =
+        getFirestoreDB();
+
 
     if (!db) {
+
         return;
+
     }
+
 
     try {
 
         const {
             doc,
             updateDoc
-        } = await import(
-            "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js"
-        );
+        } =
+            await import(
+                "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js"
+            );
+
 
         await updateDoc(
+
             doc(
                 db,
                 PURCHASES_COLLECTION,
                 id
             ),
+
             {
-                status: "completed",
-                completedAt: new Date().toISOString()
+                status:
+                    "completed",
+
+                completedAt:
+                    new Date().toISOString()
             }
+
         );
 
+
         await renderPurchases();
+
 
     } catch (error) {
 
         console.error(
-            "خطأ في إكمال طلب الشراء:",
+            "خطأ في إكمال الطلب:",
             error
         );
+
 
         alert(
             "حدث خطأ أثناء تحديث حالة الطلب."
         );
+
     }
+
 }
 
 
 // =====================================================
-// إرجاع المادة إلى الطلبات
+// إرجاع الطلب
 // =====================================================
 
 async function returnPurchase(id) {
 
-    const purchase = purchasesCache.find(function(item) {
-        return item.id === id;
-    });
+    const purchase =
+        purchasesCache.find(
+            function(item) {
+
+                return (
+                    item.id === id
+                );
+
+            }
+        );
+
 
     if (!purchase) {
+
         return;
+
     }
 
-    const confirmed = confirm(
-        'هل تريد إرجاع المادة "' +
-        purchase.item +
-        '" إلى طلبات الشراء؟'
-    );
+
+    const confirmed =
+        confirm(
+            'هل تريد إرجاع المادة "' +
+            purchase.item +
+            '" إلى طلبات الشراء؟'
+        );
+
 
     if (!confirmed) {
+
         return;
+
     }
 
-    const db = getFirestoreDB();
+
+    const db =
+        getFirestoreDB();
+
 
     if (!db) {
+
         return;
+
     }
+
 
     try {
 
         const {
             doc,
             updateDoc
-        } = await import(
-            "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js"
-        );
+        } =
+            await import(
+                "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js"
+            );
+
 
         await updateDoc(
+
             doc(
                 db,
                 PURCHASES_COLLECTION,
                 id
             ),
+
             {
-                status: "pending",
-                completedAt: null
+                status:
+                    "pending",
+
+                completedAt:
+                    null
             }
+
         );
 
+
         await renderPurchases();
+
 
     } catch (error) {
 
@@ -648,37 +1076,62 @@ async function returnPurchase(id) {
             error
         );
 
+
         alert(
             "حدث خطأ أثناء إرجاع الطلب."
         );
+
     }
+
 }
 
 
 // =====================================================
-// تاريخ المشتريات
+// تنسيق تاريخ المشتريات
 // =====================================================
 
-function formatPurchaseDate(dateString) {
+function formatPurchaseDate(
+    dateString
+) {
 
     if (!dateString) {
+
         return "";
+
     }
 
-    const date = new Date(dateString);
 
-    if (Number.isNaN(date.getTime())) {
+    const date =
+        new Date(
+            dateString
+        );
+
+
+    if (
+        Number.isNaN(
+            date.getTime()
+        )
+    ) {
+
         return "";
+
     }
+
 
     return date.toLocaleDateString(
         "ar-IQ",
         {
-            year: "numeric",
-            month: "2-digit",
-            day: "2-digit"
+            year:
+                "numeric",
+
+            month:
+                "2-digit",
+
+            day:
+                "2-digit"
         }
     );
+
 }
 
 
@@ -688,11 +1141,16 @@ function formatPurchaseDate(dateString) {
 
 async function getReports() {
 
-    const db = getFirestoreDB();
+    const db =
+        getFirestoreDB();
+
 
     if (!db) {
+
         return [];
+
     }
+
 
     try {
 
@@ -701,54 +1159,81 @@ async function getReports() {
             getDocs,
             query,
             orderBy
-        } = await import(
-            "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js"
-        );
+        } =
+            await import(
+                "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js"
+            );
 
-        const reportsRef = collection(
-            db,
-            REPORTS_COLLECTION
-        );
+
+        const reportsRef =
+            collection(
+                db,
+                REPORTS_COLLECTION
+            );
+
 
         let snapshot;
 
+
         try {
 
-            const reportsQuery = query(
-                reportsRef,
-                orderBy("createdAt", "desc")
-            );
+            const reportsQuery =
+                query(
+                    reportsRef,
+                    orderBy(
+                        "createdAt",
+                        "desc"
+                    )
+                );
 
-            snapshot = await getDocs(
-                reportsQuery
-            );
+
+            snapshot =
+                await getDocs(
+                    reportsQuery
+                );
+
 
         } catch (orderError) {
 
             console.warn(
-                "تعذر ترتيب التقارير حسب createdAt.",
+                "تعذر ترتيب التقارير.",
                 orderError
             );
 
-            snapshot = await getDocs(
-                reportsRef
-            );
+
+            snapshot =
+                await getDocs(
+                    reportsRef
+                );
+
         }
+
 
         const reports = [];
 
-        snapshot.forEach(function(docSnapshot) {
 
-            reports.push({
-                id: docSnapshot.id,
-                ...docSnapshot.data()
-            });
+        snapshot.forEach(
+            function(docSnapshot) {
 
-        });
+                reports.push({
 
-        reportsCache = reports;
+                    id:
+                        docSnapshot.id,
+
+                    ...docSnapshot.data()
+
+                });
+
+            }
+        );
+
+
+        reportsCache =
+            reports;
+
 
         return reports;
+
 
     } catch (error) {
 
@@ -757,12 +1242,16 @@ async function getReports() {
             error
         );
 
+
         alert(
             "تعذر تحميل التقارير من قاعدة البيانات."
         );
 
+
         return [];
+
     }
+
 }
 
 
@@ -772,48 +1261,75 @@ async function getReports() {
 
 async function openReports() {
 
-    showPage("reportsPage");
+    showPage(
+        "reportsPage"
+    );
+
 
     await renderReports();
+
 }
 
 
 function openAddReport() {
 
-    showPage("addReportPage");
+    showPage(
+        "addReportPage"
+    );
+
 
     prepareReportForm();
+
 }
 
 
 function prepareReportForm() {
 
     const dateInput =
-        document.getElementById("reportDate");
+        document.getElementById(
+            "reportDate"
+        );
+
 
     const dayInput =
-        document.getElementById("reportDay");
+        document.getElementById(
+            "reportDay"
+        );
+
 
     const textInput =
-        document.getElementById("reportText");
+        document.getElementById(
+            "reportText"
+        );
 
 
     if (dateInput) {
 
-        const today = new Date();
+        const today =
+            new Date();
+
 
         const year =
             today.getFullYear();
 
+
         const month =
             String(
                 today.getMonth() + 1
-            ).padStart(2, "0");
+            ).padStart(
+                2,
+                "0"
+            );
+
 
         const day =
             String(
                 today.getDate()
-            ).padStart(2, "0");
+            ).padStart(
+                2,
+                "0"
+            );
+
 
         dateInput.value =
             year +
@@ -822,32 +1338,48 @@ function prepareReportForm() {
             "-" +
             day;
 
+
         updateDayFromDate();
+
     }
 
 
-    if (dayInput && !dayInput.value) {
+    if (
+        dayInput &&
+        !dayInput.value
+    ) {
+
         updateDayFromDate();
+
     }
 
 
     if (textInput) {
-        textInput.value = "";
+
+        textInput.value =
+            "";
+
     }
+
 }
 
 
 // =====================================================
-// تحديد يوم الأسبوع
+// يوم الأسبوع
 // =====================================================
 
 function updateDayFromDate() {
 
     const dateInput =
-        document.getElementById("reportDate");
+        document.getElementById(
+            "reportDate"
+        );
+
 
     const dayInput =
-        document.getElementById("reportDay");
+        document.getElementById(
+            "reportDay"
+        );
 
 
     if (
@@ -855,51 +1387,79 @@ function updateDayFromDate() {
         !dayInput ||
         !dateInput.value
     ) {
+
         return;
+
     }
 
 
-    const date = new Date(
-        dateInput.value +
-        "T00:00:00"
-    );
+    const date =
+        new Date(
+            dateInput.value +
+            "T00:00:00"
+        );
 
 
-    if (Number.isNaN(date.getTime())) {
+    if (
+        Number.isNaN(
+            date.getTime()
+        )
+    ) {
+
         return;
+
     }
 
 
     const days = [
+
         "الأحد",
+
         "الاثنين",
+
         "الثلاثاء",
+
         "الأربعاء",
+
         "الخميس",
+
         "الجمعة",
+
         "السبت"
+
     ];
 
 
     dayInput.value =
-        days[date.getDay()];
+        days[
+            date.getDay()
+        ];
+
 }
 
 
 // =====================================================
-// حفظ التقرير في Firebase
+// حفظ التقرير
 // =====================================================
 
 async function saveReport() {
 
     const dateInput =
-        document.getElementById("reportDate");
+        document.getElementById(
+            "reportDate"
+        );
+
 
     const dayInput =
-        document.getElementById("reportDay");
+        document.getElementById(
+            "reportDay"
+        );
+
 
     const textInput =
-        document.getElementById("reportText");
+        document.getElementById(
+            "reportText"
+        );
 
 
     if (
@@ -913,14 +1473,17 @@ async function saveReport() {
         );
 
         return;
+
     }
 
 
     const date =
         dateInput.value;
 
+
     const day =
         dayInput.value.trim();
+
 
     const text =
         textInput.value.trim();
@@ -933,6 +1496,7 @@ async function saveReport() {
         );
 
         return;
+
     }
 
 
@@ -945,13 +1509,18 @@ async function saveReport() {
         textInput.focus();
 
         return;
+
     }
 
 
-    const db = getFirestoreDB();
+    const db =
+        getFirestoreDB();
+
 
     if (!db) {
+
         return;
+
     }
 
 
@@ -959,29 +1528,34 @@ async function saveReport() {
 
         const {
             collection,
-            addDoc,
-            serverTimestamp
-        } = await import(
-            "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js"
-        );
+            addDoc
+        } =
+            await import(
+                "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js"
+            );
 
 
         await addDoc(
+
             collection(
                 db,
                 REPORTS_COLLECTION
             ),
+
             {
-                date: date,
-                day: day,
-                text: text,
+                date:
+                    date,
+
+                day:
+                    day,
+
+                text:
+                    text,
 
                 createdAt:
-                    new Date().toISOString(),
-
-                firebaseCreatedAt:
-                    serverTimestamp()
+                    new Date().toISOString()
             }
+
         );
 
 
@@ -1000,10 +1574,14 @@ async function saveReport() {
             error
         );
 
+
         alert(
-            "حدث خطأ أثناء حفظ التقرير."
+            "حدث خطأ أثناء حفظ التقرير.\n\n" +
+            error.message
         );
+
     }
+
 }
 
 
@@ -1020,7 +1598,9 @@ async function renderReports() {
 
 
     if (!container) {
+
         return;
+
     }
 
 
@@ -1028,9 +1608,12 @@ async function renderReports() {
         await getReports();
 
 
-    if (reports.length === 0) {
+    if (
+        reports.length === 0
+    ) {
 
         container.innerHTML =
+
             '<div class="empty-reports">' +
 
             '<div class="empty-reports-icon">📋</div>' +
@@ -1044,20 +1627,30 @@ async function renderReports() {
             '</div>';
 
         return;
+
     }
 
 
-    container.innerHTML = "";
+    container.innerHTML =
+        "";
 
 
-    reports.forEach(function(report) {
+    reports.forEach(
+        function(report) {
 
-        container.insertAdjacentHTML(
-            "beforeend",
-            createReportHTML(report)
-        );
+            container.insertAdjacentHTML(
 
-    });
+                "beforeend",
+
+                createReportHTML(
+                    report
+                )
+
+            );
+
+        }
+    );
+
 }
 
 
@@ -1065,17 +1658,21 @@ async function renderReports() {
 // بطاقة التقرير
 // =====================================================
 
-function createReportHTML(report) {
+function createReportHTML(
+    report
+) {
 
     const day =
         escapeHTML(
             report.day || ""
         );
 
+
     const text =
         escapeHTML(
             report.text || ""
         );
+
 
     const date =
         formatDate(
@@ -1119,18 +1716,24 @@ function createReportHTML(report) {
         '</div>' +
 
         '</div>'
+
     );
+
 }
 
 
 // =====================================================
-// تنسيق تاريخ التقرير
+// تنسيق التاريخ
 // =====================================================
 
-function formatDate(dateString) {
+function formatDate(
+    dateString
+) {
 
     if (!dateString) {
+
         return "";
+
     }
 
 
@@ -1146,18 +1749,26 @@ function formatDate(dateString) {
             date.getTime()
         )
     ) {
+
         return dateString;
+
     }
 
 
     return date.toLocaleDateString(
         "ar-IQ",
         {
-            year: "numeric",
-            month: "long",
-            day: "numeric"
+            year:
+                "numeric",
+
+            month:
+                "long",
+
+            day:
+                "numeric"
         }
     );
+
 }
 
 
@@ -1170,13 +1781,19 @@ async function deleteReport(id) {
     const report =
         reportsCache.find(
             function(item) {
-                return item.id === id;
+
+                return (
+                    item.id === id
+                );
+
             }
         );
 
 
     if (!report) {
+
         return;
+
     }
 
 
@@ -1187,7 +1804,9 @@ async function deleteReport(id) {
 
 
     if (!confirmed) {
+
         return;
+
     }
 
 
@@ -1196,7 +1815,9 @@ async function deleteReport(id) {
 
 
     if (!db) {
+
         return;
+
     }
 
 
@@ -1205,17 +1826,20 @@ async function deleteReport(id) {
         const {
             doc,
             deleteDoc
-        } = await import(
-            "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js"
-        );
+        } =
+            await import(
+                "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js"
+            );
 
 
         await deleteDoc(
+
             doc(
                 db,
                 REPORTS_COLLECTION,
                 id
             )
+
         );
 
 
@@ -1233,12 +1857,14 @@ async function deleteReport(id) {
         alert(
             "حدث خطأ أثناء حذف التقرير."
         );
+
     }
+
 }
 
 
 // =====================================================
-// حماية النصوص من HTML
+// حماية النصوص
 // =====================================================
 
 function escapeHTML(value) {
@@ -1269,42 +1895,62 @@ function escapeHTML(value) {
             /'/g,
             "&#039;"
         );
+
 }
 
 
 // =====================================================
-// عند فتح الصفحة
+// تشغيل التطبيق
 // =====================================================
 
-document.addEventListener(
-    "DOMContentLoaded",
-    async function() {
+async function initializeCompanyApp() {
 
-        await renderPurchases();
-
-        await renderReports();
+    console.log(
+        "تشغيل تطبيق شركة نوافذ البناء..."
+    );
 
 
-        const reportDate =
-            document.getElementById(
-                "reportDate"
-            );
+    if (!window.firebaseDb) {
 
+        console.error(
+            "Firebase غير موجود عند تشغيل التطبيق."
+        );
 
-        if (reportDate) {
-
-            reportDate.addEventListener(
-                "change",
-                updateDayFromDate
-            );
-        }
+        return;
 
     }
-);
+
+
+    console.log(
+        "Firestore جاهز."
+    );
+
+
+    await renderPurchases();
+
+    await renderReports();
+
+
+    const reportDate =
+        document.getElementById(
+            "reportDate"
+        );
+
+
+    if (reportDate) {
+
+        reportDate.addEventListener(
+            "change",
+            updateDayFromDate
+        );
+
+    }
+
+}
 
 
 // =====================================================
-// منع الضغط المزدوج على الهاتف
+// منع الضغط المزدوج
 // =====================================================
 
 document.addEventListener(
@@ -1323,6 +1969,7 @@ document.addEventListener(
         ) {
 
             event.preventDefault();
+
         }
 
 
@@ -1332,3 +1979,27 @@ document.addEventListener(
     },
     false
 );
+
+
+// =====================================================
+// بدء التطبيق
+// =====================================================
+
+// لأن script.js يتم تحميله بعد Firebase
+// نبدأ مباشرة بعد تحميل الملف.
+
+if (
+    document.readyState ===
+    "loading"
+) {
+
+    document.addEventListener(
+        "DOMContentLoaded",
+        initializeCompanyApp
+    );
+
+} else {
+
+    initializeCompanyApp();
+
+}
