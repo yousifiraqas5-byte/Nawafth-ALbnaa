@@ -6,33 +6,27 @@
 
   <meta charset="UTF-8">
 
-<meta
-name="viewport"
-content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+  >
 
->
+  <meta
+    name="theme-color"
+    content="#16835b"
+  >
 
-<meta
-name="theme-color"
-content="#16835b"
+  <meta
+    name="apple-mobile-web-app-capable"
+    content="yes"
+  >
 
->
+  <meta
+    name="apple-mobile-web-app-status-bar-style"
+    content="default"
+  >
 
-<meta
-name="apple-mobile-web-app-capable"
-content="yes"
-
->
-
-<meta
-name="apple-mobile-web-app-status-bar-style"
-content="default"
-
->
-
-  <title>
-    شركة نوافذ البناء
-  </title>
+  <title>شركة نوافذ البناء</title>
 
   <link
     rel="icon"
@@ -47,7 +41,9 @@ content="default"
 
 </head>
 
+
 <body>
+
 
   <!-- =====================================================
   APP
@@ -55,982 +51,953 @@ content="default"
 
   <div class="iphone-app">
 
-```
-<!-- ===================================================
-HEADER
-==================================================== -->
 
-<header class="app-header">
+    <!-- ===================================================
+    HEADER
+    ==================================================== -->
 
-  <div class="company-brand">
+    <header class="app-header">
 
-    <div class="company-logo">
+      <div class="company-brand">
 
-      <img
-        src="icon.png"
-        alt="شعار شركة نوافذ البناء"
-      >
+        <div class="company-logo">
 
-    </div>
+          <img
+            src="icon.png"
+            alt="شعار شركة نوافذ البناء"
+          >
 
-
-    <div class="company-name">
-
-      <h1>
-        شركة نوافذ البناء
-      </h1>
-
-      <p>
-        Nawafth ALbnaa Company
-      </p>
-
-    </div>
-
-  </div>
+        </div>
 
 
-  <div class="header-welcome">
+        <div class="company-name">
 
-    <span>
-      لوحة الشركة
-    </span>
+          <h1>
+            شركة نوافذ البناء
+          </h1>
 
-    <strong>
-      الأقسام الرئيسية
-    </strong>
+          <p>
+            Nawafth ALbnaa Company
+          </p>
 
-  </div>
+        </div>
 
-</header>
-
-
-
-<!-- ===================================================
-HOME PAGE
-==================================================== -->
-
-<main
-  id="homePage"
-  class="page active"
->
+      </div>
 
 
-  <section class="home-intro">
+      <div class="header-welcome">
 
-    <div class="intro-icon">
-      🏢
-    </div>
+        <span>
+          لوحة الشركة
+        </span>
 
-    <div>
+        <strong>
+          الأقسام الرئيسية
+        </strong>
 
-      <h2>
-        الأقسام الرئيسية
-      </h2>
+      </div>
 
-      <p>
-        اختر القسم الذي تريد الدخول إليه
-      </p>
-
-    </div>
-
-  </section>
+    </header>
 
 
 
-  <!-- MAIN GRID -->
+    <!-- ===================================================
+    HOME PAGE
+    ==================================================== -->
 
-  <section class="main-grid">
-
-
-    <!-- STORAGE -->
-
-    <button
-      type="button"
-      class="main-card"
-      onclick="openStorage()"
+    <main
+      id="homePage"
+      class="page active"
     >
 
-      <div class="card-top">
+      <section class="home-intro">
 
-        <div class="main-icon green">
+        <div class="intro-icon">
           🏢
         </div>
 
-        <div class="card-arrow">
-          ←
+        <div>
+
+          <h2>
+            الأقسام الرئيسية
+          </h2>
+
+          <p>
+            اختر القسم الذي تريد الدخول إليه
+          </p>
+
         </div>
 
-      </div>
-
-
-      <div class="card-text">
-
-        <h3>
-          المخازن
-        </h3>
-
-        <p>
-          إدارة المخازن والمواد
-        </p>
-
-      </div>
-
-    </button>
+      </section>
 
 
 
-    <!-- KITCHEN -->
+      <!-- MAIN GRID -->
 
-    <button
-      type="button"
-      class="main-card"
-      onclick="showMessage('المطبخ')"
+      <section class="main-grid">
+
+
+        <!-- STORAGE -->
+
+        <button
+          type="button"
+          class="main-card"
+          onclick="openStorage()"
+        >
+
+          <div class="card-top">
+
+            <div class="main-icon green">
+              🏢
+            </div>
+
+            <div class="card-arrow">
+              ←
+            </div>
+
+          </div>
+
+
+          <div class="card-text">
+
+            <h3>
+              المخازن
+            </h3>
+
+            <p>
+              إدارة المخازن والمواد
+            </p>
+
+          </div>
+
+        </button>
+
+
+
+        <!-- KITCHEN -->
+
+        <button
+          type="button"
+          class="main-card"
+          onclick="showMessage('المطبخ')"
+        >
+
+          <div class="card-top">
+
+            <div class="main-icon gray">
+              🍽️
+            </div>
+
+            <div class="card-arrow">
+              ←
+            </div>
+
+          </div>
+
+
+          <div class="card-text">
+
+            <h3>
+              المطبخ
+            </h3>
+
+            <p>
+              إدارة ومتابعة المطبخ
+            </p>
+
+          </div>
+
+        </button>
+
+
+
+        <!-- MEDICAL -->
+
+        <button
+          type="button"
+          class="main-card"
+          onclick="showMessage('الأجهزة الطبية')"
+        >
+
+          <div class="card-top">
+
+            <div class="main-icon green">
+              ⚕️
+            </div>
+
+            <div class="card-arrow">
+              ←
+            </div>
+
+          </div>
+
+
+          <div class="card-text">
+
+            <h3>
+              الأجهزة الطبية
+            </h3>
+
+            <p>
+              متابعة الأجهزة والمعدات الطبية
+            </p>
+
+          </div>
+
+        </button>
+
+
+
+        <!-- REPORTS -->
+
+        <button
+          type="button"
+          class="main-card"
+          onclick="openReports()"
+        >
+
+          <div class="card-top">
+
+            <div class="main-icon gray">
+              📋
+            </div>
+
+            <div class="card-arrow">
+              ←
+            </div>
+
+          </div>
+
+
+          <div class="card-text">
+
+            <h3>
+              التقرير اليومي
+            </h3>
+
+            <p>
+              تسجيل ومتابعة التقارير اليومية
+            </p>
+
+          </div>
+
+        </button>
+
+
+
+        <!-- PURCHASES -->
+
+        <button
+          type="button"
+          class="main-card"
+          onclick="openPurchases()"
+        >
+
+          <div class="card-top">
+
+            <div class="main-icon green">
+              🛒
+            </div>
+
+            <div class="card-arrow">
+              ←
+            </div>
+
+          </div>
+
+
+          <div class="card-text">
+
+            <h3>
+              المشتريات
+            </h3>
+
+            <p>
+              طلبات شراء المواد والمستلزمات
+            </p>
+
+          </div>
+
+        </button>
+
+
+      </section>
+
+    </main>
+
+
+
+    <!-- ===================================================
+    STORAGE PAGE
+    ==================================================== -->
+
+    <main
+      id="storagePage"
+      class="page"
     >
 
-      <div class="card-top">
+      <div class="navigation">
 
-        <div class="main-icon gray">
-          🍽️
-        </div>
-
-        <div class="card-arrow">
-          ←
-        </div>
-
-      </div>
-
-
-      <div class="card-text">
-
-        <h3>
-          المطبخ
-        </h3>
-
-        <p>
-          إدارة ومتابعة المطبخ
-        </p>
+        <button
+          type="button"
+          onclick="goHome()"
+        >
+          → الرئيسية
+        </button>
 
       </div>
 
-    </button>
+
+      <section class="intro">
+
+        <div class="intro-icon">
+          🏢
+        </div>
+
+        <div>
+
+          <h2>
+            المخازن
+          </h2>
+
+          <p>
+            اختر المخزن المطلوب
+          </p>
+
+        </div>
+
+      </section>
 
 
 
-    <!-- MEDICAL -->
+      <section class="storage-list">
 
-    <button
-      type="button"
-      class="main-card"
-      onclick="showMessage('الأجهزة الطبية')"
+
+        <button
+          type="button"
+          class="storage-card"
+          onclick="showMessage('الحاويات')"
+        >
+
+          <div class="storage-icon">
+            🚢
+          </div>
+
+          <div class="storage-text">
+
+            <h3>
+              الحاويات
+            </h3>
+
+            <p>
+              مخزن الحاويات
+            </p>
+
+          </div>
+
+          <div class="storage-arrow">
+            ←
+          </div>
+
+        </button>
+
+
+
+        <button
+          type="button"
+          class="storage-card"
+          onclick="showMessage('القاعة')"
+        >
+
+          <div class="storage-icon">
+            🏭
+          </div>
+
+          <div class="storage-text">
+
+            <h3>
+              القاعة
+            </h3>
+
+            <p>
+              مخزن القاعة
+            </p>
+
+          </div>
+
+          <div class="storage-arrow">
+            ←
+          </div>
+
+        </button>
+
+
+
+        <button
+          type="button"
+          class="storage-card"
+          onclick="showMessage('مخزن بناية 6')"
+        >
+
+          <div class="storage-icon">
+            🏢
+          </div>
+
+          <div class="storage-text">
+
+            <h3>
+              مخزن بناية 6
+            </h3>
+
+            <p>
+              مخزن بناية 6
+            </p>
+
+          </div>
+
+          <div class="storage-arrow">
+            ←
+          </div>
+
+        </button>
+
+
+      </section>
+
+    </main>
+
+
+
+    <!-- ===================================================
+    PURCHASES PAGE
+    ==================================================== -->
+
+    <main
+      id="purchasesPage"
+      class="page"
     >
 
-      <div class="card-top">
+      <div class="navigation">
 
-        <div class="main-icon green">
-          ⚕️
-        </div>
-
-        <div class="card-arrow">
-          ←
-        </div>
-
-      </div>
-
-
-      <div class="card-text">
-
-        <h3>
-          الأجهزة الطبية
-        </h3>
-
-        <p>
-          متابعة الأجهزة والمعدات الطبية
-        </p>
+        <button
+          type="button"
+          onclick="goHome()"
+        >
+          → الرئيسية
+        </button>
 
       </div>
 
-    </button>
+
+
+      <section class="intro">
+
+        <div class="intro-icon">
+          🛒
+        </div>
+
+        <div>
+
+          <h2>
+            المشتريات
+          </h2>
+
+          <p>
+            إدارة طلبات شراء المواد والمستلزمات
+          </p>
+
+        </div>
+
+      </section>
 
 
 
-    <!-- REPORTS -->
+      <!-- ADD PURCHASE BUTTON -->
 
-    <button
-      type="button"
-      class="main-card"
-      onclick="openReports()"
+      <section class="purchase-action">
+
+        <button
+          type="button"
+          class="add-purchase-button"
+          onclick="openPurchaseForm()"
+        >
+
+          <span class="add-purchase-icon">
+            +
+          </span>
+
+          <span>
+            طلب شراء
+          </span>
+
+        </button>
+
+      </section>
+
+
+
+      <!-- PURCHASE FORM -->
+
+      <section
+        id="purchaseForm"
+        class="purchase-form"
+        style="display: none;"
+      >
+
+        <div class="purchase-form-header">
+
+          <div>
+
+            <h3>
+              طلب شراء جديد
+            </h3>
+
+            <p>
+              أدخل تفاصيل المادة المطلوبة
+            </p>
+
+          </div>
+
+
+          <button
+            type="button"
+            class="close-purchase-form"
+            onclick="closePurchaseForm()"
+            aria-label="إغلاق"
+          >
+            ×
+          </button>
+
+        </div>
+
+
+
+        <div class="form-group">
+
+          <label for="purchaseItem">
+            المادة المطلوبة
+          </label>
+
+          <input
+            id="purchaseItem"
+            type="text"
+            placeholder="مثال: إسمنت"
+            autocomplete="off"
+          >
+
+        </div>
+
+
+
+        <div class="form-group">
+
+          <label for="purchaseUnit">
+            الوحدة
+          </label>
+
+          <input
+            id="purchaseUnit"
+            type="text"
+            placeholder="مثال: كيس، قطعة، متر، لتر"
+            autocomplete="off"
+          >
+
+        </div>
+
+
+
+        <div class="form-group">
+
+          <label for="purchaseQuantity">
+            العدد
+          </label>
+
+          <input
+            id="purchaseQuantity"
+            type="number"
+            min="0.01"
+            step="any"
+            placeholder="أدخل العدد"
+          >
+
+        </div>
+
+
+
+        <div class="purchase-form-buttons">
+
+          <button
+            type="button"
+            class="save-purchase-button"
+            onclick="addPurchase()"
+          >
+            إضافة
+          </button>
+
+
+          <button
+            type="button"
+            class="cancel-purchase-button"
+            onclick="closePurchaseForm()"
+          >
+            إلغاء
+          </button>
+
+        </div>
+
+      </section>
+
+
+
+      <!-- PENDING PURCHASES -->
+
+      <section class="purchase-section">
+
+        <div class="purchase-section-header">
+
+          <div>
+
+            <h3>
+              طلبات الشراء
+            </h3>
+
+            <p>
+              الطلبات التي لم يتم شراؤها بعد
+            </p>
+
+          </div>
+
+
+          <span
+            id="pendingPurchaseCount"
+            class="purchase-count"
+          >
+            0
+          </span>
+
+        </div>
+
+
+
+        <div
+          id="pendingPurchases"
+          class="purchases-list"
+        >
+
+          <div class="empty-purchases">
+
+            <div class="empty-purchases-icon">
+              🛒
+            </div>
+
+            <strong>
+              لا توجد طلبات شراء
+            </strong>
+
+            <span>
+              اضغط على "طلب شراء" لإضافة مادة جديدة
+            </span>
+
+          </div>
+
+        </div>
+
+      </section>
+
+
+
+      <!-- COMPLETED PURCHASES -->
+
+      <section class="purchase-section completed-purchases-section">
+
+        <div class="purchase-section-header">
+
+          <div>
+
+            <h3>
+              تم تجهيزه
+            </h3>
+
+            <p>
+              المواد التي تم شراؤها وتجهيزها
+            </p>
+
+          </div>
+
+
+          <span
+            id="completedPurchaseCount"
+            class="purchase-count completed-count"
+          >
+            0
+          </span>
+
+        </div>
+
+
+
+        <div
+          id="completedPurchases"
+          class="purchases-list"
+        >
+
+          <div class="empty-purchases completed-empty">
+
+            <div class="empty-purchases-icon">
+              📦
+            </div>
+
+            <strong>
+              لا توجد مواد مجهزة
+            </strong>
+
+            <span>
+              الطلبات التي يتم شراؤها ستظهر هنا
+            </span>
+
+          </div>
+
+        </div>
+
+      </section>
+
+
+    </main>
+
+
+
+    <!-- ===================================================
+    REPORTS PAGE
+    ==================================================== -->
+
+    <main
+      id="reportsPage"
+      class="page"
     >
 
-      <div class="card-top">
+      <div class="navigation">
 
-        <div class="main-icon gray">
+        <button
+          type="button"
+          onclick="goHome()"
+        >
+          → الرئيسية
+        </button>
+
+      </div>
+
+
+
+      <section class="intro">
+
+        <div class="intro-icon">
           📋
         </div>
 
-        <div class="card-arrow">
-          ←
+        <div>
+
+          <h2>
+            التقرير اليومي
+          </h2>
+
+          <p>
+            تسجيل ومتابعة التقارير اليومية
+          </p>
+
         </div>
 
+      </section>
+
+
+
+      <div class="report-action">
+
+        <button
+          type="button"
+          class="add-report-button"
+          onclick="openAddReport()"
+        >
+
+          <span>
+            +
+          </span>
+
+          إضافة تقرير
+
+        </button>
+
       </div>
 
 
-      <div class="card-text">
 
-        <h3>
-          التقرير اليومي
-        </h3>
+      <section
+        id="reportsList"
+        class="reports-list"
+      >
 
-        <p>
-          تسجيل ومتابعة التقارير اليومية
-        </p>
+        <div class="empty-reports">
 
-      </div>
+          <div class="empty-reports-icon">
+            📋
+          </div>
 
-    </button>
+          <strong>
+            لا توجد تقارير حالياً
+          </strong>
 
+          <span>
+            اضغط على "إضافة تقرير" لإنشاء أول تقرير
+          </span>
 
-
-    <!-- =================================================
-    PURCHASES
-    ================================================== -->
-
-    <button
-      type="button"
-      class="main-card"
-      onclick="openPurchases()"
-    >
-
-      <div class="card-top">
-
-        <div class="main-icon green">
-          🛒
         </div>
 
-        <div class="card-arrow">
-          ←
+      </section>
+
+    </main>
+
+
+
+    <!-- ===================================================
+    ADD REPORT PAGE
+    ==================================================== -->
+
+    <main
+      id="addReportPage"
+      class="page"
+    >
+
+      <div class="navigation">
+
+        <button
+          type="button"
+          onclick="openReports()"
+        >
+          → التقارير
+        </button>
+
+      </div>
+
+
+
+      <section class="intro">
+
+        <div class="intro-icon">
+          📝
         </div>
 
-      </div>
+        <div>
 
+          <h2>
+            إضافة تقرير
+          </h2>
 
-      <div class="card-text">
+          <p>
+            أدخل تفاصيل التقرير اليومي
+          </p>
 
-        <h3>
-          المشتريات
-        </h3>
-
-        <p>
-          طلبات شراء المواد والمستلزمات
-        </p>
-
-      </div>
-
-    </button>
-
-
-  </section>
-
-</main>
-
-
-
-<!-- ===================================================
-STORAGE PAGE
-==================================================== -->
-
-<main
-  id="storagePage"
-  class="page"
->
-
-
-  <div class="navigation">
-
-    <button
-      type="button"
-      onclick="goHome()"
-    >
-      → الرئيسية
-    </button>
-
-  </div>
-
-
-
-  <section class="intro">
-
-    <div class="intro-icon">
-      🏢
-    </div>
-
-    <div>
-
-      <h2>
-        المخازن
-      </h2>
-
-      <p>
-        اختر المخزن المطلوب
-      </p>
-
-    </div>
-
-  </section>
-
-
-
-  <section class="storage-list">
-
-
-    <button
-      type="button"
-      class="storage-card"
-      onclick="showMessage('الحاويات')"
-    >
-
-      <div class="storage-icon">
-        🚢
-      </div>
-
-      <div class="storage-text">
-
-        <h3>
-          الحاويات
-        </h3>
-
-        <p>
-          مخزن الحاويات
-        </p>
-
-      </div>
-
-      <div class="storage-arrow">
-        ←
-      </div>
-
-    </button>
-
-
-
-    <button
-      type="button"
-      class="storage-card"
-      onclick="showMessage('القاعة')"
-    >
-
-      <div class="storage-icon">
-        🏭
-      </div>
-
-      <div class="storage-text">
-
-        <h3>
-          القاعة
-        </h3>
-
-        <p>
-          مخزن القاعة
-        </p>
-
-      </div>
-
-      <div class="storage-arrow">
-        ←
-      </div>
-
-    </button>
-
-
-
-    <button
-      type="button"
-      class="storage-card"
-      onclick="showMessage('مخزن بناية 6')"
-    >
-
-      <div class="storage-icon">
-        🏢
-      </div>
-
-      <div class="storage-text">
-
-        <h3>
-          مخزن بناية 6
-        </h3>
-
-        <p>
-          مخزن بناية 6
-        </p>
-
-      </div>
-
-      <div class="storage-arrow">
-        ←
-      </div>
-
-    </button>
-
-
-  </section>
-
-</main>
-
-
-
-<!-- ===================================================
-PURCHASES PAGE
-==================================================== -->
-
-<main
-  id="purchasesPage"
-  class="page"
->
-
-
-  <div class="navigation">
-
-    <button
-      type="button"
-      onclick="goHome()"
-    >
-      → الرئيسية
-    </button>
-
-  </div>
-
-
-
-  <section class="intro">
-
-    <div class="intro-icon">
-      🛒
-    </div>
-
-    <div>
-
-      <h2>
-        المشتريات
-      </h2>
-
-      <p>
-        إدارة طلبات شراء المواد والمستلزمات
-      </p>
-
-    </div>
-
-  </section>
-
-
-
-  <!-- =================================================
-  ADD PURCHASE BUTTON
-  ================================================== -->
-
-  <section class="purchase-action">
-
-    <button
-      type="button"
-      class="add-purchase-button"
-      onclick="openPurchaseForm()"
-    >
-
-      <span class="add-purchase-icon">
-        +
-      </span>
-
-      <span>
-        طلب شراء
-      </span>
-
-    </button>
-
-  </section>
-
-
-
-  <!-- =================================================
-  PURCHASE FORM
-  ================================================== -->
-
-  <section
-    id="purchaseForm"
-    class="purchase-form"
-    style="display: none;"
-  >
-
-
-    <div class="purchase-form-header">
-
-      <div>
-
-        <h3>
-          طلب شراء جديد
-        </h3>
-
-        <p>
-          أدخل تفاصيل المادة المطلوبة
-        </p>
-
-      </div>
-
-      <button
-        type="button"
-        class="close-purchase-form"
-        onclick="closePurchaseForm()"
-        aria-label="إغلاق"
-      >
-        ×
-      </button>
-
-    </div>
-
-
-
-    <div class="form-group">
-
-      <label for="purchaseItem">
-        المادة المطلوبة
-      </label>
-
-      <input
-        id="purchaseItem"
-        type="text"
-        placeholder="مثال: إسمنت"
-        autocomplete="off"
-      >
-
-    </div>
-
-
-
-    <div class="form-group">
-
-      <label for="purchaseUnit">
-        الوحدة
-      </label>
-
-      <input
-        id="purchaseUnit"
-        type="text"
-        placeholder="مثال: كيس، قطعة، متر، لتر"
-        autocomplete="off"
-      >
-
-    </div>
-
-
-
-    <div class="form-group">
-
-      <label for="purchaseQuantity">
-        العدد
-      </label>
-
-      <input
-        id="purchaseQuantity"
-        type="number"
-        min="0.01"
-        step="any"
-        placeholder="أدخل العدد"
-      >
-
-    </div>
-
-
-
-    <div class="purchase-form-buttons">
-
-      <button
-        type="button"
-        class="save-purchase-button"
-        onclick="addPurchase()"
-      >
-        إضافة
-      </button>
-
-
-      <button
-        type="button"
-        class="cancel-purchase-button"
-        onclick="closePurchaseForm()"
-      >
-        إلغاء
-      </button>
-
-    </div>
-
-
-  </section>
-
-
-
-  <!-- =================================================
-  PENDING PURCHASES
-  ================================================== -->
-
-  <section class="purchase-section">
-
-
-    <div class="purchase-section-header">
-
-      <div>
-
-        <h3>
-          طلبات الشراء
-        </h3>
-
-        <p>
-          الطلبات التي لم يتم شراؤها بعد
-        </p>
-
-      </div>
-
-
-      <span
-        id="pendingPurchaseCount"
-        class="purchase-count"
-      >
-        0
-      </span>
-
-    </div>
-
-
-
-    <div
-      id="pendingPurchases"
-      class="purchases-list"
-    >
-
-      <div class="empty-purchases">
-
-        <div class="empty-purchases-icon">
-          🛒
         </div>
 
-        <strong>
-          لا توجد طلبات شراء
-        </strong>
-
-        <span>
-          اضغط على "طلب شراء" لإضافة مادة جديدة
-        </span>
-
-      </div>
-
-    </div>
-
-
-  </section>
+      </section>
 
 
 
-  <!-- =================================================
-  COMPLETED PURCHASES
-  ================================================== -->
-
-  <section class="purchase-section completed-purchases-section">
+      <section class="report-form">
 
 
-    <div class="purchase-section-header">
+        <div class="form-group">
 
-      <div>
+          <label for="reportDay">
+            اليوم
+          </label>
 
-        <h3>
-          تم تجهيزه
-        </h3>
+          <input
+            id="reportDay"
+            type="text"
+            readonly
+            placeholder="سيظهر اليوم تلقائياً"
+          >
 
-        <p>
-          المواد التي تم شراؤها وتجهيزها
-        </p>
-
-      </div>
-
-
-      <span
-        id="completedPurchaseCount"
-        class="purchase-count completed-count"
-      >
-        0
-      </span>
-
-    </div>
-
-
-
-    <div
-      id="completedPurchases"
-      class="purchases-list"
-    >
-
-      <div class="empty-purchases completed-empty">
-
-        <div class="empty-purchases-icon">
-          📦
         </div>
 
-        <strong>
-          لا توجد مواد مجهزة
-        </strong>
-
-        <span>
-          الطلبات التي يتم شراؤها ستظهر هنا
-        </span>
-
-      </div>
-
-    </div>
 
 
-  </section>
+        <div class="form-group">
 
+          <label for="reportDate">
+            التاريخ
+          </label>
 
-</main>
+          <input
+            id="reportDate"
+            type="date"
+          >
+
+        </div>
 
 
 
-<!-- ===================================================
-REPORTS PAGE
-==================================================== -->
+        <div class="form-group">
 
-<main
-  id="reportsPage"
-  class="page"
->
+          <label for="reportText">
+            تفاصيل التقرير
+          </label>
 
+          <textarea
+            id="reportText"
+            rows="7"
+            placeholder="اكتب تفاصيل التقرير هنا..."
+          ></textarea>
 
-  <div class="navigation">
-
-    <button
-      type="button"
-      onclick="goHome()"
-    >
-      → الرئيسية
-    </button>
-
-  </div>
+        </div>
 
 
 
-  <section class="intro">
+        <div class="report-form-buttons">
 
-    <div class="intro-icon">
-      📋
-    </div>
-
-    <div>
-
-      <h2>
-        التقرير اليومي
-      </h2>
-
-      <p>
-        تسجيل ومتابعة التقارير اليومية
-      </p>
-
-    </div>
-
-  </section>
+          <button
+            type="button"
+            class="save-report-button"
+            onclick="saveReport()"
+          >
+            حفظ التقرير
+          </button>
 
 
+          <button
+            type="button"
+            class="cancel-report-button"
+            onclick="openReports()"
+          >
+            إلغاء
+          </button>
 
-  <div class="report-action">
+        </div>
 
-    <button
-      type="button"
-      class="add-report-button"
-      onclick="openAddReport()"
-    >
+      </section>
 
-      <span>
-        +
-      </span>
-
-      إضافة تقرير
-
-    </button>
-
-  </div>
+    </main>
 
 
 
-  <section
-    id="reportsList"
-    class="reports-list"
-  >
+    <!-- ===================================================
+    FOOTER
+    ==================================================== -->
 
-    <div class="empty-reports">
-
-      <div class="empty-reports-icon">
-        📋
-      </div>
+    <footer class="app-footer">
 
       <strong>
-        لا توجد تقارير حالياً
+        شركة نوافذ البناء
       </strong>
 
       <span>
-        اضغط على "إضافة تقرير" لإنشاء أول تقرير
+        Nawafth ALbnaa Company
       </span>
 
-    </div>
+    </footer>
 
-  </section>
-
-
-</main>
-
-
-
-<!-- ===================================================
-ADD REPORT PAGE
-==================================================== -->
-
-<main
-  id="addReportPage"
-  class="page"
->
-
-
-  <div class="navigation">
-
-    <button
-      type="button"
-      onclick="openReports()"
-    >
-      → التقارير
-    </button>
 
   </div>
 
-
-
-  <section class="intro">
-
-    <div class="intro-icon">
-      📝
-    </div>
-
-    <div>
-
-      <h2>
-        إضافة تقرير
-      </h2>
-
-      <p>
-        أدخل تفاصيل التقرير اليومي
-      </p>
-
-    </div>
-
-  </section>
-
-
-
-  <section class="report-form">
-
-
-    <div class="form-group">
-
-      <label for="reportDay">
-        اليوم
-      </label>
-
-      <input
-        id="reportDay"
-        type="text"
-        readonly
-        placeholder="سيظهر اليوم تلقائياً"
-      >
-
-    </div>
-
-
-
-    <div class="form-group">
-
-      <label for="reportDate">
-        التاريخ
-      </label>
-
-      <input
-        id="reportDate"
-        type="date"
-      >
-
-    </div>
-
-
-
-    <div class="form-group">
-
-      <label for="reportText">
-        تفاصيل التقرير
-      </label>
-
-      <textarea
-        id="reportText"
-        rows="7"
-        placeholder="اكتب تفاصيل التقرير هنا..."
-      ></textarea>
-
-    </div>
-
-
-
-    <div class="report-form-buttons">
-
-      <button
-        type="button"
-        class="save-report-button"
-        onclick="saveReport()"
-      >
-        حفظ التقرير
-      </button>
-
-
-      <button
-        type="button"
-        class="cancel-report-button"
-        onclick="openReports()"
-      >
-        إلغاء
-      </button>
-
-    </div>
-
-
-  </section>
-
-
-</main>
-
-
-
-<!-- ===================================================
-FOOTER
-==================================================== -->
-
-<footer class="app-footer">
-
-  <strong>
-    شركة نوافذ البناء
-  </strong>
-
-  <span>
-    Nawafth ALbnaa Company
-  </span>
-
-</footer>
-```
-
-  </div>
-
-  <!-- =====================================================
-  EXISTING JAVASCRIPT
-  ====================================================== -->
-
-  <script src="script.js"></script>
 
   <!-- =====================================================
   FIREBASE
@@ -1044,9 +1011,10 @@ FOOTER
     import { getFirestore }
       from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
 
-    import { getAnalytics }
-      from "https://www.gstatic.com/firebasejs/12.19.0/firebase-analytics.js";
 
+    // =====================================================
+    // FIREBASE CONFIG
+    // =====================================================
 
     const firebaseConfig = {
 
@@ -1067,34 +1035,76 @@ FOOTER
     };
 
 
-    const app = initializeApp(firebaseConfig);
+    // =====================================================
+    // INITIALIZE FIREBASE
+    // =====================================================
+
+    try {
+
+      const app = initializeApp(firebaseConfig);
+
+      const db = getFirestore(app);
 
 
-    const db = getFirestore(app);
+      // جعل Firebase متاحاً لـ script.js
+
+      window.firebaseApp = app;
+
+      window.firebaseDb = db;
 
 
-    const analytics = getAnalytics(app);
+      console.log(
+        "Firebase connected successfully"
+      );
+
+      console.log(
+        "Firebase Project:",
+        "nawafth-albnaa"
+      );
 
 
-    /*
-      نجعل قاعدة البيانات متاحة لملف script.js
-      حتى نستخدمها لاحقاً لحفظ المشتريات
-      والتقارير والبيانات الأخرى.
-    */
+      // ===================================================
+      // تحميل script.js بعد نجاح Firebase
+      // ===================================================
 
-    window.firebaseApp = app;
+      const script = document.createElement("script");
 
-    window.firebaseDb = db;
+      script.src = "script.js";
 
-    window.firebaseAnalytics = analytics;
+      script.onload = function () {
+
+        console.log(
+          "script.js loaded successfully"
+        );
+
+      };
+
+      script.onerror = function () {
+
+        console.error(
+          "Failed to load script.js"
+        );
+
+      };
+
+      document.body.appendChild(script);
 
 
-    console.log(
-      "Firebase connected successfully:",
-      "nawafth-albnaa"
-    );
+    } catch (error) {
+
+      console.error(
+        "Firebase initialization failed:",
+        error
+      );
+
+      alert(
+        "حدث خطأ في الاتصال بقاعدة البيانات. افتح Console لمعرفة التفاصيل."
+      );
+
+    }
 
   </script>
+
 
 </body>
 
