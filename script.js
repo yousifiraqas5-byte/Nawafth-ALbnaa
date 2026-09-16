@@ -22,13 +22,13 @@ let currentEngineer = "";
 // ============================================================
 
 const ENGINEERS = [
-    "م.يوسف",
-    "م.محمد",
-    "م.احمد",
-    "م.بلال",
-    "م.حسين",
-    "د.ابراهيم",
-    "م.نور"
+    "م. يوسف",
+    "م. محمد",
+    "م. أحمد",
+    "م. بلال",
+    "م. حسين",
+    "د. إبراهيم",
+    "م. نور"
 ];
 
 // ============================================================
@@ -36,9 +36,18 @@ const ENGINEERS = [
 // ============================================================
 
 function getFirestoreDB() {
+
     if (!window.firebaseDb) {
-        console.error("Firebase Firestore غير متوفر");
-        alert("حدث خطأ في الاتصال بقاعدة البيانات");
+
+        console.error(
+            "Firebase Firestore غير متوفر"
+        );
+
+        showMessage(
+            "حدث خطأ في الاتصال بقاعدة البيانات",
+            "error"
+        );
+
         return null;
     }
 
@@ -51,18 +60,36 @@ function getFirestoreDB() {
 
 function showPage(pageId) {
 
-    const pages = document.querySelectorAll(".page");
+    const pages =
+        document.querySelectorAll(".page");
 
     pages.forEach(page => {
+
         page.style.display = "none";
+
     });
 
-    const page = document.getElementById(pageId);
+    const page =
+        document.getElementById(pageId);
 
     if (page) {
+
         page.style.display = "block";
-        window.scrollTo(0, 0);
+
+        window.scrollTo(
+            0,
+            0
+        );
+
+    } else {
+
+        console.error(
+            "الصفحة غير موجودة:",
+            pageId
+        );
+
     }
+
 }
 
 // ============================================================
@@ -70,69 +97,138 @@ function showPage(pageId) {
 // ============================================================
 
 function goHome() {
+
     showPage("homePage");
+
 }
 
 function openStorage() {
+
     showPage("storagePage");
+
 }
 
 function openReports() {
+
     showPage("reportsPage");
+
     getReports();
+
 }
 
 function openPurchases() {
+
     showPage("purchasesPage");
+
     getPurchases();
+
 }
 
 // ============================================================
 // رسائل
 // ============================================================
 
-function showMessage(message, type = "success") {
+function showMessage(
+    message,
+    type = "success"
+) {
 
-    const oldMessage = document.getElementById("companyMessage");
+    const oldMessage =
+        document.getElementById(
+            "companyMessage"
+        );
 
     if (oldMessage) {
+
         oldMessage.remove();
+
     }
 
-    const messageBox = document.createElement("div");
+    const messageBox =
+        document.createElement(
+            "div"
+        );
 
-    messageBox.id = "companyMessage";
+    messageBox.id =
+        "companyMessage";
 
-    messageBox.innerHTML = message;
+    messageBox.textContent =
+        message;
 
-    messageBox.style.position = "fixed";
-    messageBox.style.top = "20px";
-    messageBox.style.left = "50%";
-    messageBox.style.transform = "translateX(-50%)";
-    messageBox.style.zIndex = "99999";
-    messageBox.style.padding = "14px 24px";
-    messageBox.style.borderRadius = "12px";
-    messageBox.style.color = "#fff";
-    messageBox.style.fontWeight = "bold";
-    messageBox.style.fontSize = "16px";
-    messageBox.style.boxShadow = "0 5px 20px rgba(0,0,0,0.25)";
-    messageBox.style.direction = "rtl";
+    messageBox.style.position =
+        "fixed";
+
+    messageBox.style.top =
+        "20px";
+
+    messageBox.style.left =
+        "50%";
+
+    messageBox.style.transform =
+        "translateX(-50%)";
+
+    messageBox.style.zIndex =
+        "99999";
+
+    messageBox.style.padding =
+        "14px 24px";
+
+    messageBox.style.borderRadius =
+        "12px";
+
+    messageBox.style.color =
+        "#fff";
+
+    messageBox.style.fontWeight =
+        "bold";
+
+    messageBox.style.fontSize =
+        "16px";
+
+    messageBox.style.boxShadow =
+        "0 5px 20px rgba(0,0,0,0.25)";
+
+    messageBox.style.direction =
+        "rtl";
+
+    messageBox.style.maxWidth =
+        "90%";
+
+    messageBox.style.textAlign =
+        "center";
 
     if (type === "error") {
-        messageBox.style.background = "#d32f2f";
+
+        messageBox.style.background =
+            "#d32f2f";
+
     } else {
-        messageBox.style.background = "#2e7d32";
+
+        messageBox.style.background =
+            "#2e7d32";
+
     }
 
-    document.body.appendChild(messageBox);
+    document.body.appendChild(
+        messageBox
+    );
 
-    setTimeout(() => {
+    setTimeout(
+        () => {
 
-        if (messageBox) {
-            messageBox.remove();
-        }
+            if (
+                messageBox &&
+                messageBox.parentNode
+            ) {
 
-    }, 3000);
+                messageBox.remove();
+
+            }
+
+        },
+        4000
+    );
+
 }
 
 // ============================================================
@@ -141,97 +237,149 @@ function showMessage(message, type = "success") {
 
 function openPurchaseForm() {
 
-    const form = document.getElementById("purchaseForm");
+    const form =
+        document.getElementById(
+            "purchaseForm"
+        );
 
     if (form) {
-        form.style.display = "block";
+
+        form.style.display =
+            "block";
+
     }
 
 }
 
 function closePurchaseForm() {
 
-    const form = document.getElementById("purchaseForm");
+    const form =
+        document.getElementById(
+            "purchaseForm"
+        );
 
     if (form) {
-        form.style.display = "none";
+
+        form.style.display =
+            "none";
+
     }
 
 }
 
 async function getPurchases() {
 
-    const db = getFirestoreDB();
+    const db =
+        getFirestoreDB();
 
     if (!db) return;
 
     try {
 
-        const { collection, getDocs, query, orderBy } =
-            await import(
-                "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js"
-            );
-
-        const q = query(
-            collection(db, PURCHASES_COLLECTION),
-            orderBy("createdAt", "desc")
+        const {
+            collection,
+            getDocs,
+            query,
+            orderBy
+        } = await import(
+            "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js"
         );
 
-        const snapshot = await getDocs(q);
+        const q =
+            query(
+                collection(
+                    db,
+                    PURCHASES_COLLECTION
+                ),
+                orderBy(
+                    "createdAt",
+                    "desc"
+                )
+            );
+
+        const snapshot =
+            await getDocs(q);
 
         purchasesCache = [];
 
-        snapshot.forEach(doc => {
+        snapshot.forEach(
+            doc => {
 
-            purchasesCache.push({
-                id: doc.id,
-                ...doc.data()
-            });
+                purchasesCache.push({
 
-        });
+                    id: doc.id,
+
+                    ...doc.data()
+
+                });
+
+            }
+        );
 
         renderPurchases();
 
     } catch (error) {
 
-        console.error("خطأ تحميل المشتريات:", error);
+        console.error(
+            "خطأ تحميل المشتريات:",
+            error
+        );
 
         try {
 
-            const { collection, getDocs } =
-                await import(
-                    "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js"
-                );
-
-            const snapshot = await getDocs(
-                collection(db, PURCHASES_COLLECTION)
+            const {
+                collection,
+                getDocs
+            } = await import(
+                "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js"
             );
+
+            const snapshot =
+                await getDocs(
+                    collection(
+                        db,
+                        PURCHASES_COLLECTION
+                    )
+                );
 
             purchasesCache = [];
 
-            snapshot.forEach(doc => {
+            snapshot.forEach(
+                doc => {
 
-                purchasesCache.push({
-                    id: doc.id,
-                    ...doc.data()
-                });
+                    purchasesCache.push({
 
-            });
+                        id: doc.id,
 
-            purchasesCache.sort((a, b) => {
+                        ...doc.data()
 
-                const dateA = a.createdAt?.seconds || 0;
-                const dateB = b.createdAt?.seconds || 0;
+                    });
 
-                return dateB - dateA;
+                }
+            );
 
-            });
+            purchasesCache.sort(
+                (a, b) => {
+
+                    const dateA =
+                        a.createdAt?.seconds || 0;
+
+                    const dateB =
+                        b.createdAt?.seconds || 0;
+
+                    return dateB - dateA;
+
+                }
+            );
 
             renderPurchases();
 
         } catch (secondError) {
 
-            console.error(secondError);
+            console.error(
+                "خطأ التحميل الثاني:",
+                secondError
+            );
 
             showMessage(
                 "تعذر تحميل المشتريات",
@@ -246,11 +394,26 @@ async function getPurchases() {
 
 async function addPurchase() {
 
-    const itemInput = document.getElementById("purchaseItem");
-    const unitInput = document.getElementById("purchaseUnit");
-    const quantityInput = document.getElementById("purchaseQuantity");
+    const itemInput =
+        document.getElementById(
+            "purchaseItem"
+        );
 
-    if (!itemInput || !unitInput || !quantityInput) {
+    const unitInput =
+        document.getElementById(
+            "purchaseUnit"
+        );
+
+    const quantityInput =
+        document.getElementById(
+            "purchaseQuantity"
+        );
+
+    if (
+        !itemInput ||
+        !unitInput ||
+        !quantityInput
+    ) {
 
         showMessage(
             "حقول المشتريات غير موجودة",
@@ -258,13 +421,23 @@ async function addPurchase() {
         );
 
         return;
+
     }
 
-    const item = itemInput.value.trim();
-    const unit = unitInput.value.trim();
-    const quantity = quantityInput.value.trim();
+    const item =
+        itemInput.value.trim();
 
-    if (!item || !unit || !quantity) {
+    const unit =
+        unitInput.value.trim();
+
+    const quantity =
+        quantityInput.value.trim();
+
+    if (
+        !item ||
+        !unit ||
+        !quantity
+    ) {
 
         showMessage(
             "يرجى ملء جميع الحقول",
@@ -272,47 +445,75 @@ async function addPurchase() {
         );
 
         return;
+
     }
 
-    const db = getFirestoreDB();
+    const db =
+        getFirestoreDB();
 
     if (!db) return;
 
     try {
 
-        const { collection, addDoc, serverTimestamp } =
-            await import(
-                "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js"
-            );
+        const {
+            collection,
+            addDoc,
+            serverTimestamp
+        } = await import(
+            "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js"
+        );
 
         await addDoc(
-            collection(db, PURCHASES_COLLECTION),
+            collection(
+                db,
+                PURCHASES_COLLECTION
+            ),
             {
+
                 item: item,
+
                 unit: unit,
+
                 quantity: quantity,
+
                 status: "pending",
-                createdAt: serverTimestamp(),
+
+                createdAt:
+                    serverTimestamp(),
+
                 completedAt: null
+
             }
         );
 
         itemInput.value = "";
+
         unitInput.value = "";
+
         quantityInput.value = "";
 
         closePurchaseForm();
 
-        showMessage("تمت إضافة الطلب بنجاح");
+        showMessage(
+            "تمت إضافة الطلب بنجاح"
+        );
 
         await getPurchases();
 
     } catch (error) {
 
-        console.error(error);
+        console.error(
+            "خطأ إضافة الطلب:",
+            error
+        );
 
         showMessage(
-            "حدث خطأ أثناء إضافة الطلب",
+            "حدث خطأ أثناء إضافة الطلب: " +
+            (
+                error.code ||
+                error.message ||
+                "خطأ غير معروف"
+            ),
             "error"
         );
 
@@ -322,104 +523,144 @@ async function addPurchase() {
 
 function renderPurchases() {
 
-    const container =
-        document.getElementById("purchasesList");
+    const pendingContainer =
+        document.getElementById(
+            "pendingPurchases"
+        );
 
-    if (!container) return;
+    const completedContainer =
+        document.getElementById(
+            "completedPurchases"
+        );
 
-    const pending = purchasesCache.filter(
-        purchase => purchase.status !== "completed"
-    );
+    const pendingCount =
+        document.getElementById(
+            "pendingPurchaseCount"
+        );
 
-    const completed = purchasesCache.filter(
-        purchase => purchase.status === "completed"
-    );
+    const completedCount =
+        document.getElementById(
+            "completedPurchaseCount"
+        );
 
-    let html = "";
+    const pending =
+        purchasesCache.filter(
+            purchase =>
+                purchase.status !==
+                "completed"
+        );
 
-    html += `
-        <div style="
-            direction:rtl;
-            margin-bottom:25px;
-        ">
+    const completed =
+        purchasesCache.filter(
+            purchase =>
+                purchase.status ===
+                "completed"
+        );
 
-            <h2 style="
-                margin-bottom:15px;
-            ">
-                طلبات الشراء
-            </h2>
-    `;
+    if (pendingCount) {
 
-    if (pending.length === 0) {
-
-        html += `
-            <div style="
-                padding:20px;
-                background:#f5f5f5;
-                border-radius:12px;
-                text-align:center;
-                margin-bottom:20px;
-            ">
-                لا توجد طلبات حالياً
-            </div>
-        `;
-
-    } else {
-
-        pending.forEach(purchase => {
-
-            html += createPurchaseHTML(purchase);
-
-        });
+        pendingCount.textContent =
+            pending.length;
 
     }
 
-    html += `
-        </div>
+    if (completedCount) {
 
-        <div style="
-            direction:rtl;
-            margin-top:30px;
-        ">
-
-            <h2 style="
-                margin-bottom:15px;
-            ">
-                تم تجهيزه
-            </h2>
-    `;
-
-    if (completed.length === 0) {
-
-        html += `
-            <div style="
-                padding:20px;
-                background:#f5f5f5;
-                border-radius:12px;
-                text-align:center;
-            ">
-                لا توجد طلبات مجهزة
-            </div>
-        `;
-
-    } else {
-
-        completed.forEach(purchase => {
-
-            html += createCompletedPurchaseHTML(purchase);
-
-        });
+        completedCount.textContent =
+            completed.length;
 
     }
 
-    html += `</div>`;
+    if (pendingContainer) {
 
-    container.innerHTML = html;
+        if (pending.length === 0) {
+
+            pendingContainer.innerHTML = `
+
+                <div class="empty-purchases">
+
+                    <div class="empty-purchases-icon">
+                        🛒
+                    </div>
+
+                    <strong>
+                        لا توجد طلبات شراء
+                    </strong>
+
+                    <span>
+                        اضغط على "طلب شراء"
+                        لإضافة مادة جديدة
+                    </span>
+
+                </div>
+
+            `;
+
+        } else {
+
+            pendingContainer.innerHTML =
+                pending
+                    .map(
+                        purchase =>
+                            createPurchaseHTML(
+                                purchase
+                            )
+                    )
+                    .join("");
+
+        }
+
+    }
+
+    if (completedContainer) {
+
+        if (completed.length === 0) {
+
+            completedContainer.innerHTML = `
+
+                <div class="empty-purchases completed-empty">
+
+                    <div class="empty-purchases-icon">
+                        📦
+                    </div>
+
+                    <strong>
+                        لا توجد مواد مجهزة
+                    </strong>
+
+                    <span>
+                        الطلبات التي يتم شراؤها
+                        ستظهر هنا
+                    </span>
+
+                </div>
+
+            `;
+
+        } else {
+
+            completedContainer.innerHTML =
+                completed
+                    .map(
+                        purchase =>
+                            createCompletedPurchaseHTML(
+                                purchase
+                            )
+                    )
+                    .join("");
+
+        }
+
+    }
+
 }
 
-function createPurchaseHTML(purchase) {
+function createPurchaseHTML(
+    purchase
+) {
 
     return `
+
         <div style="
             background:white;
             border-radius:14px;
@@ -434,21 +675,29 @@ function createPurchaseHTML(purchase) {
                 font-weight:bold;
                 margin-bottom:10px;
             ">
-                ${escapeHTML(purchase.item)}
+                ${escapeHTML(
+                    purchase.item
+                )}
             </div>
 
             <div style="
                 color:#555;
                 margin-bottom:6px;
             ">
-                الوحدة: ${escapeHTML(purchase.unit)}
+                الوحدة:
+                ${escapeHTML(
+                    purchase.unit
+                )}
             </div>
 
             <div style="
                 color:#555;
                 margin-bottom:6px;
             ">
-                العدد: ${escapeHTML(purchase.quantity)}
+                العدد:
+                ${escapeHTML(
+                    purchase.quantity
+                )}
             </div>
 
             <div style="
@@ -457,7 +706,9 @@ function createPurchaseHTML(purchase) {
                 margin-bottom:12px;
             ">
                 تاريخ الطلب:
-                ${formatPurchaseDate(purchase.createdAt)}
+                ${formatPurchaseDate(
+                    purchase.createdAt
+                )}
             </div>
 
             <button
@@ -477,12 +728,17 @@ function createPurchaseHTML(purchase) {
             </button>
 
         </div>
+
     `;
+
 }
 
-function createCompletedPurchaseHTML(purchase) {
+function createCompletedPurchaseHTML(
+    purchase
+) {
 
     return `
+
         <div style="
             background:#f1f8f1;
             border-radius:14px;
@@ -497,21 +753,29 @@ function createCompletedPurchaseHTML(purchase) {
                 font-weight:bold;
                 margin-bottom:10px;
             ">
-                ${escapeHTML(purchase.item)}
+                ${escapeHTML(
+                    purchase.item
+                )}
             </div>
 
             <div style="
                 color:#555;
                 margin-bottom:6px;
             ">
-                الوحدة: ${escapeHTML(purchase.unit)}
+                الوحدة:
+                ${escapeHTML(
+                    purchase.unit
+                )}
             </div>
 
             <div style="
                 color:#555;
                 margin-bottom:6px;
             ">
-                العدد: ${escapeHTML(purchase.quantity)}
+                العدد:
+                ${escapeHTML(
+                    purchase.quantity
+                )}
             </div>
 
             <div style="
@@ -520,7 +784,9 @@ function createCompletedPurchaseHTML(purchase) {
                 margin-bottom:6px;
             ">
                 تاريخ الطلب:
-                ${formatPurchaseDate(purchase.createdAt)}
+                ${formatPurchaseDate(
+                    purchase.createdAt
+                )}
             </div>
 
             <div style="
@@ -529,7 +795,9 @@ function createCompletedPurchaseHTML(purchase) {
                 margin-bottom:12px;
             ">
                 تاريخ التجهيز:
-                ${formatPurchaseDate(purchase.completedAt)}
+                ${formatPurchaseDate(
+                    purchase.completedAt
+                )}
             </div>
 
             <button
@@ -549,37 +817,56 @@ function createCompletedPurchaseHTML(purchase) {
             </button>
 
         </div>
+
     `;
+
 }
 
 async function completePurchase(id) {
 
-    const db = getFirestoreDB();
+    const db =
+        getFirestoreDB();
 
     if (!db) return;
 
     try {
 
-        const { doc, updateDoc, serverTimestamp } =
-            await import(
-                "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js"
-            );
+        const {
+            doc,
+            updateDoc,
+            serverTimestamp
+        } = await import(
+            "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js"
+        );
 
         await updateDoc(
-            doc(db, PURCHASES_COLLECTION, id),
+            doc(
+                db,
+                PURCHASES_COLLECTION,
+                id
+            ),
             {
+
                 status: "completed",
-                completedAt: serverTimestamp()
+
+                completedAt:
+                    serverTimestamp()
+
             }
         );
 
-        showMessage("تم نقل الطلب إلى تم تجهيزه");
+        showMessage(
+            "تم نقل الطلب إلى تم تجهيزه"
+        );
 
         await getPurchases();
 
     } catch (error) {
 
-        console.error(error);
+        console.error(
+            "خطأ تحديث الطلب:",
+            error
+        );
 
         showMessage(
             "حدث خطأ أثناء تحديث الطلب",
@@ -592,35 +879,50 @@ async function completePurchase(id) {
 
 async function returnPurchase(id) {
 
-    const db = getFirestoreDB();
+    const db =
+        getFirestoreDB();
 
     if (!db) return;
 
     try {
 
-        const { doc, updateDoc } =
-            await import(
-                "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js"
-            );
+        const {
+            doc,
+            updateDoc
+        } = await import(
+            "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js"
+        );
 
         await updateDoc(
-            doc(db, PURCHASES_COLLECTION, id),
+            doc(
+                db,
+                PURCHASES_COLLECTION,
+                id
+            ),
             {
+
                 status: "pending",
+
                 completedAt: null
+
             }
         );
 
-        showMessage("تم إرجاع الطلب");
+        showMessage(
+            "تم إرجاع الطلب"
+        );
 
         await getPurchases();
 
     } catch (error) {
 
-        console.error(error);
+        console.error(
+            "خطأ إرجاع الطلب:",
+            error
+        );
 
         showMessage(
-            "حدث خطأ",
+            "حدث خطأ أثناء إرجاع الطلب",
             "error"
         );
 
@@ -628,32 +930,57 @@ async function returnPurchase(id) {
 
 }
 
-function formatPurchaseDate(timestamp) {
+function formatPurchaseDate(
+    timestamp
+) {
 
     if (!timestamp) {
+
         return "-";
+
     }
 
     try {
 
         let date;
 
-        if (timestamp.toDate) {
-            date = timestamp.toDate();
-        } else if (timestamp.seconds) {
-            date = new Date(timestamp.seconds * 1000);
+        if (
+            timestamp.toDate
+        ) {
+
+            date =
+                timestamp.toDate();
+
+        } else if (
+            timestamp.seconds
+        ) {
+
+            date =
+                new Date(
+                    timestamp.seconds * 1000
+                );
+
         } else {
-            date = new Date(timestamp);
+
+            date =
+                new Date(timestamp);
+
         }
 
         return date.toLocaleString(
             "ar-IQ",
             {
+
                 year: "numeric",
+
                 month: "2-digit",
+
                 day: "2-digit",
+
                 hour: "2-digit",
+
                 minute: "2-digit"
+
             }
         );
 
@@ -671,46 +998,66 @@ function formatPurchaseDate(timestamp) {
 
 async function getReports() {
 
-    const db = getFirestoreDB();
+    const db =
+        getFirestoreDB();
 
     if (!db) return;
 
     try {
 
-        const { collection, getDocs } =
-            await import(
-                "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js"
-            );
-
-        const snapshot = await getDocs(
-            collection(db, REPORTS_COLLECTION)
+        const {
+            collection,
+            getDocs
+        } = await import(
+            "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js"
         );
+
+        const snapshot =
+            await getDocs(
+                collection(
+                    db,
+                    REPORTS_COLLECTION
+                )
+            );
 
         reportsCache = [];
 
-        snapshot.forEach(doc => {
+        snapshot.forEach(
+            doc => {
 
-            reportsCache.push({
-                id: doc.id,
-                ...doc.data()
-            });
+                reportsCache.push({
 
-        });
+                    id: doc.id,
 
-        reportsCache.sort((a, b) => {
+                    ...doc.data()
 
-            const dateA = a.createdAt?.seconds || 0;
-            const dateB = b.createdAt?.seconds || 0;
+                });
 
-            return dateB - dateA;
+            }
+        );
 
-        });
+        reportsCache.sort(
+            (a, b) => {
+
+                const dateA =
+                    a.createdAt?.seconds || 0;
+
+                const dateB =
+                    b.createdAt?.seconds || 0;
+
+                return dateB - dateA;
+
+            }
+        );
 
         renderReports();
 
     } catch (error) {
 
-        console.error(error);
+        console.error(
+            "خطأ تحميل التقارير:",
+            error
+        );
 
         showMessage(
             "تعذر تحميل التقارير",
@@ -723,7 +1070,9 @@ async function getReports() {
 
 function openAddReport() {
 
-    showPage("addReportPage");
+    showPage(
+        "addReportPage"
+    );
 
     prepareReportForm();
 
@@ -732,14 +1081,19 @@ function openAddReport() {
 function prepareReportForm() {
 
     const dateInput =
-        document.getElementById("reportDate");
+        document.getElementById(
+            "reportDate"
+        );
 
     if (!dateInput) return;
 
     const today =
-        new Date().toISOString().split("T")[0];
+        new Date()
+            .toISOString()
+            .split("T")[0];
 
-    dateInput.value = today;
+    dateInput.value =
+        today;
 
     updateDayFromDate();
 
@@ -748,12 +1102,19 @@ function prepareReportForm() {
 function updateDayFromDate() {
 
     const dateInput =
-        document.getElementById("reportDate");
+        document.getElementById(
+            "reportDate"
+        );
 
     const dayInput =
-        document.getElementById("reportDay");
+        document.getElementById(
+            "reportDay"
+        );
 
-    if (!dateInput || !dayInput) return;
+    if (
+        !dateInput ||
+        !dayInput
+    ) return;
 
     if (!dateInput.value) {
 
@@ -764,35 +1125,58 @@ function updateDayFromDate() {
     }
 
     const date =
-        new Date(dateInput.value + "T00:00:00");
+        new Date(
+            dateInput.value +
+            "T00:00:00"
+        );
 
     const days = [
+
         "الأحد",
+
         "الاثنين",
+
         "الثلاثاء",
+
         "الأربعاء",
+
         "الخميس",
+
         "الجمعة",
+
         "السبت"
+
     ];
 
     dayInput.value =
-        days[date.getDay()];
+        days[
+            date.getDay()
+        ];
 
 }
 
 async function saveReport() {
 
     const dateInput =
-        document.getElementById("reportDate");
+        document.getElementById(
+            "reportDate"
+        );
 
     const dayInput =
-        document.getElementById("reportDay");
+        document.getElementById(
+            "reportDay"
+        );
 
     const textInput =
-        document.getElementById("reportText");
+        document.getElementById(
+            "reportText"
+        );
 
-    if (!dateInput || !dayInput || !textInput) {
+    if (
+        !dateInput ||
+        !dayInput ||
+        !textInput
+    ) {
 
         showMessage(
             "حقول التقرير غير موجودة",
@@ -803,11 +1187,20 @@ async function saveReport() {
 
     }
 
-    const date = dateInput.value;
-    const day = dayInput.value;
-    const text = textInput.value.trim();
+    const date =
+        dateInput.value;
 
-    if (!date || !day || !text) {
+    const day =
+        dayInput.value;
+
+    const text =
+        textInput.value.trim();
+
+    if (
+        !date ||
+        !day ||
+        !text
+    ) {
 
         showMessage(
             "يرجى ملء جميع بيانات التقرير",
@@ -818,39 +1211,62 @@ async function saveReport() {
 
     }
 
-    const db = getFirestoreDB();
+    const db =
+        getFirestoreDB();
 
     if (!db) return;
 
     try {
 
-        const { collection, addDoc, serverTimestamp } =
-            await import(
-                "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js"
-            );
+        const {
+            collection,
+            addDoc,
+            serverTimestamp
+        } = await import(
+            "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js"
+        );
 
         await addDoc(
-            collection(db, REPORTS_COLLECTION),
+            collection(
+                db,
+                REPORTS_COLLECTION
+            ),
             {
+
                 date: date,
+
                 day: day,
+
                 text: text,
-                createdAt: serverTimestamp()
+
+                createdAt:
+                    serverTimestamp()
+
             }
         );
 
         textInput.value = "";
 
-        showMessage("تم حفظ التقرير بنجاح");
+        showMessage(
+            "تم حفظ التقرير بنجاح"
+        );
 
         openReports();
 
     } catch (error) {
 
-        console.error(error);
+        console.error(
+            "خطأ حفظ التقرير:",
+            error
+        );
 
         showMessage(
-            "حدث خطأ أثناء حفظ التقرير",
+            "حدث خطأ أثناء حفظ التقرير: " +
+            (
+                error.code ||
+                error.message ||
+                "خطأ غير معروف"
+            ),
             "error"
         );
 
@@ -861,13 +1277,18 @@ async function saveReport() {
 function renderReports() {
 
     const container =
-        document.getElementById("reportsList");
+        document.getElementById(
+            "reportsList"
+        );
 
     if (!container) return;
 
-    if (reportsCache.length === 0) {
+    if (
+        reportsCache.length === 0
+    ) {
 
         container.innerHTML = `
+
             <div style="
                 padding:25px;
                 text-align:center;
@@ -877,6 +1298,7 @@ function renderReports() {
             ">
                 لا توجد تقارير
             </div>
+
         `;
 
         return;
@@ -885,19 +1307,28 @@ function renderReports() {
 
     let html = "";
 
-    reportsCache.forEach(report => {
+    reportsCache.forEach(
+        report => {
 
-        html += createReportHTML(report);
+            html +=
+                createReportHTML(
+                    report
+                );
 
-    });
+        }
+    );
 
-    container.innerHTML = html;
+    container.innerHTML =
+        html;
 
 }
 
-function createReportHTML(report) {
+function createReportHTML(
+    report
+) {
 
     return `
+
         <div style="
             background:white;
             padding:18px;
@@ -912,7 +1343,9 @@ function createReportHTML(report) {
                 font-size:17px;
                 margin-bottom:8px;
             ">
-                ${escapeHTML(report.day)}
+                ${escapeHTML(
+                    report.day
+                )}
             </div>
 
             <div style="
@@ -920,7 +1353,9 @@ function createReportHTML(report) {
                 margin-bottom:8px;
             ">
                 التاريخ:
-                ${escapeHTML(report.date)}
+                ${escapeHTML(
+                    report.date
+                )}
             </div>
 
             <div style="
@@ -928,7 +1363,9 @@ function createReportHTML(report) {
                 line-height:1.8;
                 margin-bottom:15px;
             ">
-                ${escapeHTML(report.text)}
+                ${escapeHTML(
+                    report.text
+                )}
             </div>
 
             <button
@@ -947,44 +1384,65 @@ function createReportHTML(report) {
             </button>
 
         </div>
+
     `;
 
 }
 
 function formatDate(timestamp) {
 
-    return formatPurchaseDate(timestamp);
+    return formatPurchaseDate(
+        timestamp
+    );
 
 }
 
 async function deleteReport(id) {
 
-    if (!confirm("هل تريد حذف التقرير؟")) {
+    if (
+        !confirm(
+            "هل تريد حذف التقرير؟"
+        )
+    ) {
+
         return;
+
     }
 
-    const db = getFirestoreDB();
+    const db =
+        getFirestoreDB();
 
     if (!db) return;
 
     try {
 
-        const { doc, deleteDoc } =
-            await import(
-                "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js"
-            );
-
-        await deleteDoc(
-            doc(db, REPORTS_COLLECTION, id)
+        const {
+            doc,
+            deleteDoc
+        } = await import(
+            "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js"
         );
 
-        showMessage("تم حذف التقرير");
+        await deleteDoc(
+            doc(
+                db,
+                REPORTS_COLLECTION,
+                id
+            )
+        );
+
+        showMessage(
+            "تم حذف التقرير"
+        );
 
         await getReports();
 
     } catch (error) {
 
-        console.error(error);
+        console.error(
+            "خطأ حذف التقرير:",
+            error
+        );
 
         showMessage(
             "حدث خطأ أثناء حذف التقرير",
@@ -999,260 +1457,14 @@ async function deleteReport(id) {
 // =========================== المهام ==========================
 // ============================================================
 
+// مهم:
+// واجهة المهام موجودة مسبقاً في index.html.
+// لا ننشئ نسخة ثانية من المهام هنا.
+
 function createTasksInterface() {
 
-    // --------------------------------------------------------
-    // إضافة بطاقة المهام إلى الصفحة الرئيسية
-    // --------------------------------------------------------
-
-    const mainGrid =
-        document.querySelector(".main-grid");
-
-    if (mainGrid &&
-        !document.getElementById("tasksMainCard")) {
-
-        const card =
-            document.createElement("div");
-
-        card.id = "tasksMainCard";
-
-        card.className = "main-card";
-
-        card.onclick = function () {
-            openTasks();
-        };
-
-        card.innerHTML = `
-            <div style="
-                font-size:42px;
-                margin-bottom:10px;
-            ">
-                📋
-            </div>
-
-            <div style="
-                font-size:20px;
-                font-weight:bold;
-            ">
-                المهام
-            </div>
-
-            <div style="
-                margin-top:7px;
-                color:#777;
-                font-size:14px;
-            ">
-                مهام المهندسين
-            </div>
-        `;
-
-        mainGrid.appendChild(card);
-    }
-
-    // --------------------------------------------------------
-    // صفحة المهام الرئيسية
-    // --------------------------------------------------------
-
-    if (!document.getElementById("tasksPage")) {
-
-        const page =
-            document.createElement("div");
-
-        page.id = "tasksPage";
-
-        page.className = "page";
-
-        page.style.display = "none";
-
-        page.innerHTML = `
-
-            <div style="
-                direction:rtl;
-                padding:20px;
-            ">
-
-                <button
-                    onclick="goHome()"
-                    style="
-                        border:0;
-                        background:#555;
-                        color:white;
-                        padding:11px 18px;
-                        border-radius:10px;
-                        cursor:pointer;
-                        margin-bottom:20px;
-                        font-weight:bold;
-                    "
-                >
-                    ← الرئيسية
-                </button>
-
-                <h1 style="
-                    margin-bottom:20px;
-                ">
-                    المهام
-                </h1>
-
-                <div id="engineersList"
-                     style="
-                        display:grid;
-                        grid-template-columns:
-                        repeat(auto-fit,minmax(180px,1fr));
-                        gap:15px;
-                     ">
-                </div>
-
-            </div>
-        `;
-
-        document.body.appendChild(page);
-    }
-
-    // --------------------------------------------------------
-    // صفحة مهام المهندس
-    // --------------------------------------------------------
-
-    if (!document.getElementById("engineerTasksPage")) {
-
-        const page =
-            document.createElement("div");
-
-        page.id = "engineerTasksPage";
-
-        page.className = "page";
-
-        page.style.display = "none";
-
-        page.innerHTML = `
-
-            <div style="
-                direction:rtl;
-                padding:20px;
-            ">
-
-                <button
-                    onclick="openTasks()"
-                    style="
-                        border:0;
-                        background:#555;
-                        color:white;
-                        padding:11px 18px;
-                        border-radius:10px;
-                        cursor:pointer;
-                        margin-bottom:20px;
-                        font-weight:bold;
-                    "
-                >
-                    ← المهندسين
-                </button>
-
-                <h1 id="currentEngineerTitle"
-                    style="
-                        margin-bottom:20px;
-                    ">
-                </h1>
-
-                <button
-                    onclick="openTaskForm()"
-                    style="
-                        width:100%;
-                        padding:15px;
-                        border:0;
-                        border-radius:12px;
-                        background:#1976d2;
-                        color:white;
-                        font-size:17px;
-                        font-weight:bold;
-                        cursor:pointer;
-                        margin-bottom:20px;
-                    "
-                >
-                    + إضافة مهام
-                </button>
-
-                <div id="taskForm"
-                     style="
-                        display:none;
-                        background:#f5f5f5;
-                        padding:18px;
-                        border-radius:14px;
-                        margin-bottom:25px;
-                     ">
-
-                    <textarea
-                        id="taskText"
-                        placeholder="اكتب المهمة هنا..."
-                        style="
-                            width:100%;
-                            min-height:120px;
-                            padding:12px;
-                            border:1px solid #ccc;
-                            border-radius:10px;
-                            resize:vertical;
-                            box-sizing:border-box;
-                            font-size:16px;
-                            direction:rtl;
-                        "
-                    ></textarea>
-
-                    <button
-                        onclick="addTask()"
-                        style="
-                            width:100%;
-                            padding:13px;
-                            margin-top:10px;
-                            border:0;
-                            border-radius:10px;
-                            background:#2e7d32;
-                            color:white;
-                            font-weight:bold;
-                            cursor:pointer;
-                        "
-                    >
-                        حفظ المهمة
-                    </button>
-
-                    <button
-                        onclick="closeTaskForm()"
-                        style="
-                            width:100%;
-                            padding:11px;
-                            margin-top:8px;
-                            border:0;
-                            border-radius:10px;
-                            background:#777;
-                            color:white;
-                            cursor:pointer;
-                        "
-                    >
-                        إلغاء
-                    </button>
-
-                </div>
-
-                <h2 style="
-                    margin-top:20px;
-                    margin-bottom:15px;
-                ">
-                    المهام الحالية
-                </h2>
-
-                <div id="pendingTasksList"></div>
-
-                <h2 style="
-                    margin-top:35px;
-                    margin-bottom:15px;
-                ">
-                    المنجزة
-                </h2>
-
-                <div id="completedTasksList"></div>
-
-            </div>
-        `;
-
-        document.body.appendChild(page);
-    }
+    // لا شيء
+    // صفحات المهام موجودة أصلاً في index.html.
 
 }
 
@@ -1262,77 +1474,77 @@ function createTasksInterface() {
 
 function openTasks() {
 
-    createTasksInterface();
-
-    showPage("tasksPage");
+    showPage(
+        "tasksPage"
+    );
 
     renderEngineers();
 
 }
 
+// ============================================================
+// عرض المهندسين
+// ============================================================
+
 function renderEngineers() {
 
     const container =
-        document.getElementById("engineersList");
+        document.querySelector(
+            "#tasksPage .engineers-grid"
+        );
 
-    if (!container) return;
+    if (!container) {
 
-    let html = "";
+        console.error(
+            "قسم المهندسين غير موجود في index.html"
+        );
 
-    ENGINEERS.forEach(engineer => {
+        return;
 
-        html += `
-            <button
-                onclick="openEngineerTasks('${engineer}')"
-                style="
-                    border:0;
-                    background:white;
-                    border-radius:16px;
-                    padding:25px 15px;
-                    box-shadow:0 3px 14px rgba(0,0,0,0.12);
-                    cursor:pointer;
-                    direction:rtl;
-                    font-size:18px;
-                    font-weight:bold;
-                    min-height:100px;
-                "
-            >
-                👷
-                <br>
-                <span style="
-                    display:block;
-                    margin-top:10px;
-                ">
-                    ${escapeHTML(engineer)}
-                </span>
-            </button>
-        `;
+    }
 
-    });
-
-    container.innerHTML = html;
+    // المهندسون موجودون أصلاً في index.html
+    // لذلك لا نضيف بطاقات جديدة.
 
 }
 
 // ============================================================
-// فتح مهام مهندس
+// فتح مهام المهندس
 // ============================================================
 
-async function openEngineerTasks(engineerName) {
+async function openEngineerTasks(
+    engineerName
+) {
 
-    currentEngineer = engineerName;
+    currentEngineer =
+        engineerName;
 
-    createTasksInterface();
-
-    showPage("engineerTasksPage");
+    showPage(
+        "engineerTasksPage"
+    );
 
     const title =
-        document.getElementById("currentEngineerTitle");
+        document.getElementById(
+            "selectedEngineerName"
+        );
 
     if (title) {
 
         title.textContent =
-            "مهام " + engineerName;
+            engineerName;
+
+    }
+
+    const formEngineer =
+        document.getElementById(
+            "taskFormEngineer"
+        );
+
+    if (formEngineer) {
+
+        formEngineer.textContent =
+            "المهمة للمهندس: " +
+            engineerName;
 
     }
 
@@ -1348,17 +1560,33 @@ async function openEngineerTasks(engineerName) {
 
 function openTaskForm() {
 
+    if (!currentEngineer) {
+
+        showMessage(
+            "يرجى اختيار المهندس أولاً",
+            "error"
+        );
+
+        return;
+
+    }
+
     const form =
-        document.getElementById("taskForm");
+        document.getElementById(
+            "taskForm"
+        );
 
     if (form) {
 
-        form.style.display = "block";
+        form.style.display =
+            "block";
 
     }
 
     const input =
-        document.getElementById("taskText");
+        document.getElementById(
+            "taskText"
+        );
 
     if (input) {
 
@@ -1368,14 +1596,21 @@ function openTaskForm() {
 
 }
 
+// ============================================================
+// إغلاق نموذج المهمة
+// ============================================================
+
 function closeTaskForm() {
 
     const form =
-        document.getElementById("taskForm");
+        document.getElementById(
+            "taskForm"
+        );
 
     if (form) {
 
-        form.style.display = "none";
+        form.style.display =
+            "none";
 
     }
 
@@ -1387,7 +1622,8 @@ function closeTaskForm() {
 
 async function getTasks() {
 
-    const db = getFirestoreDB();
+    const db =
+        getFirestoreDB();
 
     if (!db) return;
 
@@ -1402,31 +1638,41 @@ async function getTasks() {
 
         const snapshot =
             await getDocs(
-                collection(db, TASKS_COLLECTION)
+                collection(
+                    db,
+                    TASKS_COLLECTION
+                )
             );
 
         tasksCache = [];
 
-        snapshot.forEach(doc => {
+        snapshot.forEach(
+            doc => {
 
-            tasksCache.push({
-                id: doc.id,
-                ...doc.data()
-            });
+                tasksCache.push({
 
-        });
+                    id: doc.id,
 
-        tasksCache.sort((a, b) => {
+                    ...doc.data()
 
-            const dateA =
-                a.createdAt?.seconds || 0;
+                });
 
-            const dateB =
-                b.createdAt?.seconds || 0;
+            }
+        );
 
-            return dateB - dateA;
+        tasksCache.sort(
+            (a, b) => {
 
-        });
+                const dateA =
+                    a.createdAt?.seconds || 0;
+
+                const dateB =
+                    b.createdAt?.seconds || 0;
+
+                return dateB - dateA;
+
+            }
+        );
 
         renderEngineerTasks();
 
@@ -1437,8 +1683,23 @@ async function getTasks() {
             error
         );
 
+        console.error(
+            "Firebase error code:",
+            error.code
+        );
+
+        console.error(
+            "Firebase error message:",
+            error.message
+        );
+
         showMessage(
-            "تعذر تحميل المهام. تأكد من Firebase Rules",
+            "تعذر تحميل المهام: " +
+            (
+                error.code ||
+                error.message ||
+                "خطأ غير معروف"
+            ),
             "error"
         );
 
@@ -1453,9 +1714,20 @@ async function getTasks() {
 async function addTask() {
 
     const input =
-        document.getElementById("taskText");
+        document.getElementById(
+            "taskText"
+        );
 
-    if (!input) return;
+    if (!input) {
+
+        showMessage(
+            "حقل المهمة غير موجود",
+            "error"
+        );
+
+        return;
+
+    }
 
     const text =
         input.value.trim();
@@ -1482,7 +1754,8 @@ async function addTask() {
 
     }
 
-    const db = getFirestoreDB();
+    const db =
+        getFirestoreDB();
 
     if (!db) return;
 
@@ -1497,13 +1770,27 @@ async function addTask() {
         );
 
         await addDoc(
-            collection(db, TASKS_COLLECTION),
+            collection(
+                db,
+                TASKS_COLLECTION
+            ),
             {
-                engineer: currentEngineer,
-                text: text,
-                status: "pending",
-                createdAt: serverTimestamp(),
-                completedAt: null
+
+                engineer:
+                    currentEngineer,
+
+                text:
+                    text,
+
+                status:
+                    "pending",
+
+                createdAt:
+                    serverTimestamp(),
+
+                completedAt:
+                    null
+
             }
         );
 
@@ -1524,8 +1811,55 @@ async function addTask() {
             error
         );
 
+        console.error(
+            "Firebase error code:",
+            error.code
+        );
+
+        console.error(
+            "Firebase error message:",
+            error.message
+        );
+
+        let errorMessage =
+            "حدث خطأ أثناء إضافة المهمة";
+
+        if (
+            error.code ===
+            "permission-denied"
+        ) {
+
+            errorMessage =
+                "Firebase رفض حفظ المهمة بسبب الصلاحيات";
+
+        } else if (
+            error.code ===
+            "unauthenticated"
+        ) {
+
+            errorMessage =
+                "يجب تسجيل الدخول إلى Firebase";
+
+        } else if (
+            error.code ===
+            "failed-precondition"
+        ) {
+
+            errorMessage =
+                "Firebase يحتاج إلى إعداد إضافي";
+
+        } else if (
+            error.message
+        ) {
+
+            errorMessage =
+                "فشل حفظ المهمة: " +
+                error.message;
+
+        }
+
         showMessage(
-            "حدث خطأ أثناء إضافة المهمة",
+            errorMessage,
             "error"
         );
 
@@ -1540,13 +1874,23 @@ async function addTask() {
 function renderEngineerTasks() {
 
     const pendingContainer =
-        document.getElementById("pendingTasksList");
+        document.getElementById(
+            "pendingTasks"
+        );
 
     const completedContainer =
-        document.getElementById("completedTasksList");
+        document.getElementById(
+            "completedTasks"
+        );
 
-    if (!pendingContainer ||
-        !completedContainer) {
+    if (
+        !pendingContainer ||
+        !completedContainer
+    ) {
+
+        console.error(
+            "عناصر المهام غير موجودة في index.html"
+        );
 
         return;
 
@@ -1555,76 +1899,130 @@ function renderEngineerTasks() {
     const engineerTasks =
         tasksCache.filter(
             task =>
-                task.engineer === currentEngineer
+                task.engineer ===
+                currentEngineer
         );
 
     const pending =
         engineerTasks.filter(
             task =>
-                task.status !== "completed"
+                task.status !==
+                "completed"
         );
 
     const completed =
         engineerTasks.filter(
             task =>
-                task.status === "completed"
+                task.status ===
+                "completed"
         );
 
-    // --------------------------------------------------------
+    // ========================================================
     // المهام الحالية
-    // --------------------------------------------------------
+    // ========================================================
 
-    if (pending.length === 0) {
+    if (
+        pending.length === 0
+    ) {
 
         pendingContainer.innerHTML = `
-            <div style="
-                padding:20px;
-                background:#f5f5f5;
-                border-radius:12px;
-                text-align:center;
-                color:#777;
-            ">
-                لا توجد مهام حالياً
+
+            <div class="empty-tasks">
+
+                <div class="empty-tasks-icon">
+                    📋
+                </div>
+
+                <strong>
+                    لا توجد مهام حالياً
+                </strong>
+
+                <p>
+                    اضغط على إضافة مهمة
+                    لإنشاء مهمة جديدة
+                </p>
+
             </div>
+
         `;
 
     } else {
 
         pendingContainer.innerHTML =
             pending
-                .map(task =>
-                    createTaskHTML(task)
+                .map(
+                    task =>
+                        createTaskHTML(
+                            task
+                        )
                 )
                 .join("");
 
     }
 
-    // --------------------------------------------------------
-    // المنجزة
-    // --------------------------------------------------------
+    const pendingCount =
+        document.getElementById(
+            "pendingTaskCount"
+        );
 
-    if (completed.length === 0) {
+    if (pendingCount) {
+
+        pendingCount.textContent =
+            pending.length;
+
+    }
+
+    // ========================================================
+    // المهام المنجزة
+    // ========================================================
+
+    if (
+        completed.length === 0
+    ) {
 
         completedContainer.innerHTML = `
-            <div style="
-                padding:20px;
-                background:#f5f5f5;
-                border-radius:12px;
-                text-align:center;
-                color:#777;
-            ">
-                لا توجد مهام منجزة
+
+            <div class="empty-tasks">
+
+                <div class="empty-tasks-icon">
+                    ✅
+                </div>
+
+                <strong>
+                    لا توجد مهام منجزة
+                </strong>
+
+                <p>
+                    المهام المكتملة ستظهر هنا
+                </p>
+
             </div>
+
         `;
 
     } else {
 
         completedContainer.innerHTML =
             completed
-                .map(task =>
-                    createCompletedTaskHTML(task)
+                .map(
+                    task =>
+                        createCompletedTaskHTML(
+                            task
+                        )
                 )
                 .join("");
+
+    }
+
+    const completedCount =
+        document.getElementById(
+            "completedTaskCount"
+        );
+
+    if (completedCount) {
+
+        completedCount.textContent =
+            completed.length;
 
     }
 
@@ -1634,54 +2032,51 @@ function renderEngineerTasks() {
 // شكل المهمة الحالية
 // ============================================================
 
-function createTaskHTML(task) {
+function createTaskHTML(
+    task
+) {
 
     return `
-        <div style="
-            background:white;
-            border-radius:14px;
-            padding:18px;
-            margin-bottom:14px;
-            box-shadow:0 3px 12px rgba(0,0,0,0.10);
-            direction:rtl;
-        ">
 
-            <div style="
-                font-size:17px;
-                line-height:1.8;
-                white-space:pre-wrap;
-                margin-bottom:12px;
-            ">
-                ${escapeHTML(task.text)}
-            </div>
+        <div class="task-card">
 
-            <div style="
-                font-size:13px;
-                color:#777;
-                margin-bottom:12px;
-            ">
-                تاريخ الإضافة:
-                ${formatPurchaseDate(task.createdAt)}
+            <div class="task-card-main">
+
+                <div class="task-card-icon">
+                    📋
+                </div>
+
+                <div class="task-card-info">
+
+                    <h4>
+                        ${escapeHTML(
+                            task.text
+                        )}
+                    </h4>
+
+                    <div class="task-date">
+
+                        تاريخ الإضافة:
+                        ${formatPurchaseDate(
+                            task.createdAt
+                        )}
+
+                    </div>
+
+                </div>
+
             </div>
 
             <button
+                type="button"
+                class="complete-task-button"
                 onclick="completeTask('${task.id}')"
-                style="
-                    width:100%;
-                    padding:13px;
-                    border:0;
-                    border-radius:10px;
-                    background:#2e7d32;
-                    color:white;
-                    font-weight:bold;
-                    cursor:pointer;
-                    font-size:15px;
-                "
             >
                 ✓ تم الإنجاز
             </button>
 
         </div>
+
     `;
 
 }
@@ -1690,54 +2085,51 @@ function createTaskHTML(task) {
 // شكل المهمة المنجزة
 // ============================================================
 
-function createCompletedTaskHTML(task) {
+function createCompletedTaskHTML(
+    task
+) {
 
     return `
-        <div style="
-            background:#f1f8f1;
-            border:1px solid #c8e6c9;
-            border-radius:14px;
-            padding:18px;
-            margin-bottom:14px;
-            direction:rtl;
-        ">
 
-            <div style="
-                font-size:17px;
-                line-height:1.8;
-                white-space:pre-wrap;
-                text-decoration:line-through;
-                margin-bottom:10px;
-                color:#555;
-            ">
-                ${escapeHTML(task.text)}
-            </div>
+        <div class="task-card completed-task">
 
-            <div style="
-                color:#2e7d32;
-                font-size:13px;
-                margin-bottom:12px;
-            ">
-                ✓ تم الإنجاز:
-                ${formatPurchaseDate(task.completedAt)}
+            <div class="task-card-main">
+
+                <div class="task-card-icon">
+                    ✅
+                </div>
+
+                <div class="task-card-info">
+
+                    <h4>
+                        ${escapeHTML(
+                            task.text
+                        )}
+                    </h4>
+
+                    <div class="task-date">
+
+                        تم الإنجاز:
+                        ${formatPurchaseDate(
+                            task.completedAt
+                        )}
+
+                    </div>
+
+                </div>
+
             </div>
 
             <button
+                type="button"
+                class="return-task-button"
                 onclick="returnTask('${task.id}')"
-                style="
-                    width:100%;
-                    padding:10px;
-                    border:0;
-                    border-radius:10px;
-                    background:#777;
-                    color:white;
-                    cursor:pointer;
-                "
             >
                 إرجاع للمهمات
             </button>
 
         </div>
+
     `;
 
 }
@@ -1746,9 +2138,12 @@ function createCompletedTaskHTML(task) {
 // إنجاز المهمة
 // ============================================================
 
-async function completeTask(id) {
+async function completeTask(
+    id
+) {
 
-    const db = getFirestoreDB();
+    const db =
+        getFirestoreDB();
 
     if (!db) return;
 
@@ -1763,10 +2158,19 @@ async function completeTask(id) {
         );
 
         await updateDoc(
-            doc(db, TASKS_COLLECTION, id),
+            doc(
+                db,
+                TASKS_COLLECTION,
+                id
+            ),
             {
-                status: "completed",
-                completedAt: serverTimestamp()
+
+                status:
+                    "completed",
+
+                completedAt:
+                    serverTimestamp()
+
             }
         );
 
@@ -1784,7 +2188,12 @@ async function completeTask(id) {
         );
 
         showMessage(
-            "حدث خطأ أثناء تحديث المهمة",
+            "حدث خطأ أثناء تحديث المهمة: " +
+            (
+                error.code ||
+                error.message ||
+                "خطأ غير معروف"
+            ),
             "error"
         );
 
@@ -1796,9 +2205,12 @@ async function completeTask(id) {
 // إرجاع المهمة من المنجزة
 // ============================================================
 
-async function returnTask(id) {
+async function returnTask(
+    id
+) {
 
-    const db = getFirestoreDB();
+    const db =
+        getFirestoreDB();
 
     if (!db) return;
 
@@ -1812,10 +2224,19 @@ async function returnTask(id) {
         );
 
         await updateDoc(
-            doc(db, TASKS_COLLECTION, id),
+            doc(
+                db,
+                TASKS_COLLECTION,
+                id
+            ),
             {
-                status: "pending",
-                completedAt: null
+
+                status:
+                    "pending",
+
+                completedAt:
+                    null
+
             }
         );
 
@@ -1827,10 +2248,18 @@ async function returnTask(id) {
 
     } catch (error) {
 
-        console.error(error);
+        console.error(
+            "خطأ إرجاع المهمة:",
+            error
+        );
 
         showMessage(
-            "حدث خطأ",
+            "حدث خطأ أثناء إرجاع المهمة: " +
+            (
+                error.code ||
+                error.message ||
+                "خطأ غير معروف"
+            ),
             "error"
         );
 
@@ -1842,21 +2271,45 @@ async function returnTask(id) {
 // حماية HTML
 // ============================================================
 
-function escapeHTML(value) {
+function escapeHTML(
+    value
+) {
 
-    if (value === null ||
-        value === undefined) {
+    if (
+        value === null ||
+        value === undefined
+    ) {
 
         return "";
 
     }
 
     return String(value)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
+
+        .replace(
+            /&/g,
+            "&amp;"
+        )
+
+        .replace(
+            /</g,
+            "&lt;"
+        )
+
+        .replace(
+            />/g,
+            "&gt;"
+        )
+
+        .replace(
+            /"/g,
+            "&quot;"
+        )
+
+        .replace(
+            /'/g,
+            "&#039;"
+        );
 
 }
 
@@ -1867,15 +2320,17 @@ function escapeHTML(value) {
 function initializeCompanyApp() {
 
     console.log(
-        "شركة نوافذ البناء - التطبيق بدأ"
+        "script.js loaded successfully"
     );
 
-    createTasksInterface();
+    console.log(
+        "شركة نوافذ البناء - التطبيق بدأ"
+    );
 
 }
 
 // ============================================================
-// منع الضغط المزدوج على بعض الأزرار
+// منع بعض مشاكل اللمس
 // ============================================================
 
 document.addEventListener(
@@ -1891,7 +2346,8 @@ document.addEventListener(
 // ============================================================
 
 if (
-    document.readyState === "loading"
+    document.readyState ===
+    "loading"
 ) {
 
     document.addEventListener(
