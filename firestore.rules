@@ -1,0 +1,44 @@
+rules_version = '2';
+
+// ============================================================
+// قواعد Firestore لتطبيق شركة نوافذ البناء
+// ملاحظة: التطبيق حالياً بدون نظام تسجيل دخول (Auth)
+// لذلك القواعد تسمح بالقراءة والكتابة للجميع لمجموعات التطبيق.
+// إذا أضفت نظام Auth في المستقبل، ضيّق القواعد حسب الحاجة.
+// ============================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // المشتريات
+    match /purchases/{documentId} {
+      allow read, write: if true;
+    }
+
+    // التقارير اليومية
+    match /reports/{documentId} {
+      allow read, write: if true;
+    }
+
+    // مهام المهندسين
+    match /tasks/{documentId} {
+      allow read, write: if true;
+    }
+
+    // مواد المخازن والمطبخ (إضافة/سحب)
+    match /materials/{documentId} {
+      allow read, write: if true;
+    }
+
+    // سجل الإشعارات
+    match /notifications/{documentId} {
+      allow read, write: if true;
+    }
+
+    // رموز الأجهزة المسجلة للإشعارات
+    match /notificationTokens/{documentId} {
+      allow read, write: if true;
+    }
+
+  }
+}

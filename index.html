@@ -360,6 +360,28 @@ content="default"
   <strong>الأقسام الرئيسية</strong>
 
 </div>
+
+<div class="header-notifications">
+
+  <button
+    type="button"
+    class="notif-bell"
+    onclick="openNotifications()"
+    aria-label="الإشعارات"
+  >
+
+    <span class="notif-bell-icon">🔔</span>
+
+    <span
+      id="notificationBadge"
+      class="notif-badge"
+    >
+      0
+    </span>
+
+  </button>
+
+</div>
 ```
 
   </header>
@@ -418,7 +440,7 @@ content="default"
   <button
     type="button"
     class="main-card"
-    onclick="showMessage('المطبخ')"
+    onclick="openKitchen()"
   >
 
     <div class="card-top">
@@ -587,7 +609,7 @@ content="default"
   <button
     type="button"
     class="storage-card"
-    onclick="showMessage('الحاويات')"
+    onclick="openWarehouse('containers')"
   >
 
     <div class="storage-icon">🚢</div>
@@ -608,7 +630,7 @@ content="default"
   <button
     type="button"
     class="storage-card"
-    onclick="showMessage('القاعة')"
+    onclick="openWarehouse('hall')"
   >
 
     <div class="storage-icon">🏭</div>
@@ -629,7 +651,7 @@ content="default"
   <button
     type="button"
     class="storage-card"
-    onclick="showMessage('مخزن بناية 6')"
+    onclick="openWarehouse('building6')"
   >
 
     <div class="storage-icon">🏢</div>
@@ -646,6 +668,270 @@ content="default"
 
   </button>
 
+
+</section>
+```
+
+  </main>
+
+  <!-- INVENTORY (المخازن والمطبخ) -->
+
+  <main
+    id="inventoryPage"
+    class="page"
+  >
+
+```
+<div class="navigation">
+
+  <button
+    type="button"
+    id="inventoryBackButton"
+    onclick="openStorage()"
+  >
+    → المخازن
+  </button>
+
+</div>
+
+
+<section class="intro">
+
+  <div
+    class="intro-icon"
+    id="inventoryPageIcon"
+  >
+    🏢
+  </div>
+
+  <div>
+
+    <h2 id="inventoryPageTitle">
+      المخزن
+    </h2>
+
+    <p id="inventoryPageSub">
+      إدارة المواد في المخزن
+    </p>
+
+  </div>
+
+</section>
+
+
+<!-- الرصيد الحالي -->
+
+<section
+  id="stockSummary"
+  class="stock-summary-section"
+></section>
+
+
+<!-- أزرار الإضافة والسحب -->
+
+<section class="inventory-actions">
+
+  <button
+    type="button"
+    class="add-material-button"
+    onclick="openMaterialForm('add')"
+  >
+
+    <span class="action-icon">＋</span>
+
+    إضافة مادة
+
+  </button>
+
+
+  <button
+    type="button"
+    class="withdraw-material-button"
+    onclick="openMaterialForm('withdraw')"
+  >
+
+    <span class="action-icon">－</span>
+
+    سحب مادة
+
+  </button>
+
+</section>
+
+
+<!-- نموذج إضافة / سحب مادة -->
+
+<section
+  id="materialForm"
+  class="material-form"
+  style="display: none;"
+>
+
+  <div class="material-form-header">
+
+    <div>
+
+      <h3 id="materialFormTitle">
+        إضافة مادة
+      </h3>
+
+      <p>
+        أدخل بيانات المادة
+      </p>
+
+    </div>
+
+    <button
+      type="button"
+      class="close-material-form"
+      onclick="closeMaterialForm()"
+      aria-label="إغلاق"
+    >
+      ×
+    </button>
+
+  </div>
+
+
+  <div class="form-group">
+
+    <label for="materialItem">
+      اسم المادة
+    </label>
+
+    <input
+      id="materialItem"
+      type="text"
+      placeholder="مثال: إسمنت، حديد، طعام..."
+      autocomplete="off"
+    >
+
+  </div>
+
+
+  <div class="form-group">
+
+    <label for="materialUnit">
+      الوحدة
+    </label>
+
+    <input
+      id="materialUnit"
+      type="text"
+      placeholder="مثال: كيس، قطعة، متر، لتر"
+      autocomplete="off"
+    >
+
+  </div>
+
+
+  <div class="form-group">
+
+    <label for="materialQuantity">
+      الكمية
+    </label>
+
+    <input
+      id="materialQuantity"
+      type="number"
+      min="0.01"
+      step="any"
+      placeholder="أدخل الكمية"
+    >
+
+  </div>
+
+
+  <div class="form-group">
+
+    <label for="materialDate">
+      تاريخ العملية
+    </label>
+
+    <input
+      id="materialDate"
+      type="date"
+    >
+
+  </div>
+
+
+  <div class="form-group">
+
+    <label for="materialNotes">
+      ملاحظات (اختياري)
+    </label>
+
+    <input
+      id="materialNotes"
+      type="text"
+      placeholder="أي تفاصيل إضافية"
+      autocomplete="off"
+    >
+
+  </div>
+
+
+  <div class="material-form-buttons">
+
+    <button
+      type="button"
+      class="save-material-button"
+      onclick="saveMaterial()"
+    >
+      حفظ
+    </button>
+
+    <button
+      type="button"
+      class="cancel-material-button"
+      onclick="closeMaterialForm()"
+    >
+      إلغاء
+    </button>
+
+  </div>
+
+</section>
+
+
+<!-- سجل الحركات -->
+
+<section class="material-section">
+
+  <div class="material-section-header">
+
+    <div>
+
+      <h3>📋 سجل الحركات</h3>
+
+      <p>
+        جميع عمليات الإضافة والسحب مع التواريخ
+      </p>
+
+    </div>
+
+  </div>
+
+
+  <div
+    id="materialsTableWrap"
+    class="materials-table-wrap"
+  >
+
+    <div class="empty-materials">
+
+      <div class="empty-materials-icon">📦</div>
+
+      <strong>لا توجد حركات بعد</strong>
+
+      <span>
+        استخدم "إضافة مادة" أو "سحب مادة" لتسجيل أول حركة
+      </span>
+
+    </div>
+
+  </div>
 
 </section>
 ```
@@ -1118,9 +1404,14 @@ content="default"
     type="button"
     class="engineer-card"
     onclick="openEngineerTasks('م. يوسف')"
+    data-engineer="م. يوسف"
   >
     <div class="engineer-icon">👨‍💼</div>
     <div class="engineer-name">م. يوسف</div>
+    <div class="engineer-stats">
+      <span class="engineer-stat">المضاف: <b class="engineer-added-count">0</b></span>
+      <span class="engineer-stat done">المنجز: <b class="engineer-done-count">0</b></span>
+    </div>
   </button>
 
 
@@ -1128,9 +1419,14 @@ content="default"
     type="button"
     class="engineer-card"
     onclick="openEngineerTasks('م. محمد')"
+    data-engineer="م. محمد"
   >
     <div class="engineer-icon">👨‍💼</div>
     <div class="engineer-name">م. محمد</div>
+    <div class="engineer-stats">
+      <span class="engineer-stat">المضاف: <b class="engineer-added-count">0</b></span>
+      <span class="engineer-stat done">المنجز: <b class="engineer-done-count">0</b></span>
+    </div>
   </button>
 
 
@@ -1138,9 +1434,14 @@ content="default"
     type="button"
     class="engineer-card"
     onclick="openEngineerTasks('م. أحمد')"
+    data-engineer="م. أحمد"
   >
     <div class="engineer-icon">👨‍💼</div>
     <div class="engineer-name">م. أحمد</div>
+    <div class="engineer-stats">
+      <span class="engineer-stat">المضاف: <b class="engineer-added-count">0</b></span>
+      <span class="engineer-stat done">المنجز: <b class="engineer-done-count">0</b></span>
+    </div>
   </button>
 
 
@@ -1148,9 +1449,14 @@ content="default"
     type="button"
     class="engineer-card"
     onclick="openEngineerTasks('م. بلال')"
+    data-engineer="م. بلال"
   >
     <div class="engineer-icon">👨‍💼</div>
     <div class="engineer-name">م. بلال</div>
+    <div class="engineer-stats">
+      <span class="engineer-stat">المضاف: <b class="engineer-added-count">0</b></span>
+      <span class="engineer-stat done">المنجز: <b class="engineer-done-count">0</b></span>
+    </div>
   </button>
 
 
@@ -1158,9 +1464,14 @@ content="default"
     type="button"
     class="engineer-card"
     onclick="openEngineerTasks('م. حسين')"
+    data-engineer="م. حسين"
   >
     <div class="engineer-icon">👨‍💼</div>
     <div class="engineer-name">م. حسين</div>
+    <div class="engineer-stats">
+      <span class="engineer-stat">المضاف: <b class="engineer-added-count">0</b></span>
+      <span class="engineer-stat done">المنجز: <b class="engineer-done-count">0</b></span>
+    </div>
   </button>
 
 
@@ -1168,9 +1479,14 @@ content="default"
     type="button"
     class="engineer-card"
     onclick="openEngineerTasks('د. إبراهيم')"
+    data-engineer="د. إبراهيم"
   >
     <div class="engineer-icon">👨‍⚕️</div>
     <div class="engineer-name">د. إبراهيم</div>
+    <div class="engineer-stats">
+      <span class="engineer-stat">المضاف: <b class="engineer-added-count">0</b></span>
+      <span class="engineer-stat done">المنجز: <b class="engineer-done-count">0</b></span>
+    </div>
   </button>
 
 
@@ -1178,9 +1494,14 @@ content="default"
     type="button"
     class="engineer-card"
     onclick="openEngineerTasks('م. نور')"
+    data-engineer="م. نور"
   >
     <div class="engineer-icon">👩‍💼</div>
     <div class="engineer-name">م. نور</div>
+    <div class="engineer-stats">
+      <span class="engineer-stat">المضاف: <b class="engineer-added-count">0</b></span>
+      <span class="engineer-stat done">المنجز: <b class="engineer-done-count">0</b></span>
+    </div>
   </button>
 
 </section>
@@ -1385,6 +1706,76 @@ content="default"
       <p>المهام المكتملة ستظهر هنا</p>
 
     </div>
+
+  </div>
+
+</section>
+```
+
+  </main>
+
+  <!-- ===================================================
+  NOTIFICATIONS
+  ==================================================== -->
+
+  <main
+    id="notificationsPage"
+    class="page"
+  >
+
+```
+<div class="navigation">
+
+  <button
+    type="button"
+    onclick="goHome()"
+  >
+    → الرئيسية
+  </button>
+
+</div>
+
+
+<section class="intro">
+
+  <div class="intro-icon">🔔</div>
+
+  <div>
+
+    <h2>الإشعارات</h2>
+
+    <p>آخر التحديثات والتنبيهات</p>
+
+  </div>
+
+</section>
+
+
+<section class="notif-action">
+
+  <button
+    type="button"
+    class="enable-notifications-button"
+    onclick="enablePushNotifications()"
+  >
+    🔔 تفعيل الإشعارات على الموبايل
+  </button>
+
+</section>
+
+
+<section
+  id="notificationsList"
+  class="notifications-list"
+>
+
+  <div class="empty-notifications">
+
+    <div class="empty-notifications-icon">🔔</div>
+
+    <strong>لا توجد إشعارات بعد</strong>
+
+    <span>ستظهر هنا التحديثات فور حدوثها</span>
 
   </div>
 

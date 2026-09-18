@@ -6,6 +6,13 @@
 const PURCHASES_COLLECTION = "purchases";
 const REPORTS_COLLECTION = "reports";
 const TASKS_COLLECTION = "tasks";
+const MATERIALS_COLLECTION = "materials";
+const NOTIFICATIONS_COLLECTION = "notifications";
+const TOKENS_COLLECTION = "notificationTokens";
+
+// مهم: ضع هنا مفتاح VAPID العام من
+// Firebase Console > Project settings > Cloud Messaging > Web push certificates
+const VAPID_KEY = "YOUR_VAPID_PUBLIC_KEY";
 
 // ============================================================
 // المتغيرات
@@ -14,6 +21,14 @@ const TASKS_COLLECTION = "tasks";
 let purchasesCache = [];
 let reportsCache = [];
 let tasksCache = [];
+let materialsCache = [];
+let notificationsCache = [];
+
+let currentLocation = "";
+let currentMaterialAction = "add";
+let notificationsUnsubscribe = null;
+let localNotifiedIds = new Set();
+let toastTimer = null;
 
 let currentEngineer = "";
 
@@ -30,6 +45,17 @@ const ENGINEERS = [
     "د. إبراهيم",
     "م. نور"
 ];
+
+// ============================================================
+// مواقع الجرد (المخازن + المطبخ)
+// ============================================================
+
+const INVENTORY_LOCATIONS = {
+    containers: { name: "الحاويات", icon: "🚢", sub: "مخزن الحاويات" },
+    hall: { name: "القاعة", icon: "🏭", sub: "مخزن القاعة" },
+    building6: { name: "مخزن بناية 6", icon: "🏢", sub: "مخزن بناية 6" },
+    kitchen: { name: "المطبخ", icon: "🍽️", sub: "إدارة ومتابعة المطبخ" }
+};
 
 // ============================================================
 // الحصول على Firebase
@@ -498,6 +524,12 @@ async function addPurchase() {
             "تمت إضافة الطلب بنجاح"
         );
 
+        notify(
+            "طلب شراء جديد",
+            item + " - " + quantity + " " + unit,
+            "purchase"
+        );
+
         await getPurchases();
 
     } catch (error) {
@@ -855,6 +887,14 @@ async function completePurchase(id) {
             }
         );
 
+        const purchase = purchasesCache.find(p => p.id === id);
+
+        notify(
+            "تم تجهيز طلب",
+            "تم شراء وتجهيز: " + (purchase ? purchase.item : ""),
+            "purchase"
+        );
+
         showMessage(
             "تم نقل الطلب إلى تم تجهيزه"
         );
@@ -990,6 +1030,377 @@ function formatPurchaseDate(
 
     }
 
+}
+
+// ============================================================
+// ==================== المخازن والمطبخ (الجرد) ===============
+// ============================================================
+
+function openWarehouse(locationKey) {
+    showInventory(locationKey);
+}
+
+function openKitchen() {
+    showInventory("kitchen");
+}
+
+function showInventory(locationKey) {
+    if (!INVENTORY_LOCATIONS[locationKey]) {
+        showMessage("المكان غير موجود", "error");
+        return;
+    }
+
+    currentLocation = locationKey;
+    currentMaterialAction = "add";
+
+    const location = INVENTORY_LOCATIONS[locationKey];
+
+    showPage("inventoryPage");
+
+    const title = document.getElementById("inventoryPageTitle");
+    if (title) title.textContent = location.name;
+
+    const sub = document.getElementById("inventoryPageSub");
+    if (sub) sub.textContent = location.sub;
+
+    const icon = document.getElementById("inventoryPageIcon");
+    if (icon) icon.textContent = location.icon;
+
+    const backButton = document.getElementById("inventoryBackButton");
+    if (backButton) {
+        if (locationKey === "kitchen") {
+            backButton.textContent = "→ الرئيسية";
+            backButton.setAttribute("onclick", "goHome()");
+        } else {
+            backButton.textContent = "→ المخازن";
+            backButton.setAttribute("onclick", "openStorage()");
+        }
+    }
+
+    closeMaterialForm();
+
+    const today = new Date().toISOString().split("T")[0];
+    const dateInput = document.getElementById("materialDate");
+    if (dateInput) dateInput.value = today;
+
+    getMaterials();
+}
+
+function openMaterialForm(actionType) {
+    if (!currentLocation) {
+        showMessage("اختر المخزن أو المطبخ أولاً", "error");
+        return;
+    }
+
+    currentMaterialAction = actionType === "withdraw" ? "withdraw" : "add";
+
+    const form = document.getElementById("materialForm");
+    if (form) form.style.display = "block";
+
+    const title = document.getElementById("materialFormTitle");
+    if (title) {
+        title.textContent = currentMaterialAction === "withdraw" ? "سحب مادة" : "إضافة مادة";
+    }
+
+    const today = new Date().toISOString().split("T")[0];
+    const dateInput = document.getElementById("materialDate");
+    if (dateInput) dateInput.value = today;
+
+    const itemInput = document.getElementById("materialItem");
+    if (itemInput) itemInput.focus();
+}
+
+function closeMaterialForm() {
+    const form = document.getElementById("materialForm");
+    if (form) form.style.display = "none";
+}
+
+async function getMaterials() {
+    const db = getFirestoreDB();
+    if (!db) return;
+
+    try {
+        const { collection, getDocs } = await import("https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js");
+
+        const snapshot = await getDocs(collection(db, MATERIALS_COLLECTION));
+
+        materialsCache = [];
+
+        snapshot.forEach(doc => {
+            materialsCache.push({
+                id: doc.id,
+                ...doc.data()
+            });
+        });
+
+        materialsCache.sort((a, b) => {
+            const dateA = a.createdAt?.seconds || 0;
+            const dateB = b.createdAt?.seconds || 0;
+            return dateB - dateA;
+        });
+
+        renderInventory();
+
+    } catch (error) {
+        console.error("خطأ تحميل المواد:", error);
+        showMessage("تعذر تحميل المواد", "error");
+    }
+}
+
+async function saveMaterial() {
+    const itemInput = document.getElementById("materialItem");
+    const unitInput = document.getElementById("materialUnit");
+    const quantityInput = document.getElementById("materialQuantity");
+    const dateInput = document.getElementById("materialDate");
+    const notesInput = document.getElementById("materialNotes");
+
+    if (!itemInput || !unitInput || !quantityInput || !dateInput || !notesInput) {
+        showMessage("حقول المواد غير موجودة", "error");
+        return;
+    }
+
+    const item = itemInput.value.trim();
+    const unit = unitInput.value.trim();
+    const quantity = quantityInput.value.trim();
+    const actionDate = dateInput.value;
+    const notes = notesInput.value.trim();
+
+    if (!item || !unit || !quantity || !actionDate) {
+        showMessage("يرجى ملء جميع الحقول المطلوبة", "error");
+        return;
+    }
+
+    if (parseFloat(quantity) <= 0) {
+        showMessage("الكمية يجب أن تكون أكبر من صفر", "error");
+        return;
+    }
+
+    const db = getFirestoreDB();
+    if (!db) return;
+
+    try {
+        const { collection, addDoc, serverTimestamp } = await import("https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js");
+
+        await addDoc(collection(db, MATERIALS_COLLECTION), {
+            location: currentLocation,
+            item: item,
+            unit: unit,
+            quantity: quantity,
+            actionType: currentMaterialAction,
+            actionDate: actionDate,
+            notes: notes,
+            createdAt: serverTimestamp()
+        });
+
+        const locationName = INVENTORY_LOCATIONS[currentLocation]?.name || "المكان";
+        const isWithdraw = currentMaterialAction === "withdraw";
+
+        notify(
+            isWithdraw ? "سحب مادة" : "إضافة مادة",
+            locationName + ": " + item + " - " + (isWithdraw ? "-" : "+") + quantity + " " + unit,
+            "material"
+        );
+
+        itemInput.value = "";
+        unitInput.value = "";
+        quantityInput.value = "";
+        notesInput.value = "";
+
+        closeMaterialForm();
+
+        showMessage("تم حفظ العملية بنجاح");
+
+        await getMaterials();
+
+    } catch (error) {
+        console.error("خطأ حفظ المادة:", error);
+        showMessage("حدث خطأ أثناء حفظ العملية: " + (error.code || error.message || "خطأ غير معروف"), "error");
+    }
+}
+
+async function deleteMaterial(id) {
+    if (!confirm("هل تريد حذف هذه الحركة؟")) {
+        return;
+    }
+
+    const db = getFirestoreDB();
+    if (!db) return;
+
+    try {
+        const { doc, deleteDoc } = await import("https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js");
+
+        await deleteDoc(doc(db, MATERIALS_COLLECTION, id));
+
+        showMessage("تم حذف الحركة");
+
+        await getMaterials();
+
+    } catch (error) {
+        console.error("خطأ حذف المادة:", error);
+        showMessage("حدث خطأ أثناء حذف الحركة", "error");
+    }
+}
+
+function renderInventory() {
+    const movements = materialsCache.filter(m => m.location === currentLocation);
+
+    renderStockSummary(movements);
+    renderMaterialsTable(movements);
+}
+
+function formatQuantity(value) {
+    const num = parseFloat(value);
+    if (isNaN(num)) return "-";
+    return String(Math.round(num * 100) / 100);
+}
+
+function renderStockSummary(movements) {
+    const container = document.getElementById("stockSummary");
+    if (!container) return;
+
+    const stockMap = {};
+
+    movements.forEach(m => {
+        const key = (m.item || "").trim() + "|" + (m.unit || "").trim();
+        if (!stockMap[key]) {
+            stockMap[key] = { item: m.item, unit: m.unit, added: 0, withdrawn: 0 };
+        }
+        const qty = parseFloat(m.quantity) || 0;
+        if (m.actionType === "withdraw") {
+            stockMap[key].withdrawn += qty;
+        } else {
+            stockMap[key].added += qty;
+        }
+    });
+
+    const entries = Object.values(stockMap);
+
+    if (entries.length === 0) {
+        container.innerHTML = "";
+        return;
+    }
+
+    let rows = "";
+
+    entries.forEach(item => {
+        const balance = item.added - item.withdrawn;
+        const balanceClass = balance > 0 ? "balance-positive" : (balance === 0 ? "balance-zero" : "balance-negative");
+        rows += `
+            <tr>
+                <td class="td-item">${escapeHTML(item.item)}</td>
+                <td>${escapeHTML(item.unit)}</td>
+                <td>${formatQuantity(item.added)}</td>
+                <td>${formatQuantity(item.withdrawn)}</td>
+                <td class="${balanceClass}">${formatQuantity(balance)}</td>
+            </tr>
+        `;
+    });
+
+    container.innerHTML = `
+        <div class="stock-summary-card">
+            <div class="stock-summary-header">
+                <h3>📦 الرصيد الحالي</h3>
+                <span class="stock-badge">${entries.length}</span>
+            </div>
+            <div class="materials-table-wrap">
+                <table class="inventory-table">
+                    <thead>
+                        <tr>
+                            <th>المادة</th>
+                            <th>الوحدة</th>
+                            <th>المضاف</th>
+                            <th>المسحوب</th>
+                            <th>الرصيد</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rows}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
+}
+
+function formatMaterialDate(timestamp) {
+    if (!timestamp) return "-";
+    try {
+        let date;
+        if (timestamp.toDate) {
+            date = timestamp.toDate();
+        } else if (timestamp.seconds) {
+            date = new Date(timestamp.seconds * 1000);
+        } else {
+            date = new Date(timestamp);
+        }
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+        return year + "-" + month + "-" + day;
+    } catch (error) {
+        return "-";
+    }
+}
+
+function renderMaterialsTable(movements) {
+    const container = document.getElementById("materialsTableWrap");
+    if (!container) return;
+
+    if (movements.length === 0) {
+        container.innerHTML = `
+            <div class="empty-materials">
+                <div class="empty-materials-icon">📦</div>
+                <strong>لا توجد حركات بعد</strong>
+                <span>استخدم "إضافة مادة" أو "سحب مادة" لتسجيل أول حركة</span>
+            </div>
+        `;
+        return;
+    }
+
+    let rows = "";
+
+    movements.forEach(m => {
+        const isWithdraw = m.actionType === "withdraw";
+        const badgeClass = isWithdraw ? "operation-withdraw" : "operation-add";
+        const badgeText = isWithdraw ? "سحب" : "إضافة";
+        const qtyClass = isWithdraw ? "qty-withdraw" : "qty-add";
+        const qtySign = isWithdraw ? "-" : "+";
+
+        rows += `
+            <tr>
+                <td class="td-item">${escapeHTML(m.item)}</td>
+                <td>${escapeHTML(m.unit)}</td>
+                <td><span class="operation-badge ${badgeClass}">${badgeText}</span></td>
+                <td class="${qtyClass}">${qtySign}${formatQuantity(m.quantity)}</td>
+                <td>${escapeHTML(m.actionDate || formatMaterialDate(m.createdAt))}</td>
+                <td>
+                    <button
+                        type="button"
+                        class="delete-material-button"
+                        onclick="deleteMaterial('${m.id}')"
+                    >حذف</button>
+                </td>
+            </tr>
+        `;
+    });
+
+    container.innerHTML = `
+        <table class="inventory-table">
+            <thead>
+                <tr>
+                    <th>المادة</th>
+                    <th>الوحدة</th>
+                    <th>النوع</th>
+                    <th>الكمية</th>
+                    <th>تاريخ العملية</th>
+                    <th>خيارات</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${rows}
+            </tbody>
+        </table>
+    `;
 }
 
 // ============================================================
@@ -1251,6 +1662,12 @@ async function saveReport() {
             "تم حفظ التقرير بنجاح"
         );
 
+        notify(
+            "تقرير يومي جديد",
+            "تم تسجيل تقرير يوم " + day + " - " + date,
+            "report"
+        );
+
         openReports();
 
     } catch (error) {
@@ -1275,118 +1692,93 @@ async function saveReport() {
 }
 
 function renderReports() {
-
-    const container =
-        document.getElementById(
-            "reportsList"
-        );
-
+    const container = document.getElementById("reportsList");
     if (!container) return;
 
-    if (
-        reportsCache.length === 0
-    ) {
+    renderReportSummary();
 
+    if (reportsCache.length === 0) {
         container.innerHTML = `
-
-            <div style="
-                padding:25px;
-                text-align:center;
-                background:#f5f5f5;
-                border-radius:12px;
-                direction:rtl;
-            ">
-                لا توجد تقارير
+            <div class="empty-reports">
+                <div class="empty-reports-icon">📋</div>
+                <strong>لا توجد تقارير حالياً</strong>
+                <span>اضغط على "إضافة تقرير" لإنشاء أول تقرير</span>
             </div>
-
         `;
-
         return;
-
     }
 
     let html = "";
 
-    reportsCache.forEach(
-        report => {
+    reportsCache.forEach((report, index) => {
+        html += createReportHTML(report, index);
+    });
 
-            html +=
-                createReportHTML(
-                    report
-                );
-
-        }
-    );
-
-    container.innerHTML =
-        html;
-
+    container.innerHTML = html;
 }
 
-function createReportHTML(
-    report
-) {
+function renderReportSummary() {
+    const container = document.getElementById("reportsList");
+    if (!container) return;
 
-    return `
+    const existing = container.querySelector(".report-summary");
+    if (existing) existing.remove();
 
-        <div style="
-            background:white;
-            padding:18px;
-            margin-bottom:15px;
-            border-radius:14px;
-            box-shadow:0 3px 12px rgba(0,0,0,0.10);
-            direction:rtl;
-        ">
+    const today = new Date().toISOString().split("T")[0];
+    const todayCount = reportsCache.filter(r => r.date === today).length;
 
-            <div style="
-                font-weight:bold;
-                font-size:17px;
-                margin-bottom:8px;
-            ">
-                ${escapeHTML(
-                    report.day
-                )}
+    const summary = document.createElement("div");
+    summary.className = "report-summary";
+    summary.innerHTML = `
+        <div class="report-stat-box">
+            <div class="report-stat-icon">📋</div>
+            <div class="report-stat-text">
+                <strong>${reportsCache.length}</strong>
+                <span>إجمالي التقارير</span>
             </div>
-
-            <div style="
-                color:#555;
-                margin-bottom:8px;
-            ">
-                التاريخ:
-                ${escapeHTML(
-                    report.date
-                )}
-            </div>
-
-            <div style="
-                white-space:pre-wrap;
-                line-height:1.8;
-                margin-bottom:15px;
-            ">
-                ${escapeHTML(
-                    report.text
-                )}
-            </div>
-
-            <button
-                onclick="deleteReport('${report.id}')"
-                style="
-                    background:#d32f2f;
-                    color:white;
-                    border:0;
-                    border-radius:9px;
-                    padding:10px 18px;
-                    cursor:pointer;
-                    font-weight:bold;
-                "
-            >
-                حذف التقرير
-            </button>
-
         </div>
-
+        <div class="report-stat-box">
+            <div class="report-stat-icon">📅</div>
+            <div class="report-stat-text">
+                <strong>${todayCount}</strong>
+                <span>تقارير اليوم</span>
+            </div>
+        </div>
     `;
 
+    container.prepend(summary);
+}
+
+function createReportHTML(report, index) {
+    const reportNumber = reportsCache.length - index;
+
+    return `
+        <div class="report-card">
+            <div class="report-card-header">
+                <div class="report-date-box">
+                    <div class="report-date-icon">📋</div>
+                    <div class="report-date-text">
+                        <strong>${escapeHTML(report.day)}</strong>
+                        <span>${escapeHTML(report.date)}</span>
+                    </div>
+                </div>
+                <button
+                    type="button"
+                    class="delete-report-button"
+                    onclick="deleteReport('${report.id}')"
+                    aria-label="حذف التقرير"
+                >حذف</button>
+            </div>
+            <div class="report-body">
+                <div class="report-body-title">تفاصيل التقرير</div>
+                <div class="report-body-text">${escapeHTML(report.text)}</div>
+            </div>
+            <div class="report-card-footer">
+                <span class="report-time">⏰ ${formatPurchaseDate(report.createdAt)}</span>
+                <span class="report-time">رقم التقرير ${reportNumber}</span>
+            </div>
+        </div>
+    `;
 }
 
 function formatDate(timestamp) {
@@ -1454,6 +1846,319 @@ async function deleteReport(id) {
 }
 
 // ============================================================
+// ========================= الإشعارات ========================
+// ============================================================
+
+function openNotifications() {
+    showPage("notificationsPage");
+    getNotifications();
+}
+
+async function getNotifications() {
+    const db = getFirestoreDB();
+    if (!db) return;
+
+    try {
+        const { collection, getDocs, query, orderBy, limit } = await import("https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js");
+
+        const q = query(
+            collection(db, NOTIFICATIONS_COLLECTION),
+            orderBy("createdAt", "desc"),
+            limit(50)
+        );
+
+        const snapshot = await getDocs(q);
+
+        notificationsCache = [];
+
+        snapshot.forEach(doc => {
+            notificationsCache.push({
+                id: doc.id,
+                ...doc.data()
+            });
+        });
+
+        renderNotifications();
+        updateNotificationBadge();
+
+    } catch (error) {
+        console.error("خطأ تحميل الإشعارات:", error);
+    }
+}
+
+function renderNotifications() {
+    const container = document.getElementById("notificationsList");
+    if (!container) return;
+
+    if (notificationsCache.length === 0) {
+        container.innerHTML = `
+            <div class="empty-notifications">
+                <div class="empty-notifications-icon">🔔</div>
+                <strong>لا توجد إشعارات بعد</strong>
+                <span>ستظهر هنا التحديثات فور حدوثها</span>
+            </div>
+        `;
+        return;
+    }
+
+    let html = "";
+
+    notificationsCache.forEach(n => {
+        const icon = getNotificationIcon(n.type);
+        html += `
+            <div class="notification-card">
+                <div class="notification-icon">${icon}</div>
+                <div class="notification-info">
+                    <h4>${escapeHTML(n.title)}</h4>
+                    <p>${escapeHTML(n.body)}</p>
+                    <span class="notification-time">${formatNotificationTime(n.createdAt)}</span>
+                </div>
+            </div>
+        `;
+    });
+
+    container.innerHTML = html;
+}
+
+function getNotificationIcon(type) {
+    if (type === "report") return "📋";
+    if (type === "task") return "✅";
+    if (type === "purchase") return "🛒";
+    if (type === "material") return "📦";
+    return "🔔";
+}
+
+function formatNotificationTime(timestamp) {
+    if (!timestamp) return "";
+    try {
+        let date;
+        if (timestamp.toDate) {
+            date = timestamp.toDate();
+        } else if (timestamp.seconds) {
+            date = new Date(timestamp.seconds * 1000);
+        } else {
+            date = new Date(timestamp);
+        }
+        return date.toLocaleString("ar-IQ", {
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit"
+        });
+    } catch (error) {
+        return "";
+    }
+}
+
+function updateNotificationBadge() {
+    const badge = document.getElementById("notificationBadge");
+    if (!badge) return;
+
+    const count = notificationsCache.length;
+    badge.textContent = count > 99 ? "99+" : count;
+}
+
+async function notify(title, body, type = "general") {
+    const db = getFirestoreDB();
+    if (!db) return;
+
+    try {
+        const { collection, addDoc, serverTimestamp } = await import("https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js");
+
+        const ref = await addDoc(collection(db, NOTIFICATIONS_COLLECTION), {
+            title: title,
+            body: body,
+            type: type,
+            createdAt: serverTimestamp()
+        });
+
+        localNotifiedIds.add(ref.id);
+
+        showToast(title, body);
+
+        if (notificationsCache.length > 0) {
+            notificationsCache.unshift({
+                id: ref.id,
+                title: title,
+                body: body,
+                type: type
+            });
+            updateNotificationBadge();
+        }
+
+    } catch (error) {
+        console.error("خطأ إرسال الإشعار:", error);
+    }
+}
+
+function showToast(title, body) {
+    const oldToasts = document.querySelectorAll(".toast-message");
+    oldToasts.forEach(t => t.remove());
+
+    if (toastTimer) {
+        clearTimeout(toastTimer);
+    }
+
+    const toast = document.createElement("div");
+    toast.className = "toast-message";
+
+    toast.innerHTML = `
+        <div class="toast-icon">🔔</div>
+        <div class="toast-content">
+            <h4 class="toast-title">${escapeHTML(title)}</h4>
+            <p class="toast-body">${escapeHTML(body)}</p>
+        </div>
+        <button type="button" class="toast-close" aria-label="إغلاق">×</button>
+    `;
+
+    toast.querySelector(".toast-close").addEventListener("click", () => {
+        toast.remove();
+    });
+
+    document.body.appendChild(toast);
+
+    toastTimer = setTimeout(() => {
+        if (toast.parentElement) {
+            toast.remove();
+        }
+    }, 6000);
+}
+
+function startNotificationsListener() {
+    const db = getFirestoreDB();
+    if (!db) return;
+
+    if (notificationsUnsubscribe) {
+        return;
+    }
+
+    import("https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js")
+        .then(({ collection, query, orderBy, limit, onSnapshot }) => {
+            const q = query(
+                collection(db, NOTIFICATIONS_COLLECTION),
+                orderBy("createdAt", "desc"),
+                limit(50)
+            );
+
+            notificationsUnsubscribe = onSnapshot(q, snapshot => {
+                const docs = [];
+
+                snapshot.forEach(doc => {
+                    docs.push({
+                        id: doc.id,
+                        ...doc.data()
+                    });
+                });
+
+                const newItems = docs.filter(d => !notificationsCache.some(c => c.id === d.id));
+
+                notificationsCache = docs;
+
+                renderNotifications();
+                updateNotificationBadge();
+
+                newItems.forEach(d => {
+                    if (!localNotifiedIds.has(d.id)) {
+                        showToast(d.title || "إشعار جديد", d.body || "");
+                    }
+                });
+            });
+        })
+        .catch(error => {
+            console.error("خطأ بدء مستمع الإشعارات:", error);
+        });
+}
+
+async function setupMessagingForeground() {
+    if (!window.firebaseApp) return;
+
+    try {
+        const { getMessaging, onMessage } = await import("https://www.gstatic.com/firebasejs/12.19.0/firebase-messaging.js");
+
+        const messaging = getMessaging(window.firebaseApp);
+        window.firebaseMessaging = messaging;
+
+        onMessage(messaging, payload => {
+            const title = payload.notification?.title || payload.data?.title || "إشعار جديد";
+            const body = payload.notification?.body || payload.data?.body || "تحديث جديد من شركة نوافذ البناء";
+            showToast(title, body);
+        });
+
+        if ("serviceWorker" in navigator) {
+            navigator.serviceWorker.register("firebase-messaging-sw.js").catch(() => {});
+        }
+    } catch (error) {
+        console.error("خطأ إعداد استقبال الإشعارات:", error);
+    }
+}
+
+async function enablePushNotifications() {
+    if (!("Notification" in window)) {
+        showMessage("المتصفح لا يدعم الإشعارات", "error");
+        return;
+    }
+
+    if (Notification.permission === "denied") {
+        showMessage("تم رفض إذن الإشعارات، قم بالسماح من إعدادات الموقع", "error");
+        return;
+    }
+
+    try {
+        const permission = await Notification.requestPermission();
+
+        if (permission !== "granted") {
+            showMessage("يرجى السماح بالإشعارات من إعدادات الموقع", "error");
+            return;
+        }
+    } catch (error) {
+        console.error("طلب إذن الإشعارات:", error);
+        showMessage("يرجى السماح بالإشعارات من إعدادات الموقع", "error");
+        return;
+    }
+
+    if (VAPID_KEY === "YOUR_VAPID_PUBLIC_KEY") {
+        showMessage("يرجى إضافة مفتاح VAPID في ملف script.js أولاً", "error");
+        return;
+    }
+
+    try {
+        const { getMessaging, getToken } = await import("https://www.gstatic.com/firebasejs/12.19.0/firebase-messaging.js");
+        const { doc, setDoc, serverTimestamp } = await import("https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js");
+
+        const messaging = getMessaging(window.firebaseApp);
+        window.firebaseMessaging = messaging;
+
+        const registration = await navigator.serviceWorker.register("firebase-messaging-sw.js");
+
+        const token = await getToken(messaging, {
+            vapidKey: VAPID_KEY,
+            serviceWorkerRegistration: registration
+        });
+
+        if (!token) {
+            showMessage("تعذر الحصول على رمز الإشعار", "error");
+            return;
+        }
+
+        const db = getFirestoreDB();
+        if (!db) return;
+
+        await setDoc(doc(db, TOKENS_COLLECTION, token), {
+            token: token,
+            createdAt: serverTimestamp(),
+            userAgent: navigator.userAgent
+        });
+
+        showMessage("تم تفعيل الإشعارات بنجاح 🔔");
+
+    } catch (error) {
+        console.error("خطأ تفعيل الإشعارات:", error);
+        showMessage("حدث خطأ أثناء تفعيل الإشعارات: " + (error.message || "خطأ غير معروف"), "error");
+    }
+}
+
+// ============================================================
 // =========================== المهام ==========================
 // ============================================================
 
@@ -1472,13 +2177,17 @@ function createTasksInterface() {
 // فتح صفحة المهام
 // ============================================================
 
-function openTasks() {
+async function openTasks() {
 
     showPage(
         "tasksPage"
     );
 
     renderEngineers();
+
+    await loadTasksCache();
+
+    updateEngineerStats();
 
 }
 
@@ -1505,6 +2214,66 @@ function renderEngineers() {
 
     // المهندسون موجودون أصلاً في index.html
     // لذلك لا نضيف بطاقات جديدة.
+
+}
+
+// ============================================================
+// إحصائيات المهام لكل مهندس
+// ============================================================
+
+function updateEngineerStats() {
+
+    const cards =
+        document.querySelectorAll(
+            ".engineer-card[data-engineer]"
+        );
+
+    cards.forEach(
+        card => {
+
+            const engineer =
+                card.getAttribute(
+                    "data-engineer"
+                );
+
+            const added =
+                tasksCache.filter(
+                    task =>
+                        task.engineer ===
+                        engineer
+                ).length;
+
+            const done =
+                tasksCache.filter(
+                    task =>
+                        task.engineer ===
+                        engineer &&
+                        task.status ===
+                        "completed"
+                ).length;
+
+            const addedEl =
+                card.querySelector(
+                    ".engineer-added-count"
+                );
+
+            if (addedEl) {
+                addedEl.textContent =
+                    added;
+            }
+
+            const doneEl =
+                card.querySelector(
+                    ".engineer-done-count"
+                );
+
+            if (doneEl) {
+                doneEl.textContent =
+                    done;
+            }
+
+        }
+    );
 
 }
 
@@ -1620,12 +2389,12 @@ function closeTaskForm() {
 // جلب المهام من Firebase
 // ============================================================
 
-async function getTasks() {
+async function loadTasksCache() {
 
     const db =
         getFirestoreDB();
 
-    if (!db) return;
+    if (!db) return false;
 
     try {
 
@@ -1674,23 +2443,13 @@ async function getTasks() {
             }
         );
 
-        renderEngineerTasks();
+        return true;
 
     } catch (error) {
 
         console.error(
             "خطأ تحميل المهام:",
             error
-        );
-
-        console.error(
-            "Firebase error code:",
-            error.code
-        );
-
-        console.error(
-            "Firebase error message:",
-            error.message
         );
 
         showMessage(
@@ -1703,7 +2462,20 @@ async function getTasks() {
             "error"
         );
 
+        return false;
+
     }
+
+}
+
+async function getTasks() {
+
+    const ok =
+        await loadTasksCache();
+
+    if (!ok) return;
+
+    renderEngineerTasks();
 
 }
 
@@ -1800,6 +2572,12 @@ async function addTask() {
 
         showMessage(
             "تمت إضافة المهمة بنجاح"
+        );
+
+        notify(
+            "مهمة جديدة",
+            "تمت إضافة مهمة للمهندس " + currentEngineer + ": " + text,
+            "task"
         );
 
         await getTasks();
@@ -2174,6 +2952,14 @@ async function completeTask(
             }
         );
 
+        const task = tasksCache.find(t => t.id === id);
+
+        notify(
+            "تم إنجاز مهمة",
+            "أنجز " + (task ? task.engineer : "") + ": " + (task ? task.text : ""),
+            "task"
+        );
+
         showMessage(
             "تم نقل المهمة إلى المنجزة"
         );
@@ -2326,6 +3112,12 @@ function initializeCompanyApp() {
     console.log(
         "شركة نوافذ البناء - التطبيق بدأ"
     );
+
+    startNotificationsListener();
+
+    setupMessagingForeground();
+
+    getNotifications();
 
 }
 
