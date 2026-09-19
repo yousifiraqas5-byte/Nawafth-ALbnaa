@@ -24,10 +24,9 @@ font-family:
 BlinkMacSystemFont,
 "SF Pro Display",
 "SF Pro Text",
-"Helvetica Neue",
-"Segoe UI",
-Tahoma,
-Arial,
+"Noto Sans Arabic",
+"Noto Sans",
+system-ui,
 sans-serif;
 
 -webkit-font-smoothing: antialiased;
@@ -207,20 +206,16 @@ display: block;
 from {
 opacity: 0;
 
-```
 transform:
   translateY(8px);
-```
 
 }
 
 to {
 opacity: 1;
 
-```
 transform:
   translateY(0);
-```
 
 }
 
@@ -1256,25 +1251,21 @@ purchaseFormIn 0.2s ease;
 
 from {
 
-```
 opacity:
   0;
 
 transform:
   translateY(-6px);
-```
 
 }
 
 to {
 
-```
 opacity:
   1;
 
 transform:
   translateY(0);
-```
 
 }
 
@@ -2130,13 +2121,11 @@ MOBILE
 
 .iphone-app {
 
-```
 min-height:
   100vh;
 
 box-shadow:
   none;
-```
 
 }
 
@@ -2150,16 +2139,13 @@ SMALL MOBILE
 
 .purchase-card {
 
-```
 align-items:
   stretch;
-```
 
 }
 
 .purchase-complete-button {
 
-```
 min-width:
   68px;
 
@@ -2168,28 +2154,23 @@ padding:
 
 font-size:
   8px;
-```
 
 }
 
 .purchase-item-icon {
 
-```
 width:
   39px;
 
 height:
   39px;
-```
 
 }
 
 .purchase-details {
 
-```
 gap:
   3px 8px;
-```
 
 }
 
@@ -2203,22 +2184,18 @@ DESKTOP PREVIEW
 
 body {
 
-```
 padding:
   25px 0;
-```
 
 }
 
 .iphone-app {
 
-```
 min-height:
   calc(100vh - 50px);
 
 border-radius:
   34px;
-```
 
 }
 
@@ -2930,4 +2907,224 @@ justify-content:space-between;
 margin-top:12px;
 padding-top:11px;
 border-top:1px solid #edf0ee;
+}
+
+/* =========================================================
+   UI POLISH — brand unit, section intros, shared actions
+   (Task 2: additive only, existing rules untouched)
+   ========================================================= */
+
+/* --- Header: logo + company text as one brand unit --- */
+
+.company-brand {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  min-width: 0;
+}
+
+.company-brand .company-name p {
+  font-size: 11px;
+  opacity: 0.85;
+  letter-spacing: 0.2px;
+  margin-top: 4px;
+}
+
+/* --- Section intro rows (home + all sections) --- */
+
+.home-intro {
+  margin: 18px 16px 14px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  background: #ffffff;
+  border: 1px solid #e1e6e3;
+  border-radius: 18px;
+  box-shadow: 0 4px 14px rgba(30, 45, 37, 0.05);
+}
+
+.home-intro h2 {
+  font-size: 18px;
+  font-weight: 800;
+  color: #26312b;
+}
+
+.home-intro p {
+  margin-top: 3px;
+  font-size: 12px;
+  color: #89928d;
+}
+
+.intro-icon {
+  width: 46px;
+  height: 46px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  background: #e2f0e9;
+  font-size: 22px;
+}
+
+.storage-arrow {
+  color: #176b45;
+  font-weight: 800;
+  font-size: 16px;
+}
+
+/* --- Primary action buttons (existing green) --- */
+
+.add-purchase-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 14px;
+  background: linear-gradient(145deg, #176b45, #124f35);
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 6px 16px rgba(18, 79, 53, 0.22);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.add-purchase-button:active {
+  transform: scale(0.97);
+  box-shadow: 0 3px 9px rgba(18, 79, 53, 0.2);
+}
+
+.add-purchase-icon {
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.purchase-action,
+.tasks-action,
+.report-action {
+  padding: 0 16px;
+  margin: 14px 0;
+}
+
+/* --- Form footers (purchase / report) --- */
+
+.purchase-form-buttons,
+.report-form-buttons {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.purchase-form-buttons button,
+.report-form-buttons button {
+  flex: 1;
+  min-height: 46px;
+  border: none;
+  border-radius: 13px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.close-purchase-form {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 50%;
+  background: #f1f4f2;
+  color: #5a6560;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+/* --- Section headers with counts --- */
+
+.purchase-section-header,
+.tasks-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 18px 16px 10px;
+}
+
+.purchase-count,
+.task-count {
+  font-size: 11px;
+  font-weight: 700;
+  color: #176b45;
+  background: #e2f0e9;
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+.completed-purchases-section {
+  margin: 22px 0 8px;
+}
+
+.completed-count {
+  font-size: 11px;
+  font-weight: 700;
+  color: #8a938f;
+  background: #edf0ef;
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+/* --- Engineer stat accents --- */
+
+.engineer-added-count {
+  color: #176b45;
+  font-weight: 700;
+}
+
+.engineer-done-count {
+  color: #8a938f;
+  font-weight: 700;
+}
+
+/* --- Navigation button polish --- */
+
+.navigation button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 16px;
+  border-radius: 12px;
+  background: #ffffff;
+  border: 1px solid #e1e6e3;
+  box-shadow: 0 3px 10px rgba(30, 45, 37, 0.05);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.navigation button:active {
+  transform: scale(0.97);
+}
+
+/* --- Footer --- */
+
+.app-footer {
+  padding: 22px 16px 30px;
+  text-align: center;
+  color: #8a938f;
+  font-size: 11px;
+}
+
+/* --- Consistent accessible focus ring (brand green) --- */
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid rgba(23, 107, 69, 0.35);
+  outline-offset: 2px;
 }

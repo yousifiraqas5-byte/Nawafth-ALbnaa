@@ -3508,7 +3508,7 @@ function setFaultFormBusy(isBusy) {
     const button = document.getElementById("saveFaultBtn");
     if (button) {
         button.disabled = isBusy;
-        button.textContent = isBusy ? "Submitting..." : "Submit Fault";
+        button.textContent = isBusy ? "Saving..." : "Save Request";
     }
 }
 
@@ -3972,5 +3972,898 @@ if (
 } else {
 
     initializeCompanyApp();
+
+}
+
+// ============================================================
+// MEDICAL DEVICE INVENTORY (Excel-driven) — قسم جرد الأجهزة الطبية
+// المصدر: ملف Excel الحقيقي في جذر المشروع
+// "Al-Fedhalyia medical  222 Final - 180.000.000.xlsx" (Sheet2)
+// - لا توجد أجهزة وهمية (Brand X / Brand Y) في هذا القسم.
+// - كل صف في Excel يبقى سجلاً مستقلاً حتى لو تكرر اسم الجهاز،
+//   لأن هوية السجل هي: اسم الجهاز + الماركة + بلد المنشأ + رقم الصف.
+// - هذا القسم مستقل ولا يعدّل أي قسم آخر في التطبيق.
+// ============================================================
+
+const MEDICAL_INVENTORY_EXCEL_FILE =
+    "Al-Fedhalyia medical  222 Final - 180.000.000.xlsx";
+
+const MEDICAL_INVENTORY_EXCEL_URL =
+    encodeURI(MEDICAL_INVENTORY_EXCEL_FILE);
+
+const MEDICAL_INVENTORY_SHEET_NAME = "Sheet2";
+
+const MEDICAL_INVENTORY_LIBRARY_URL = "vendor/xlsx.full.min.js";
+
+const MEDICAL_INVENTORY_NAME_HEADERS = [
+    "room name / item name"
+];
+
+const MEDICAL_INVENTORY_QTY_HEADERS = [
+    "qty.",
+    "qty",
+    "quantity"
+];
+
+const MEDICAL_INVENTORY_BRAND_HEADERS = [
+    "brand"
+];
+
+const MEDICAL_INVENTORY_ORIGIN_HEADERS = [
+    "origin",
+    "country of origin"
+];
+
+// أمثلة للاختلافات الموجودة داخل ملف Excel نفسه: TUR / Turkey و PRC / China
+const MEDICAL_INVENTORY_SEARCH_ALIASES = {
+    "tur": ["turkey"],
+    "turkey": ["tur"],
+    "prc": ["china"],
+    "china": ["prc"]
+};
+
+const medicalInventoryState = {
+    status: "idle", // idle | loading | ready | error
+    records: [],
+    sheetName: "",
+    totalCount: 0,
+    brandCount: 0,
+    countryCount: 0,
+    query: "",
+    loadToken: 0
+};
+
+let medicalInventoryLibraryPromise = null;
+
+// ============================================================
+// أدوات مساعدة للجرد
+// ============================================================
+
+function medicalInventoryGetElement(id) {
+
+    return document.getElementById(id);
+
+}
+
+function normalizeMedicalText(value) {
+
+    if (value === null || value === undefined) {
+
+        return "";
+
+    }
+
+    return String(value)
+        .normalize("NFKC")
+        .toLowerCase()
+        .replace(/\s+/g, " ")
+        .trim();
+
+}
+
+function medicalInventoryToDisplay(value) {
+
+    if (value === null || value === undefined) {
+
+        return "";
+
+    }
+
+    return String(value)
+        .replace(/\r?\n/g, " ")
+        .trim();
+
+}
+
+function escapeMedicalHtml(value) {
+
+    return String(
+        value === null || value === undefined ? "" : value
+    )
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/\"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+
+}
+
+function highlightMedicalMatch(rawText, query) {
+
+    const escaped =
+        escapeMedicalHtml(rawText);
+
+    const trimmedQuery =
+        (query || "").trim();
+
+    if (!trimmedQuery) {
+
+        return escaped;
+
+    }
+
+    // تجنّب الاستعلامات التي تحتوي محارف HTML
+    if (/[<>&"'`]/.test(trimmedQuery)) {
+
+        return escaped;
+
+    }
+
+    const pattern =
+        trimmedQuery.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+    try {
+
+        const regex =
+            new RegExp("(" + pattern + ")", "giu");
+
+        return escaped.replace(
+            regex,
+            '<mark class="inventory-hit">$1</mark>'
+        );
+
+    } catch (error) {
+
+        return escaped;
+
+    }
+
+}
+
+function findInventoryHeaderColumns(row) {
+
+    const found = {
+        ref: 0,
+        name: -1,
+        qty: -1,
+        brand: -1,
+        origin: -1
+    };
+
+    (row || []).forEach((cell, index) => {
+
+        const text =
+            normalizeMedicalText(cell);
+
+        if (!text) {
+
+            return;
+
+        }
+
+        if (
+            found.name === -1 &&
+            MEDICAL_INVENTORY_NAME_HEADERS.indexOf(text) !== -1
+        ) {
+
+            found.name = index;
+
+        } else if (
+            found.qty === -1 &&
+            MEDICAL_INVENTORY_QTY_HEADERS.indexOf(text) !== -1
+        ) {
+
+            found.qty = index;
+
+        } else if (
+            found.brand === -1 &&
+            MEDICAL_INVENTORY_BRAND_HEADERS.indexOf(text) !== -1
+        ) {
+
+            found.brand = index;
+
+        } else if (
+            found.origin === -1 &&
+            MEDICAL_INVENTORY_ORIGIN_HEADERS.indexOf(text) !== -1
+        ) {
+
+            found.origin = index;
+
+        }
+
+    });
+
+    if (found.name === -1) {
+
+        return null;
+
+    }
+
+    return found;
+
+}
+
+// ============================================================
+// تحليل ملف Excel وبناء سجلات الجرد
+// ============================================================
+
+function parseMedicalInventoryWorkbook(workbook) {
+
+    const sheetName =
+        workbook.SheetNames.indexOf(MEDICAL_INVENTORY_SHEET_NAME) !== -1
+            ? MEDICAL_INVENTORY_SHEET_NAME
+            : workbook.SheetNames[0];
+
+    if (!sheetName) {
+
+        throw new Error(
+            "The Excel file does not contain any worksheet."
+        );
+
+    }
+
+    const worksheet =
+        workbook.Sheets[sheetName];
+
+    const rows = XLSX.utils.sheet_to_json(worksheet, {
+        header: 1,
+        raw: true,
+        defval: null,
+        blankrows: true
+    });
+
+    if (!rows.length) {
+
+        throw new Error(
+            'Worksheet "' + sheetName + '" is empty.'
+        );
+
+    }
+
+    // تحديد صف العناوين وأعمدة البيانات من ملف Excel الفعلي
+    let columns = null;
+    let headerIndex = 0;
+
+    const scanLimit =
+        Math.min(rows.length, 5);
+
+    for (let i = 0; i < scanLimit; i++) {
+
+        const found =
+            findInventoryHeaderColumns(rows[i]);
+
+        if (found) {
+
+            columns = found;
+            headerIndex = i;
+
+            break;
+
+        }
+
+    }
+
+    if (!columns) {
+
+        // التخطيط المقاس أثناء فحص ملف Excel (A=المرجع، B=الاسم، C=الكمية، D=الماركة، E=المنشأ)
+        columns = {
+            ref: 0,
+            name: 1,
+            qty: 2,
+            brand: 3,
+            origin: 4
+        };
+
+    }
+
+    const records = [];
+
+    for (let i = headerIndex + 1; i < rows.length; i++) {
+
+        const row =
+            rows[i] || [];
+
+        const excelRow =
+            i + 1;
+
+        const name =
+            medicalInventoryToDisplay(row[columns.name]);
+
+        // الصفوف التي لا تحتوي اسم جهاز يتم استبعادها (13 صف في ملف Excel الحالي)
+        if (!name) {
+
+            continue;
+
+        }
+
+        const ref =
+            columns.ref >= 0
+                ? medicalInventoryToDisplay(row[columns.ref])
+                : "";
+
+        const qty =
+            columns.qty >= 0
+                ? medicalInventoryToDisplay(row[columns.qty])
+                : "";
+
+        const brand =
+            columns.brand >= 0
+                ? medicalInventoryToDisplay(row[columns.brand])
+                : "";
+
+        const origin =
+            columns.origin >= 0
+                ? medicalInventoryToDisplay(row[columns.origin])
+                : "";
+
+        records.push({
+            id: "row-" + excelRow,
+            excelRow: excelRow,
+            ref: ref,
+            name: name,
+            brand: brand,
+            origin: origin,
+            qty: qty,
+            searchName: normalizeMedicalText(name),
+            searchBrand: normalizeMedicalText(brand),
+            searchOrigin: normalizeMedicalText(origin)
+        });
+
+    }
+
+    records.forEach(record => {
+
+        record.searchAll = normalizeMedicalText(
+            record.name + " " + record.brand + " " + record.origin
+        );
+
+    });
+
+    return {
+        sheetName: sheetName,
+        records: records,
+        headerRow: headerIndex + 1
+    };
+
+}
+
+function computeMedicalInventoryTotals(records) {
+
+    const brands = new Set();
+    const countries = new Set();
+
+    records.forEach(record => {
+
+        if (record.searchBrand) {
+
+            brands.add(record.searchBrand);
+
+        }
+
+        if (record.searchOrigin) {
+
+            countries.add(record.searchOrigin);
+
+        }
+
+    });
+
+    return {
+        total: records.length,
+        brands: brands.size,
+        countries: countries.size
+    };
+
+}
+
+// ============================================================
+// تحميل مكتبة قراءة Excel (SheetJS) عند الحاجة فقط
+// ============================================================
+
+function loadMedicalInventoryLibrary() {
+
+    if (window.XLSX) {
+
+        return Promise.resolve();
+
+    }
+
+    if (medicalInventoryLibraryPromise) {
+
+        return medicalInventoryLibraryPromise;
+
+    }
+
+    medicalInventoryLibraryPromise = new Promise((resolve, reject) => {
+
+        const script =
+            document.createElement("script");
+
+        script.src =
+            MEDICAL_INVENTORY_LIBRARY_URL;
+
+        script.async = true;
+
+        script.onload = function () {
+
+            if (window.XLSX) {
+
+                resolve();
+
+            } else {
+
+                medicalInventoryLibraryPromise = null;
+
+                reject(new Error(
+                    "The Excel reader library loaded but XLSX is unavailable."
+                ));
+
+            }
+
+        };
+
+        script.onerror = function () {
+
+            medicalInventoryLibraryPromise = null;
+
+            reject(new Error(
+                "Could not load the Excel reader library (vendor/xlsx.full.min.js)."
+            ));
+
+        };
+
+        document.head.appendChild(script);
+
+    });
+
+    return medicalInventoryLibraryPromise;
+
+}
+
+// ============================================================
+// إدارة حالات الشاشة (تحميل / خطأ / فراغ / جدول)
+// ============================================================
+
+function showMedicalInventoryPane(pane) {
+
+    const loading =
+        medicalInventoryGetElement("inventoryLoading");
+
+    const error =
+        medicalInventoryGetElement("inventoryError");
+
+    const empty =
+        medicalInventoryGetElement("inventoryEmpty");
+
+    const tableWrap =
+        medicalInventoryGetElement("inventoryTableWrap");
+
+    if (loading) {
+
+        loading.style.display =
+            pane === "loading" ? "flex" : "none";
+
+    }
+
+    if (error) {
+
+        error.style.display =
+            pane === "error" ? "flex" : "none";
+
+    }
+
+    if (empty) {
+
+        empty.style.display =
+            pane === "empty" ? "flex" : "none";
+
+    }
+
+    if (tableWrap) {
+
+        tableWrap.style.display =
+            pane === "table" ? "block" : "none";
+
+    }
+
+}
+
+function showMedicalInventoryError(message) {
+
+    const textElement =
+        medicalInventoryGetElement("inventoryErrorText");
+
+    let displayMessage =
+        message || "Unknown error while reading the Excel file.";
+
+    if (window.location.protocol === "file:") {
+
+        displayMessage +=
+            " Note: when the app is opened directly from a local file (file://), the browser blocks reading the Excel file. Open the app through GitHub Pages or a local web server.";
+
+    }
+
+    if (textElement) {
+
+        textElement.textContent =
+            displayMessage;
+
+    }
+
+    showMedicalInventoryPane("error");
+
+}
+
+// ============================================================
+// البحث (غير حساس لحالة الأحرف ويتعامل مع TUR/Turkey و PRC/China)
+// ============================================================
+
+function matchesMedicalInventoryQuery(record, query) {
+
+    const normalizedQuery =
+        normalizeMedicalText(query);
+
+    if (!normalizedQuery) {
+
+        return true;
+
+    }
+
+    const fields = [
+        record.searchName,
+        record.searchBrand,
+        record.searchOrigin,
+        record.searchAll
+    ];
+
+    const directMatch =
+        fields.some(field => field.indexOf(normalizedQuery) !== -1);
+
+    if (directMatch) {
+
+        return true;
+
+    }
+
+    const aliases =
+        MEDICAL_INVENTORY_SEARCH_ALIASES[normalizedQuery] || [];
+
+    return aliases.some(alias =>
+        fields.some(field => field.indexOf(alias) !== -1)
+    );
+
+}
+
+// ============================================================
+// عرض الجدول
+// ============================================================
+
+function renderMedicalInventory() {
+
+    const state =
+        medicalInventoryState;
+
+    if (state.status !== "ready") {
+
+        showMedicalInventoryPane(
+            state.status === "error" ? "error" : "loading"
+        );
+
+        return;
+
+    }
+
+    const totalCountElement =
+        medicalInventoryGetElement("inventoryTotalCount");
+
+    const brandCountElement =
+        medicalInventoryGetElement("inventoryBrandCount");
+
+    const countryCountElement =
+        medicalInventoryGetElement("inventoryCountryCount");
+
+    const countLabel =
+        medicalInventoryGetElement("inventoryCountLabel");
+
+    const resultHint =
+        medicalInventoryGetElement("inventoryResultHint");
+
+    const tableBody =
+        medicalInventoryGetElement("inventoryTableBody");
+
+    const sourceBadge =
+        medicalInventoryGetElement("inventorySourceBadge");
+
+    if (totalCountElement) {
+
+        totalCountElement.textContent =
+            String(state.totalCount);
+
+    }
+
+    if (brandCountElement) {
+
+        brandCountElement.textContent =
+            String(state.brandCount);
+
+    }
+
+    if (countryCountElement) {
+
+        countryCountElement.textContent =
+            String(state.countryCount);
+
+    }
+
+    if (sourceBadge) {
+
+        sourceBadge.textContent =
+            "Excel inventory" +
+            (state.sheetName ? " • " + state.sheetName : "") +
+            " • " + MEDICAL_INVENTORY_EXCEL_FILE;
+
+        sourceBadge.title =
+            MEDICAL_INVENTORY_EXCEL_FILE;
+
+    }
+
+    const query =
+        state.query.trim();
+
+    const filtered = query
+        ? state.records.filter(record => matchesMedicalInventoryQuery(record, query))
+        : state.records;
+
+    if (countLabel) {
+
+        countLabel.textContent =
+            "Total Devices: " + state.totalCount;
+
+    }
+
+    if (resultHint) {
+
+        resultHint.textContent = query
+            ? "Showing " + filtered.length + " of " + state.totalCount + " matching devices"
+            : "";
+
+    }
+
+    if (!tableBody) {
+
+        return;
+
+    }
+
+    if (!filtered.length) {
+
+        tableBody.innerHTML = "";
+
+        showMedicalInventoryPane("empty");
+
+        return;
+
+    }
+
+    const rowsHtml = filtered.map((record, index) => {
+
+        const refText =
+            record.ref ? record.ref : String(index + 1);
+
+        return "" +
+            "<tr data-excel-row=\"" + record.excelRow + "\">" +
+            "<td class=\"inventory-row-index\">" + escapeMedicalHtml(refText) + "</td>" +
+            "<td class=\"inventory-device-name\">" + highlightMedicalMatch(record.name, query) + "</td>" +
+            "<td>" + (record.brand ? highlightMedicalMatch(record.brand, query) : "<span class=\"inventory-cell-muted\">—</span>") + "</td>" +
+            "<td>" + (record.origin ? highlightMedicalMatch(record.origin, query) : "<span class=\"inventory-cell-muted\">—</span>") + "</td>" +
+            "<td class=\"inventory-qty-cell\">" + (record.qty ? "<span class=\"inventory-qty\">" + escapeMedicalHtml(record.qty) + "</span>" : "<span class=\"inventory-cell-muted\">—</span>") + "</td>" +
+            "</tr>";
+
+    }).join("");
+
+    tableBody.innerHTML =
+        rowsHtml;
+
+    showMedicalInventoryPane("table");
+
+}
+
+// ============================================================
+// تحميل ملف Excel وبناء الجرد
+// ============================================================
+
+function loadMedicalInventory(forceReload) {
+
+    const state =
+        medicalInventoryState;
+
+    if (state.status === "loading") {
+
+        return;
+
+    }
+
+    state.status =
+        "loading";
+
+    state.loadToken =
+        state.loadToken + 1;
+
+    const loadToken =
+        state.loadToken;
+
+    showMedicalInventoryPane("loading");
+
+    loadMedicalInventoryLibrary()
+        .then(() => fetch(
+            forceReload
+                ? MEDICAL_INVENTORY_EXCEL_URL + "?t=" + Date.now()
+                : MEDICAL_INVENTORY_EXCEL_URL
+        ))
+        .then(response => {
+
+            if (!response.ok) {
+
+                throw new Error(
+                    "Excel file request failed (HTTP " + response.status + ")."
+                );
+
+            }
+
+            return response.arrayBuffer();
+
+        })
+        .then(buffer => {
+
+            const workbook =
+                XLSX.read(new Uint8Array(buffer), { type: "array" });
+
+            const parsed =
+                parseMedicalInventoryWorkbook(workbook);
+
+            if (loadToken !== medicalInventoryState.loadToken) {
+
+                return null;
+
+            }
+
+            if (!parsed.records.length) {
+
+                throw new Error(
+                    'Worksheet "' + parsed.sheetName + '" contains no valid device records.'
+                );
+
+            }
+
+            const totals =
+                computeMedicalInventoryTotals(parsed.records);
+
+            medicalInventoryState.records =
+                parsed.records;
+
+            medicalInventoryState.sheetName =
+                parsed.sheetName;
+
+            medicalInventoryState.totalCount =
+                totals.total;
+
+            medicalInventoryState.brandCount =
+                totals.brands;
+
+            medicalInventoryState.countryCount =
+                totals.countries;
+
+            medicalInventoryState.status =
+                "ready";
+
+            renderMedicalInventory();
+
+            console.info(
+                "[DeviceInventory] Loaded " + totals.total +
+                " devices from sheet \"" + parsed.sheetName + "\" (" +
+                MEDICAL_INVENTORY_EXCEL_FILE + ")"
+            );
+
+            return null;
+
+        })
+        .catch(error => {
+
+            if (loadToken !== medicalInventoryState.loadToken) {
+
+                return;
+
+            }
+
+            console.error(
+                "Medical device inventory failed to load:",
+                error
+            );
+
+            medicalInventoryState.status =
+                "error";
+
+            showMedicalInventoryError(
+                error && error.message
+                    ? error.message
+                    : "Unknown error while reading the Excel file."
+            );
+
+        });
+
+}
+
+// ============================================================
+// أحداث الواجهة
+// ============================================================
+
+function onMedicalInventorySearch(value) {
+
+    medicalInventoryState.query =
+        String(value === null || value === undefined ? "" : value);
+
+    if (medicalInventoryState.status === "ready") {
+
+        renderMedicalInventory();
+
+    }
+
+}
+
+function clearMedicalInventorySearch() {
+
+    const input =
+        medicalInventoryGetElement("inventorySearch");
+
+    if (input) {
+
+        input.value = "";
+
+    }
+
+    medicalInventoryState.query =
+        "";
+
+    if (medicalInventoryState.status === "ready") {
+
+        renderMedicalInventory();
+
+    }
+
+}
+
+function reloadMedicalInventory() {
+
+    loadMedicalInventory(true);
+
+}
+
+// فتح صفحة جرد الأجهزة (لوحة الأجهزة الطبية تبقى الشاشة الافتراضية)
+function openDeviceInventory() {
+
+    showPage("deviceInventoryPage");
+
+    const state =
+        medicalInventoryState;
+
+    if (state.status === "idle") {
+
+        loadMedicalInventory(false);
+
+    } else if (state.status === "ready") {
+
+        renderMedicalInventory();
+
+    }
 
 }

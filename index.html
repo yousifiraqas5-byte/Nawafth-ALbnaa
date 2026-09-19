@@ -1004,6 +1004,471 @@ content="default"
       transform: scale(.99);
     }
 
+    /* ==========================================================
+       MEDICAL DEVICE INVENTORY (Excel inventory, English / LTR)
+       كل التنسيقات محصورة داخل #deviceInventoryPage
+       ========================================================== */
+
+    /* زر فتح الجرد داخل قسم الأجهزة الطبية (بدون تغيير زر Add Fault) */
+
+    #medicalDevicesPage .medical-actions {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+      gap: 10px;
+    }
+
+    #medicalDevicesPage .device-inventory-btn {
+      width: 100%;
+      border: 2px solid #14724e;
+      border-radius: 16px;
+      padding: 14px 16px;
+      background: #ffffff;
+      color: #14724e;
+      font-family: inherit;
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: .02em;
+      cursor: pointer;
+      box-shadow: 0 6px 14px rgba(20, 114, 78, .10);
+    }
+
+    #medicalDevicesPage .device-inventory-btn:active {
+      transform: scale(.99);
+    }
+
+    #deviceInventoryPage {
+      direction: ltr;
+      text-align: left;
+      padding-bottom: 30px;
+      color: #23302b;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Tahoma, Arial, sans-serif;
+    }
+
+    #deviceInventoryPage .medical-topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+      padding: 14px 16px 4px;
+    }
+
+    #deviceInventoryPage .medical-back-btn {
+      border: 1px solid #d6e2dc;
+      background: #ffffff;
+      color: #14724e;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 9px 14px;
+      border-radius: 999px;
+      cursor: pointer;
+    }
+
+    #deviceInventoryPage .inventory-source-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      color: #14724e;
+      background: #e8f5ef;
+      border: 1px solid #cfe9de;
+      padding: 7px 12px;
+      border-radius: 999px;
+      max-width: 100%;
+      overflow-wrap: anywhere;
+    }
+
+    #deviceInventoryPage .medical-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin: 12px 16px 18px;
+      padding: 18px;
+      border-radius: 18px;
+      background: linear-gradient(135deg, #15704b, #0f5537);
+      color: #ffffff;
+      box-shadow: 0 10px 24px rgba(16, 79, 52, .22);
+    }
+
+    #deviceInventoryPage .medical-header-icon {
+      width: 52px;
+      height: 52px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+      background: rgba(255, 255, 255, .16);
+      border: 1px solid rgba(255, 255, 255, .35);
+      border-radius: 16px;
+    }
+
+    #deviceInventoryPage .medical-header-text h2 {
+      font-size: 21px;
+      font-weight: 800;
+      letter-spacing: -.2px;
+    }
+
+    #deviceInventoryPage .medical-header-text p {
+      font-size: 12px;
+      opacity: .85;
+      margin-top: 4px;
+    }
+
+    /* SUMMARY CARDS */
+
+    #deviceInventoryPage .inventory-summary {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 10px;
+      margin: 0 16px 16px;
+    }
+
+    #deviceInventoryPage .inventory-summary-card {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      background: #ffffff;
+      border: 1px solid #e6ece9;
+      border-top: 3px solid #cfd8d4;
+      border-radius: 16px;
+      padding: 14px;
+      box-shadow: 0 4px 14px rgba(24, 46, 37, .05);
+    }
+
+    #deviceInventoryPage .inventory-summary-label {
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      color: #7b8a83;
+    }
+
+    #deviceInventoryPage .inventory-summary-value {
+      font-size: 24px;
+      font-weight: 800;
+      line-height: 1;
+      color: #22302a;
+    }
+
+    #deviceInventoryPage .inventory-summary-card.is-total { border-top-color: #14724e; }
+    #deviceInventoryPage .inventory-summary-card.is-total .inventory-summary-value { color: #14724e; }
+    #deviceInventoryPage .inventory-summary-card.is-brands { border-top-color: #2554a6; }
+    #deviceInventoryPage .inventory-summary-card.is-brands .inventory-summary-value { color: #2554a6; }
+    #deviceInventoryPage .inventory-summary-card.is-countries { border-top-color: #b56a05; }
+    #deviceInventoryPage .inventory-summary-card.is-countries .inventory-summary-value { color: #b56a05; }
+
+    /* TOOLBAR / SEARCH */
+
+    #deviceInventoryPage .inventory-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin: 0 16px 12px;
+      padding: 12px;
+      background: #ffffff;
+      border: 1px solid #e6ece9;
+      border-radius: 16px;
+      box-shadow: 0 4px 14px rgba(24, 46, 37, .05);
+    }
+
+    #deviceInventoryPage .inventory-search {
+      position: relative;
+      flex: 1 1 260px;
+      min-width: 0;
+      display: flex;
+      align-items: center;
+    }
+
+    #deviceInventoryPage .inventory-search-icon {
+      position: absolute;
+      left: 12px;
+      font-size: 14px;
+      opacity: .55;
+      pointer-events: none;
+    }
+
+    #deviceInventoryPage .inventory-search input {
+      width: 100%;
+      font-family: inherit;
+      font-size: 14px;
+      color: #23302b;
+      background: #ffffff;
+      border: 1px solid #dde5e1;
+      border-radius: 12px;
+      padding: 11px 12px 11px 36px;
+    }
+
+    #deviceInventoryPage .inventory-search input:focus {
+      outline: none;
+      border-color: #14724e;
+      box-shadow: 0 0 0 3px rgba(20, 114, 78, .12);
+    }
+
+    #deviceInventoryPage .inventory-btn {
+      border: 1px solid #dde5e1;
+      border-radius: 12px;
+      padding: 11px 16px;
+      background: #ffffff;
+      color: #5f6f68;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    #deviceInventoryPage .inventory-btn:hover {
+      border-color: #14724e;
+      color: #14724e;
+    }
+
+    #deviceInventoryPage .inventory-meta-line {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin: 0 16px 12px;
+    }
+
+    #deviceInventoryPage .inventory-count-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      border-radius: 999px;
+      background: #eef4f1;
+      color: #14724e;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    #deviceInventoryPage .inventory-count-pill.is-filtered {
+      background: #e8effc;
+      color: #2554a6;
+    }
+
+    #deviceInventoryPage .inventory-hint {
+      font-size: 12px;
+      font-weight: 700;
+      color: #83918a;
+    }
+
+    /* STATES (LOADING / ERROR / EMPTY) */
+
+    #deviceInventoryPage .inventory-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      text-align: center;
+      margin: 0 16px 20px;
+      background: #ffffff;
+      border: 1px dashed #d8e2dd;
+      border-radius: 16px;
+      padding: 26px 18px;
+    }
+
+    #deviceInventoryPage .inventory-state-icon {
+      font-size: 26px;
+    }
+
+    #deviceInventoryPage .inventory-state strong {
+      font-size: 14px;
+      font-weight: 800;
+      color: #3c4b45;
+    }
+
+    #deviceInventoryPage .inventory-state p {
+      font-size: 12px;
+      color: #83918a;
+      max-width: 680px;
+      overflow-wrap: anywhere;
+    }
+
+    #deviceInventoryPage .inventory-state.is-error {
+      border-style: solid;
+      border-color: #f1d3ce;
+      background: #fef7f6;
+    }
+
+    #deviceInventoryPage .inventory-retry-btn {
+      margin-top: 8px;
+      border: 0;
+      border-radius: 12px;
+      padding: 11px 18px;
+      background: #14724e;
+      color: #ffffff;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    #deviceInventoryPage .inventory-spinner {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      border: 3px solid #dbe7e1;
+      border-top-color: #14724e;
+      animation: inventorySpin .8s linear infinite;
+    }
+
+    @keyframes inventorySpin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* TABLE */
+
+    #deviceInventoryPage .inventory-table-wrap {
+      margin: 0 16px 22px;
+      background: #ffffff;
+      border: 1px solid #e6ece9;
+      border-radius: 16px;
+      box-shadow: 0 4px 14px rgba(24, 46, 37, .05);
+      overflow: hidden;
+    }
+
+    #deviceInventoryPage .inventory-table-scroll {
+      overflow-x: auto;
+      max-height: 70vh;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    #deviceInventoryPage table.inventory-table {
+      width: 100%;
+      min-width: 700px;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    #deviceInventoryPage table.inventory-table thead th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      background: #f5f8f6;
+      color: #4c5c55;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      text-align: left;
+      padding: 12px 14px;
+      border-bottom: 1px solid #e6ece9;
+      white-space: nowrap;
+    }
+
+    #deviceInventoryPage table.inventory-table tbody td {
+      padding: 11px 14px;
+      border-bottom: 1px solid #f1f5f3;
+      color: #33413b;
+      vertical-align: top;
+      word-break: break-word;
+    }
+
+    #deviceInventoryPage table.inventory-table tbody tr:nth-child(even) td {
+      background: #fbfdfc;
+    }
+
+    #deviceInventoryPage table.inventory-table tbody tr:hover td {
+      background: #f3f9f6;
+    }
+
+    #deviceInventoryPage .inventory-row-index {
+      font-weight: 800;
+      color: #14724e;
+      white-space: nowrap;
+    }
+
+    #deviceInventoryPage .inventory-device-name {
+      font-weight: 700;
+      color: #1c2b25;
+      min-width: 240px;
+    }
+
+    #deviceInventoryPage .inventory-cell-muted {
+      color: #93a19b;
+      font-weight: 700;
+    }
+
+    #deviceInventoryPage .inventory-qty {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 34px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: #eef4f1;
+      color: #14724e;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    #deviceInventoryPage mark.inventory-hit {
+      background: #fdf1de;
+      color: inherit;
+      border-radius: 4px;
+      padding: 0 2px;
+    }
+
+    #deviceInventoryPage table.inventory-table thead th.inventory-th-index {
+      width: 64px;
+    }
+
+    #deviceInventoryPage table.inventory-table thead th.inventory-th-qty {
+      width: 96px;
+      text-align: center;
+    }
+
+    #deviceInventoryPage table.inventory-table td.inventory-qty-cell {
+      text-align: center;
+    }
+
+    #deviceInventoryPage .inventory-table-foot {
+      padding: 10px 14px;
+      border-top: 1px solid #e6ece9;
+      background: #fbfdfc;
+      color: #83918a;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    /* TABLET / MOBILE */
+
+    @media (max-width: 900px) {
+      #deviceInventoryPage .inventory-summary {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 640px) {
+      #deviceInventoryPage .medical-header {
+        padding: 16px;
+      }
+
+      #deviceInventoryPage .medical-header-text h2 {
+        font-size: 19px;
+      }
+
+      #deviceInventoryPage .inventory-summary {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      #deviceInventoryPage .inventory-toolbar {
+        padding: 10px;
+      }
+
+      #deviceInventoryPage .inventory-btn {
+        flex: 1 1 auto;
+      }
+    }
+
     /* RESPONSIVE */
 
     @media (max-width: 640px) {
@@ -1036,7 +1501,6 @@ content="default"
 
   <header class="app-header">
 
-```
 <div class="company-brand">
 
   <div class="company-logo">
@@ -1052,7 +1516,7 @@ content="default"
 
     <h1>شركة نوافذ البناء</h1>
 
-    <p>Nawafth ALbnaa Company</p>
+    <p>نظام إدارة الأقسام والمخازن</p>
 
   </div>
 
@@ -1087,7 +1551,6 @@ content="default"
   </button>
 
 </div>
-```
 
   </header>
 
@@ -1098,7 +1561,6 @@ content="default"
     class="page active"
   >
 
-```
 <section class="home-intro">
 
   <div class="intro-icon">🏢</div>
@@ -1270,7 +1732,6 @@ content="default"
 
 
 </section>
-```
 
   </main>
 
@@ -1281,7 +1742,6 @@ content="default"
     class="page"
   >
 
-```
 <div class="navigation">
 
   <button
@@ -1375,7 +1835,6 @@ content="default"
 
 
 </section>
-```
 
   </main>
 
@@ -1386,7 +1845,6 @@ content="default"
     class="page"
   >
 
-```
 <div class="navigation">
 
   <button
@@ -1639,7 +2097,6 @@ content="default"
   </div>
 
 </section>
-```
 
   </main>
 
@@ -1761,7 +2218,7 @@ content="default"
       </div>
     </section>
 
-    <!-- ADD FAULT -->
+    <!-- ADD FAULT + DEVICE INVENTORY -->
     <section class="medical-actions">
       <button
         type="button"
@@ -1769,6 +2226,14 @@ content="default"
         onclick="openFaultForm()"
       >
         + Add Fault
+      </button>
+
+      <button
+        type="button"
+        class="device-inventory-btn"
+        onclick="openDeviceInventory()"
+      >
+        📋 Device Inventory
       </button>
     </section>
 
@@ -1885,7 +2350,7 @@ content="default"
 
       <div class="fault-form-actions">
         <button type="button" id="saveFaultBtn" class="save-fault-btn" onclick="addFault()">
-          Submit Fault
+          Save Request
         </button>
         <button type="button" class="cancel-fault-btn" onclick="closeFaultForm()">
           Cancel
@@ -1933,6 +2398,121 @@ content="default"
 
   </main>
 
+  <!-- MEDICAL DEVICE INVENTORY (real Excel inventory, English / LTR) -->
+
+  <main
+    id="deviceInventoryPage"
+    class="page"
+  >
+
+    <div class="medical-topbar">
+      <button type="button" class="medical-back-btn" onclick="openMedicalDevices()">
+        ← Back to Medical Devices
+      </button>
+      <span id="inventorySourceBadge" class="inventory-source-badge">Excel inventory</span>
+    </div>
+
+    <!-- PAGE HEADER -->
+    <header class="medical-header">
+      <div class="medical-header-icon">🧾</div>
+      <div class="medical-header-text">
+        <h2>Device Inventory</h2>
+        <p>Complete medical device list loaded from the official Excel inventory file</p>
+      </div>
+    </header>
+
+    <!-- SUMMARY -->
+    <section class="inventory-summary">
+      <div class="inventory-summary-card is-total">
+        <span class="inventory-summary-label">Total Devices</span>
+        <span id="inventoryTotalCount" class="inventory-summary-value">0</span>
+      </div>
+
+      <div class="inventory-summary-card is-brands">
+        <span class="inventory-summary-label">Brands / Manufacturers</span>
+        <span id="inventoryBrandCount" class="inventory-summary-value">0</span>
+      </div>
+
+      <div class="inventory-summary-card is-countries">
+        <span class="inventory-summary-label">Countries of Origin</span>
+        <span id="inventoryCountryCount" class="inventory-summary-value">0</span>
+      </div>
+    </section>
+
+    <!-- SEARCH -->
+    <section class="inventory-toolbar">
+      <div class="inventory-search">
+        <span class="inventory-search-icon">🔍</span>
+        <input
+          type="text"
+          id="inventorySearch"
+          placeholder="Search by device name, brand or country of origin..."
+          autocomplete="off"
+          oninput="onMedicalInventorySearch(this.value)"
+        >
+      </div>
+
+      <button type="button" class="inventory-btn" onclick="clearMedicalInventorySearch()">
+        Clear
+      </button>
+
+      <button type="button" class="inventory-btn" onclick="reloadMedicalInventory()">
+        Reload
+      </button>
+    </section>
+
+    <!-- COUNT -->
+    <div class="inventory-meta-line">
+      <span id="inventoryCountLabel" class="inventory-count-pill">Total Devices: 0</span>
+      <span id="inventoryResultHint" class="inventory-hint"></span>
+    </div>
+
+    <!-- LOADING STATE -->
+    <div id="inventoryLoading" class="inventory-state">
+      <div class="inventory-spinner"></div>
+      <strong>Loading device inventory…</strong>
+      <p>Reading the Excel inventory file. This may take a moment.</p>
+    </div>
+
+    <!-- ERROR STATE -->
+    <div id="inventoryError" class="inventory-state is-error" style="display:none;">
+      <div class="inventory-state-icon">⚠️</div>
+      <strong>Unable to load the device inventory.</strong>
+      <p id="inventoryErrorText">Unknown error.</p>
+      <button type="button" class="inventory-retry-btn" onclick="reloadMedicalInventory()">
+        Try Again
+      </button>
+    </div>
+
+    <!-- EMPTY STATE (NO RESULTS) -->
+    <div id="inventoryEmpty" class="inventory-state" style="display:none;">
+      <div class="inventory-state-icon">🔎</div>
+      <strong>No matching devices found.</strong>
+      <p>No device matches your search. Try another device name, brand or country of origin.</p>
+    </div>
+
+    <!-- INVENTORY TABLE -->
+    <section id="inventoryTableWrap" class="inventory-table-wrap" style="display:none;">
+      <div class="inventory-table-scroll">
+        <table class="inventory-table">
+          <thead>
+            <tr>
+              <th class="inventory-th-index">#</th>
+              <th>Device Name</th>
+              <th>Brand / Manufacturer</th>
+              <th>Country of Origin</th>
+              <th class="inventory-th-qty">Quantity</th>
+            </tr>
+          </thead>
+          <tbody id="inventoryTableBody"></tbody>
+        </table>
+      </div>
+      <div class="inventory-table-foot">
+        <span>Data source: official Excel inventory file — one row per physical Excel record (duplicate names stay separate).</span>
+      </div>
+    </section>
+  </main>
+
   <!-- PURCHASES -->
 
   <main
@@ -1940,7 +2520,6 @@ content="default"
     class="page"
   >
 
-```
 <div class="navigation">
 
   <button
@@ -2171,7 +2750,6 @@ content="default"
   </div>
 
 </section>
-```
 
   </main>
 
@@ -2182,7 +2760,6 @@ content="default"
     class="page"
   >
 
-```
 <div class="navigation">
 
   <button
@@ -2245,7 +2822,6 @@ content="default"
   </div>
 
 </section>
-```
 
   </main>
 
@@ -2256,7 +2832,6 @@ content="default"
     class="page"
   >
 
-```
 <div class="navigation">
 
   <button
@@ -2352,7 +2927,6 @@ content="default"
   </div>
 
 </section>
-```
 
   </main>
 
@@ -2365,7 +2939,6 @@ content="default"
     class="page"
   >
 
-```
 <div class="navigation">
 
   <button
@@ -2500,7 +3073,6 @@ content="default"
   </button>
 
 </section>
-```
 
   </main>
 
@@ -2513,7 +3085,6 @@ content="default"
     class="page"
   >
 
-```
 <div class="navigation">
 
   <button
@@ -2705,7 +3276,6 @@ content="default"
   </div>
 
 </section>
-```
 
   </main>
 
@@ -2718,7 +3288,6 @@ content="default"
     class="page"
   >
 
-```
 <div class="navigation">
 
   <button
@@ -2775,7 +3344,6 @@ content="default"
   </div>
 
 </section>
-```
 
   </main>
 
@@ -2783,11 +3351,9 @@ content="default"
 
   <footer class="app-footer">
 
-```
 <strong>شركة نوافذ البناء</strong>
 
-<span>Nawafth ALbnaa Company</span>
-```
+<span>جميع الحقوق محفوظة</span>
 
   </footer>
 
