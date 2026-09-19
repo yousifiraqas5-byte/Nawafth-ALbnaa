@@ -1958,23 +1958,33 @@ function updateNotificationBadge() {
     const count = notificationsCache.length;
     badge.textContent = count > 99 ? "99+" : count;
 }
-
 async function notify(title, body, type = "general") {
     const db = getFirestoreDB();
     if (!db) return;
 
     try {
-        const { collection, addDoc, serverTimestamp } = await import("https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js");
+        const {
+            collection,
+            addDoc,
+            serverTimestamp
+        } = await import(
+            "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js"
+        );
 
-        const ref = await addDoc(collection(db, NOTIFICATIONS_COLLECTION), {
-            title: title,
-            body: body,
-            type: type,
-            createdAt: serverTimestamp()
-        });
+        // حفظ الإشعار داخل Firestore
+        const ref = await addDoc(
+            collection(db, NOTIFICATIONS_COLLECTION),
+            {
+                title: title,
+                body: body,
+                type: type,
+                createdAt: serverTimestamp()
+            }
+        );
 
         localNotifiedIds.add(ref.id);
 
+        // إظهار الإشعار داخل التطبيق
         showToast(title, body);
 
         if (notificationsCache.length > 0) {
@@ -1984,14 +1994,60 @@ async function notify(title, body, type = "general") {
                 body: body,
                 type: type
             });
+
             updateNotificationBadge();
         }
 
+        // إرسال Push فقط لإشعارات المهام
+        if (type === "task") {
+            try {
+                const response = await fetch(
+                    "https://nawafth-notifications.yousifiraqas5.workers.dev/",
+                    {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({
+                            title: title,
+                            body: body
+                        })
+                    }
+                );
+
+                const result = await response.json();
+
+                if (!response.ok || !result.ok) {
+                    console.error(
+                        "فشل إرسال Push:",
+                        result
+                    );
+                } else {
+                    console.log(
+                        "تم إرسال Push:",
+                        result
+                    );
+                }
+
+            } catch (pushError) {
+                console.error(
+                    "خطأ الاتصال بـ Cloudflare Worker:",
+                    pushError
+                );
+            }
+        }
+
+        return ref.id;
+
     } catch (error) {
-        console.error("خطأ إرسال الإشعار:", error);
+        console.error(
+            "خطأ إرسال الإشعار:",
+            error
+        );
+
+        return null;
     }
 }
-
 function showToast(title, body) {
     const oldToasts = document.querySelectorAll(".toast-message");
     oldToasts.forEach(t => t.remove());
