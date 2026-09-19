@@ -771,6 +771,30 @@ content="default"
       display: block;
     }
 
+    #medicalDevicesPage .fault-device-hint {
+      display: none;
+      font-size: 11px;
+      font-weight: 600;
+      color: #5f6f68;
+    }
+
+    #medicalDevicesPage .fault-device-hint:not(:empty) {
+      display: block;
+      margin-top: 4px;
+    }
+
+    #medicalDevicesPage .fault-device-hint a {
+      color: #14724e;
+      font-weight: 800;
+      text-decoration: underline;
+    }
+
+    #medicalDevicesPage .medical-input:disabled {
+      background: #f3f7f5;
+      color: #7a8a83;
+      cursor: wait;
+    }
+
     #medicalDevicesPage .fault-form-actions {
       display: flex;
       gap: 10px;
@@ -1514,9 +1538,9 @@ content="default"
 
   <div class="company-name">
 
-    <h1>شركة نوافذ البناء</h1>
+    <h1>نظام إدارة الأقسام والمخازن</h1>
 
-    <p>نظام إدارة الأقسام والمخازن</p>
+    <p>Nawafth ALbnaa Company</p>
 
   </div>
 
@@ -2126,22 +2150,35 @@ content="default"
       </div>
     </header>
 
-    <!-- DEVICE STATUS (SUMMARY CARDS) -->
+    <!-- TICKET SUMMARY -->
     <section class="medical-block">
-      <div class="medical-block-head">
-        <h3>Device Status</h3>
-        <p>Live maintenance request counters from Firestore</p>
-      </div>
-
       <div class="summary-grid">
         <div class="summary-card is-total">
           <div class="summary-card-top">
             <span class="summary-icon">📋</span>
-            <span class="summary-label">Total Requests</span>
+            <span class="summary-label">Total Tickets</span>
           </div>
-          <span id="stat-total" class="summary-value">0</span>
+          <span id="stat-total-tickets" class="summary-value">0</span>
         </div>
 
+        <div class="summary-card is-new">
+          <div class="summary-card-top">
+            <span class="summary-icon">🆕</span>
+            <span class="summary-label">New Tickets</span>
+          </div>
+          <span id="stat-new-tickets" class="summary-value">0</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- DEVICE STATUS (SUMMARY CARDS) -->
+    <section class="medical-block">
+      <div class="medical-block-head">
+        <h3>Status Summary</h3>
+        <p>Status Summary</p>
+      </div>
+
+      <div class="summary-grid">
         <div class="summary-card is-new">
           <div class="summary-card-top">
             <span class="summary-icon">📝</span>
@@ -2272,6 +2309,7 @@ content="default"
               <option value="">Select device...</option>
             </select>
             <span id="error-faultDevice" class="field-error"></span>
+            <span id="faultDeviceHint" class="fault-device-hint"></span>
           </div>
 
           <div class="fault-field">
@@ -3353,7 +3391,7 @@ content="default"
 
 <strong>شركة نوافذ البناء</strong>
 
-<span>جميع الحقوق محفوظة</span>
+<span>Nawafth ALbnaa Company</span>
 
   </footer>
 

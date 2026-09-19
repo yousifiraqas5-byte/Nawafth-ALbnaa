@@ -3374,12 +3374,9 @@ let medicalFaultsUnsubscribe = null;
 // حالة إرسال نموذج العطل (لمنع الإرسال المزدوج من ضغطة واحدة)
 let faultFormSubmitting = false;
 
-// ملاحظة: MEDICAL_DEVICES_DATA قائمة الأجهزة الحالية المتوافقة مع التنفيذ القائم.
-// لا يتم توليد أي بيانات وهمية هنا، وربط ملف Excel مؤجَّل لمهمة لاحقة.
-let MEDICAL_DEVICES_DATA = [
-    { name: "(Automated Clinical Analyzer) CLINICAL CHEMISTRY LAB", brand: "", origin: "" },
-    { name: "(Laryngoscope) Video Laryngoscope", brand: "", origin: "" }
-];
+// ملاحظة: لم تعد هناك قائمة أجهزة مكتوبة داخل الكود.
+// قائمة أجهزة نموذج الأعطال تُبنى الآن من جرد Excel الحقيقي
+// (نفس سجلات Device Inventory — مصدر واحد للحقيقة، بلا أجهزة وهمية).
 
 const FAULT_STATUS_LABELS = {
     "NEW": "New",
@@ -3408,36 +3405,232 @@ function openMedicalDevices() {
     subscribeMedicalFaults();
 }
 
-// ملء قائمة الأجهزة
-function populateFaultDeviceSelect() {
-    const select = document.getElementById("faultDevice");
-    if (!select) return;
+// ============================================================
+// ربط قائمة الأجهزة بنموذج الأعطال مع جرد Excel الحقيقي
+// (نفس سجلات Device Inventory — مصدر واحد للحقيقة)
+// ============================================================
 
-    // تنظيف القائمة الحالية (ترك الخيار الأول)
-    select.innerHTML = '<option value="">Select device...</option>';
+// إرجاع سجل Excel الكامل المطابق للجهاز المختار حالياً
+function getSelectedFaultInventoryRecord() {
 
-    MEDICAL_DEVICES_DATA.forEach(device => {
-        const option = document.createElement("option");
-        option.value = device.name;
-        option.textContent = device.name;
-        select.appendChild(option);
-    });
+    const select =
+        document.getElementById("faultDevice");
+
+    if (!select || !select.value) {
+
+        return null;
+
+    }
+
+    return medicalInventoryState.records.find(
+        record => record.id === select.value
+    ) || null;
+
 }
 
-// عند اختيار جهاز، تعبئة البراند والمنشأ تلقائياً
-function onDeviceSelectChange() {
-    const deviceName = document.getElementById("faultDevice").value;
-    const brandInput = document.getElementById("faultBrand");
-    const originInput = document.getElementById("faultOrigin");
+// أسماء تُستثنى من قائمة اختيار الجهاز في نموذج العطل فقط
+// ("أجهزة مضافة" ليست جهازاً فعلياً — تبقى في جدول الجرد دون أن تظهر كمُحدِّد)
+const FAULT_DEVICE_SELECTOR_EXCLUDED_NAMES = [
+    normalizeMedicalText("اجهزة مضافة")
+];
 
-    const device = MEDICAL_DEVICES_DATA.find(d => d.name === deviceName);
-    if (device) {
-        brandInput.value = device.brand || "";
-        originInput.value = device.origin || "";
-    } else {
-        brandInput.value = "";
-        originInput.value = "";
+// نص الخيار يعرض اسم الجهاز فقط — دون ماركة أو منشأ أو كمية أو رقم صف
+// (التكرار يُزال عند تطابق الثلاثية: الاسم + الماركة + المنشأ؛
+//  كل مجموعة فريدة مرتبطة داخلياً بمعرّف سجل Excel الفعلي row-<excelRow>)
+function buildFaultDeviceOptionLabel(record) {
+
+    return record.name;
+
+}
+
+// ملء قائمة الأجهزة من جرد Excel (حالات: جاهز / تحميل / خطأ)
+function populateFaultDeviceSelect() {
+
+    const select =
+        document.getElementById("faultDevice");
+
+    if (!select) return;
+
+    const hint =
+        document.getElementById("faultDeviceHint");
+
+    const state =
+        medicalInventoryState;
+
+    if (state.status === "ready" && state.records.length) {
+
+        const previousValue =
+            select.value;
+
+        select.disabled =
+            false;
+
+        select.innerHTML =
+            '<option value="">Select device...</option>';
+
+        // خيارات المُحدِّد: اسم الجهاز فقط، مع استثناء "أجهزة مضافة"
+        // وإزالة التكرار فقط عند تطابق الثلاثية (الاسم + الماركة + المنشأ) —
+        // يُحتفظ بأول سجل Excel كمُمثل، وتبقى المجموعات المختلفة خيارات مستقلة
+        const seenIdentityKeys = new Set();
+
+        const selectorRecords = state.records
+            .filter(record => FAULT_DEVICE_SELECTOR_EXCLUDED_NAMES.indexOf(record.searchName) === -1)
+            .filter(record => {
+
+                const identityKey =
+                    record.searchName + "|" + record.searchBrand + "|" + record.searchOrigin;
+
+                if (seenIdentityKeys.has(identityKey)) {
+
+                    return false;
+
+                }
+
+                seenIdentityKeys.add(identityKey);
+
+                return true;
+
+            })
+            .slice()
+            .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base", numeric: true }));
+
+        // كل مجموعة فريدة (الاسم + الماركة + المنشأ) تُمثَّل بأول سجل Excel مطابق
+        selectorRecords.forEach(record => {
+
+            const option =
+                document.createElement("option");
+
+            option.value =
+                record.id;
+
+            option.textContent =
+                buildFaultDeviceOptionLabel(record);
+
+            select.appendChild(option);
+
+        });
+
+        // الحفاظ على الاختيار الحالي إن كان لا يزال صالحاً
+        if (previousValue && selectorRecords.some(record => record.id === previousValue)) {
+
+            select.value =
+                previousValue;
+
+        }
+
+        if (hint) {
+
+            hint.textContent =
+                "";
+
+        }
+
+        return;
+
     }
+
+    if (state.status === "loading") {
+
+        select.disabled =
+            true;
+
+        select.innerHTML =
+            '<option value="">Loading devices from Excel...</option>';
+
+        if (hint) {
+
+            hint.textContent =
+                "Loading device inventory from the Excel file...";
+
+        }
+
+        onMedicalInventoryReady(() => populateFaultDeviceSelect());
+
+        return;
+
+    }
+
+    if (state.status === "error") {
+
+        select.disabled =
+            true;
+
+        select.innerHTML =
+            '<option value="">Could not load devices</option>';
+
+        if (hint) {
+
+            hint.innerHTML =
+                'The Excel device inventory failed to load. <a href="#" class="fault-device-retry" onclick="retryFaultDeviceLoad(event)">Retry</a>';
+
+        }
+
+        return;
+
+    }
+
+    // idle — بدء تحميل جرد Excel بنفس المحمّل المستخدم في Device Inventory
+    select.disabled =
+        true;
+
+    select.innerHTML =
+        '<option value="">Loading devices from Excel...</option>';
+
+    if (hint) {
+
+        hint.textContent =
+            "Loading device inventory from the Excel file...";
+
+    }
+
+    loadMedicalInventory(false);
+
+    onMedicalInventoryReady(() => populateFaultDeviceSelect());
+
+}
+
+// إعادة محاولة تحميل جرد Excel بعد فشل سابق
+function retryFaultDeviceLoad(event) {
+
+    if (event && typeof event.preventDefault === "function") {
+
+        event.preventDefault();
+
+    }
+
+    loadMedicalInventory(true);
+
+    populateFaultDeviceSelect();
+
+}
+
+// عند اختيار جهاز، تعبئة الماركة والمنشأ من سجل Excel المختار بالضبط
+function onDeviceSelectChange() {
+
+    const brandInput =
+        document.getElementById("faultBrand");
+
+    const originInput =
+        document.getElementById("faultOrigin");
+
+    const record =
+        getSelectedFaultInventoryRecord();
+
+    // القيم تأتي من نفس صف Excel المختار — لا اختراع ولا دمج للسجلات المكررة
+    if (brandInput) {
+
+        brandInput.value =
+            record ? record.brand : "";
+
+    }
+
+    if (originInput) {
+
+        originInput.value =
+            record ? record.origin : "";
+
+    }
+
 }
 
 // ============================================================
@@ -3461,6 +3654,9 @@ function openFaultForm() {
 
     clearFaultFormErrors();
     setFaultFormBusy(false);
+
+    // التأكد من أن قائمة الأجهزة جاهزة من جرد Excel (حالة تحميل/خطأ واضحة)
+    populateFaultDeviceSelect();
 
     // استخدام بيانات المُبلِّغ المتوفرة حالياً في التطبيق (إن وُجدت) دون إنشاء مستخدمين وهميين
     const reportedByInput = document.getElementById("faultReportedBy");
@@ -3557,6 +3753,10 @@ function closeFaultForm() {
 
     clearFaultFormErrors();
     setFaultFormBusy(false);
+
+    // مسح حالة التحميل/الخطأ الخاصة بقائمة أجهزة Excel
+    const faultDeviceHint = document.getElementById("faultDeviceHint");
+    if (faultDeviceHint) faultDeviceHint.innerHTML = "";
 }
 
 // جلب الأعطال (قراءة أولية)
@@ -3656,9 +3856,37 @@ async function addFault() {
         return;
     }
 
-    const device = document.getElementById("faultDevice").value.trim();
-    const brand = document.getElementById("faultBrand").value.trim();
-    const origin = document.getElementById("faultOrigin").value.trim();
+    // التحقق من اختيار جهاز حقيقي من جرد Excel قبل الحفظ
+    const selectedDeviceRecord =
+        getSelectedFaultInventoryRecord();
+
+    if (!selectedDeviceRecord) {
+
+        showMessage(
+            "Please select a device from the Excel inventory.",
+            "error"
+        );
+
+        showFaultFieldError(
+            "faultDevice",
+            "Device Name is required."
+        );
+
+        return;
+
+    }
+
+    // الاسم يُحفظ كنص Excel الأصلي (نفس صيغة السجلات الحالية) لضمان التوافق،
+    // بينما تأتي الماركة والمنشأ من نفس السجل المختار بالضبط
+    const device =
+        selectedDeviceRecord.name;
+
+    const brand =
+        selectedDeviceRecord.brand;
+
+    const origin =
+        selectedDeviceRecord.origin;
+
     const serial = document.getElementById("faultSerial").value.trim();
     const reportedBy = document.getElementById("faultReportedBy").value.trim();
     const priority = document.getElementById("faultPriority").value;
@@ -3731,10 +3959,17 @@ function normalizeFaultPriority(value) {
 }
 
 function renderDashboard() {
-    // إجمالي الطلبات (Total Requests) — الرقم الفعلي من Firestore
-    const totalEl = document.getElementById("stat-total");
-    if (totalEl) {
-        totalEl.textContent = medicalFaultsCache.length;
+    // ملخص التذاكر (Ticket Summary) — إجمالي السجلات وسجلات الحالة الجديدة
+    const totalTicketsEl = document.getElementById("stat-total-tickets");
+    if (totalTicketsEl) {
+        totalTicketsEl.textContent = medicalFaultsCache.length;
+    }
+
+    const newTicketsEl = document.getElementById("stat-new-tickets");
+    if (newTicketsEl) {
+        newTicketsEl.textContent = medicalFaultsCache.filter(
+            f => normalizeFaultStatus(f.status) === "NEW"
+        ).length;
     }
 
     // تحديث حالات الأعطال
@@ -4034,6 +4269,62 @@ const medicalInventoryState = {
 };
 
 let medicalInventoryLibraryPromise = null;
+
+// مستمعو جهوزية الجرد — يُستدعون مرة واحدة عند نجاح التحميل
+// (يستخدمهم نموذج الأعطال ليملء قائمة الأجهزة من نفس البيانات)
+let medicalInventoryReadyListeners = [];
+
+function onMedicalInventoryReady(callback) {
+
+    if (typeof callback !== "function") {
+
+        return;
+
+    }
+
+    if (medicalInventoryState.status === "ready") {
+
+        callback();
+
+        return;
+
+    }
+
+    medicalInventoryReadyListeners.push(callback);
+
+}
+
+function notifyMedicalInventoryReady() {
+
+    const listeners =
+        medicalInventoryReadyListeners;
+
+    medicalInventoryReadyListeners = [];
+
+    listeners.forEach(listener => {
+
+        try {
+
+            listener();
+
+        } catch (error) {
+
+            console.error(
+                "Medical inventory ready listener failed:",
+                error
+            );
+
+        }
+
+    });
+
+}
+
+function clearMedicalInventoryReadyListeners() {
+
+    medicalInventoryReadyListeners = [];
+
+}
 
 // ============================================================
 // أدوات مساعدة للجرد
@@ -4765,6 +5056,9 @@ function loadMedicalInventory(forceReload) {
 
             medicalInventoryState.status =
                 "ready";
+
+            // إشعار المستمعين (نموذج الأعطال) بأن بيانات الجرد جاهزة
+            notifyMedicalInventoryReady();
 
             renderMedicalInventory();
 
