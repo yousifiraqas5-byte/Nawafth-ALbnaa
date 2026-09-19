@@ -1999,44 +1999,56 @@ async function notify(title, body, type = "general") {
         }
 
         // إرسال Push فقط لإشعارات المهام
-        if (type === "task") {
-            try {
-                const response = await fetch(
-                    "https://nawafth-notifications.yousifiraqas5.workers.dev/",
-                    {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json"
-                        },
-                        body: JSON.stringify({
-                            title: title,
-                            body: body
-                        })
-                    }
-                );
 
-                const result = await response.json();
+      if (type === "task") {
+    console.log("🔥 TASK PUSH START:", {
+        title: title,
+        body: body,
+        type: type
+    });
 
-                if (!response.ok || !result.ok) {
-                    console.error(
-                        "فشل إرسال Push:",
-                        result
-                    );
-                } else {
-                    console.log(
-                        "تم إرسال Push:",
-                        result
-                    );
-                }
+    try {
+        console.log("📡 CALLING WORKER...");
 
-            } catch (pushError) {
-                console.error(
-                    "خطأ الاتصال بـ Cloudflare Worker:",
-                    pushError
-                );
+        const response = await fetch(
+            "https://nawafth-notifications.yousifiraqas5.workers.dev/",
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    title: title,
+                    body: body
+                })
             }
+        );
+
+        console.log("📡 WORKER HTTP STATUS:", response.status);
+
+        const result = await response.json();
+
+        console.log("📦 WORKER RESULT:", result);
+
+        if (!response.ok || !result.ok) {
+            console.error(
+                "❌ فشل إرسال Push:",
+                result
+            );
+        } else {
+            console.log(
+                "✅ تم إرسال Push:",
+                result
+            );
         }
 
+    } catch (pushError) {
+        console.error(
+            "❌ خطأ الاتصال بـ Cloudflare Worker:",
+            pushError
+        );
+    }
+}
         return ref.id;
 
     } catch (error) {
