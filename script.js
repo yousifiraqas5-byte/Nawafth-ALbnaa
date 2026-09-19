@@ -12,7 +12,7 @@ const TOKENS_COLLECTION = "notificationTokens";
 
 // مهم: ضع هنا مفتاح VAPID العام من
 // Firebase Console > Project settings > Cloud Messaging > Web push certificates
-const VAPID_KEY = "YOUR_VAPID_PUBLIC_KEY";
+const VAPID_KEY = "BHbv8qWWjW8vpXgOUwauTqEev2HCJSAtpXsOiR9_YRKNWY2LwBXbiZwn_SnIpRNNL0vkvIFM0yVHkBoD-DsCfp4";
 
 // ============================================================
 // المتغيرات
