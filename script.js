@@ -2000,8 +2000,8 @@ async function notify(title, body, type = "general") {
 
         // إرسال Push فقط لإشعارات المهام
 
-      if (type === "task") {
-    console.log("🔥 TASK PUSH START:", {
+if (type === "task" || type === "purchase") {
+        console.log("🔥 TASK PUSH START:", {
         title: title,
         body: body,
         type: type

@@ -17,58 +17,140 @@ const { getMessaging } = require("firebase-admin/messaging");
 
 initializeApp();
 
+const db = getFirestore();
+const messaging = getMessaging();
+const MAX_TOKENS_PER_REQUEST = 500;
+
+function getStringValue(value, fallback) {
+    if (typeof value !== "string") {
+        return fallback;
+    }
+
+    const trimmed = value.trim();
+    return trimmed || fallback;
+}
+
+function getRegisteredTokens(snapshot) {
+    const seen = new Set();
+
+    return snapshot.docs.flatMap((document) => {
+        const data = document.data() || {};
+        const token = getStringValue(data.token, document.id).trim();
+
+        if (
+            !token ||
+            token.length <= 20 ||
+            token.length > 1000 ||
+            seen.has(token)
+        ) {
+            return [];
+        }
+
+        seen.add(token);
+        return [{ id: document.id, token }];
+    });
+}
+
+function getChunks(items, size) {
+    const chunks = [];
+
+    for (let index = 0; index < items.length; index += size) {
+        chunks.push(items.slice(index, index + size));
+    }
+
+    return chunks;
+}
+
 exports.sendNotificationToDevices = onDocumentCreated(
     "notifications/{notificationId}",
     async (event) => {
-        const data = event.data.data();
+        if (!event.data) {
+            console.warn("تم تجاهل حدث إشعار بدون بيانات");
+            return;
+        }
 
-        const title = data.title || "إشعار جديد";
-        const body = data.body || "تحديث جديد في تطبيق شركة نوافذ البناء";
+        const data = event.data.data() || {};
+        const title = getStringValue(data.title, "إشعار جديد");
+        const body = getStringValue(data.body, "تحديث جديد في تطبيق شركة نوافذ البناء");
+        const notificationType = getStringValue(data.type, "general");
+        const notificationId = event.params?.notificationId || "";
 
-        // جلب جميع الرموز المسجلة للأجهزة
-        const tokensSnapshot = await getFirestore()
+        const tokensSnapshot = await db
             .collection("notificationTokens")
             .get();
 
-        const tokens = tokensSnapshot.docs
-            .map((doc) => String(doc.id).trim())
-            .filter((token) => token && token.length > 20);
+        const registrations = getRegisteredTokens(tokensSnapshot);
 
-        if (tokens.length === 0) {
+        if (registrations.length === 0) {
             console.log("لا توجد أجهزة مسجلة للاشعارات حالياً");
             return;
         }
 
-        try {
-            const response = await getMessaging().sendEachForMulticast({
+        let successCount = 0;
+        let failureCount = 0;
+        const invalidDocumentIds = [];
+
+        const batches = getChunks(registrations, MAX_TOKENS_PER_REQUEST);
+
+        for (const batch of batches) {
+            const response = await messaging.sendEachForMulticast({
                 notification: {
                     title: title,
                     body: body
                 },
                 data: {
                     title: title,
-                    body: body
+                    body: body,
+                    type: notificationType,
+                    notificationId: notificationId
                 },
-                tokens: tokens
+                tokens: batch.map((registration) => registration.token)
             });
 
-            console.log("تم إرسال الإشعارات بنجاح:", response.successCount);
+            successCount += response.successCount || 0;
+            failureCount += response.failureCount || 0;
 
-            // حذف الرموز المنتهية أو الخاطئة
             if (response.responses && response.responses.length) {
-                response.responses.forEach((resp, index) => {
-                    const reason = resp.error && resp.error.code;
-                    if (reason === "messaging/registration-token-not-registered" || reason === "messaging/invalid-registration-token") {
-                        getFirestore()
-                            .collection("notificationTokens")
-                            .doc(tokens[index])
-                            .delete()
-                            .catch(() => {});
+                response.responses.forEach((result, index) => {
+                    if (result.success) {
+                        return;
+                    }
+
+                    const reason = result.error && result.error.code;
+
+                    if (
+                        reason === "messaging/registration-token-not-registered" ||
+                        reason === "messaging/invalid-registration-token"
+                    ) {
+                        const registration = batch[index];
+
+                        if (registration) {
+                            invalidDocumentIds.push(registration.id);
+                        }
                     }
                 });
             }
-        } catch (error) {
-            console.error("خطأ إرسال الإشعارات:", error);
         }
+
+        if (invalidDocumentIds.length) {
+            await Promise.all(
+                invalidDocumentIds.map((documentId) =>
+                    db.collection("notificationTokens")
+                        .doc(documentId)
+                        .delete()
+                )
+            );
+        }
+
+        console.log(
+            "تم إرسال الإشعارات:",
+            JSON.stringify({
+                notificationId: notificationId,
+                registeredDevices: registrations.length,
+                successCount: successCount,
+                failureCount: failureCount,
+                removedInvalidTokens: invalidDocumentIds.length
+            })
+        );
     }
 );
