@@ -2921,10 +2921,15 @@ content="default"
       التاريخ
     </label>
 
-    <input
+    <select
       id="reportDate"
-      type="date"
+      onchange="updateDayFromDate()"
     >
+      <option value="">
+        اختر التاريخ
+      </option>
+
+    </select>
 
   </div>
 

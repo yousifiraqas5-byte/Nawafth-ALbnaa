@@ -1731,20 +1731,125 @@ function openAddReport() {
 
 function prepareReportForm() {
 
-    const dateInput =
+    populateReportDateOptions();
+
+}
+
+// بناء قائمة التاريخ المنسدلة بالأيام والتواريخ العربية
+// قيمة كل خيار تبقى بصيغة ISO حتى لا تتغير البيانات المحفوظة في Firestore
+const REPORT_DATE_DAYS_COUNT = 90;
+
+function formatArabicDate(date) {
+
+    const dayNames = [
+
+        "الأحد",
+
+        "الاثنين",
+
+        "الثلاثاء",
+
+        "الأربعاء",
+
+        "الخميس",
+
+        "الجمعة",
+
+        "السبت"
+
+    ];
+
+    const monthNames = [
+
+        "يناير",
+
+        "فبراير",
+
+        "مارس",
+
+        "أبريل",
+
+        "مايو",
+
+        "يونيو",
+
+        "يوليو",
+
+        "أغسطس",
+
+        "سبتمبر",
+
+        "أكتوبر",
+
+        "نوفمبر",
+
+        "ديسمبر"
+
+    ];
+
+    return dayNames[date.getDay()] + " " + date.getDate() + " " + monthNames[date.getMonth()] + " " + date.getFullYear();
+
+}
+
+function populateReportDateOptions() {
+
+    const dateSelect =
         document.getElementById(
             "reportDate"
         );
 
-    if (!dateInput) return;
+    if (!dateSelect) return;
+
+    const previousValue =
+        dateSelect.value;
 
     const today =
-        new Date()
-            .toISOString()
-            .split("T")[0];
+        new Date();
 
-    dateInput.value =
-        today;
+    let optionsHtml =
+        '<option value="">اختر التاريخ</option>';
+
+    for (let i = 0; i < REPORT_DATE_DAYS_COUNT; i++) {
+
+        const date =
+            new Date(
+                today.getFullYear(),
+                today.getMonth(),
+                today.getDate() - i
+            );
+
+        const isoValue =
+            date.getFullYear() + "-" +
+            String(date.getMonth() + 1).padStart(2, "0") + "-" +
+            String(date.getDate()).padStart(2, "0");
+
+        optionsHtml +=
+            '<option value="' + isoValue + '">' +
+            formatArabicDate(date) +
+            "</option>";
+
+    }
+
+    dateSelect.innerHTML =
+        optionsHtml;
+
+    if (previousValue) {
+
+        dateSelect.value =
+            previousValue;
+
+    } else {
+
+        // الحفاظ على السلوك السابق: اليوم الحالي هو القيمة الافتراضية
+        const todayIso =
+            today.getFullYear() + "-" +
+            String(today.getMonth() + 1).padStart(2, "0") + "-" +
+            String(today.getDate()).padStart(2, "0");
+
+        dateSelect.value =
+            todayIso;
+
+    }
 
     updateDayFromDate();
 
@@ -1904,7 +2009,7 @@ async function saveReport() {
 
         notify(
             "تقرير يومي جديد",
-            "تم تسجيل تقرير يوم " + day + " - " + date,
+            "تم تسجيل تقرير يوم " + formatArabicDate(new Date(date + "T00:00:00")),
             "report"
         );
 
@@ -1948,13 +2053,39 @@ function renderReports() {
         return;
     }
 
-    let html = "";
+    // التأكد من أن التقرير المحدد موجود ضمن البيانات الحالية (افتراضياً الأحدث)
+    if (!selectedReportId || !reportsCache.some(r => r.id === selectedReportId)) {
+        selectedReportId = reportsCache[0].id;
+    }
 
-    reportsCache.forEach((report, index) => {
-        html += createReportHTML(report, index);
-    });
+    const optionsHtml = reportsCache.map(report => {
+        const dateObj = report.date ? new Date(report.date + "T00:00:00") : null;
+        const label = dateObj
+            ? `${getArabicDayName(dateObj)} — ${formatArabicDate(dateObj)}`
+            : (report.day || "تقرير");
+        const selected = report.id === selectedReportId ? " selected" : "";
+        return `<option value="${escapeHTML(report.id)}"${selected}>${escapeHTML(label)}</option>`;
+    }).join("");
 
-    container.innerHTML = html;
+    const selectedReport = reportsCache.find(r => r.id === selectedReportId);
+
+    container.innerHTML = `
+        <div class="report-day-picker form-group">
+            <label for="reportDaySelect">اختر اليوم</label>
+            <select id="reportDaySelect" onchange="onReportDayChange(this.value)">
+                ${optionsHtml}
+            </select>
+        </div>
+        <div id="selectedReportView">
+            ${selectedReport ? createReportHTML(selectedReport, reportsCache.indexOf(selectedReport)) : ""}
+        </div>
+    `;
+}
+
+// تغيير اليوم المحدد من القائمة المنسدلة — يعرض محتوى التقرير المحفوظ لذلك اليوم
+function onReportDayChange(reportId) {
+    selectedReportId = reportId;
+    renderReports();
 }
 
 function renderReportSummary() {
@@ -1999,7 +2130,7 @@ function createReportHTML(report, index) {
                     <div class="report-date-icon">📋</div>
                     <div class="report-date-text">
                         <strong>${escapeHTML(report.day)}</strong>
-                        <span>${escapeHTML(report.date)}</span>
+                        <span>${escapeHTML(report.date ? formatArabicDate(new Date(report.date + "T00:00:00")) : "")}</span>
                     </div>
                 </div>
                 <button
