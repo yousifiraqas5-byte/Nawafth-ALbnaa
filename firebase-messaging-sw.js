@@ -8,7 +8,7 @@ importScripts("https://www.gstatic.com/firebasejs/12.19.0/firebase-app-compat.js
 importScripts("https://www.gstatic.com/firebasejs/12.19.0/firebase-messaging-compat.js");
 
 firebase.initializeApp({
-    apiKey: "AIzaSyBFvj67nyPbUgzeW8J4MxEMA4Ncj8tQ-z8",
+    apiKey: "AIzaSyBFvj67nyPbUgze8WJ4MxEMA4Ncj8tQ-z8",
     authDomain: "nawafth-albnaa.firebaseapp.com",
     projectId: "nawafth-albnaa",
     storageBucket: "nawafth-albnaa.firebasestorage.app",
