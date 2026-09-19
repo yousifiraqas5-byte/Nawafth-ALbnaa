@@ -319,6 +319,711 @@ content="default"
       }
     }
 
+    /* ==========================================================
+       MEDICAL DEVICES SECTION (English / LTR dashboard)
+       كل التنسيقات محصورة داخل #medicalDevicesPage حتى لا تتأثر
+       بقية الأقسام في التطبيق.
+       ========================================================== */
+
+    #medicalDevicesPage {
+      direction: ltr;
+      text-align: left;
+      padding-bottom: 30px;
+      color: #23302b;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Tahoma, Arial, sans-serif;
+    }
+
+    #medicalDevicesPage .medical-topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 14px 16px 4px;
+    }
+
+    #medicalDevicesPage .medical-back-btn {
+      border: 1px solid #d6e2dc;
+      background: #ffffff;
+      color: #14724e;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 9px 14px;
+      border-radius: 999px;
+      cursor: pointer;
+    }
+
+    #medicalDevicesPage .medical-live-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+      color: #14724e;
+      background: #e8f5ef;
+      border: 1px solid #cfe9de;
+      padding: 7px 12px;
+      border-radius: 999px;
+    }
+
+    #medicalDevicesPage .medical-live-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #17a06a;
+    }
+
+    /* PAGE HEADER */
+
+    #medicalDevicesPage .medical-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin: 12px 16px 20px;
+      padding: 18px;
+      border-radius: 18px;
+      background: linear-gradient(135deg, #15704b, #0f5537);
+      color: #ffffff;
+      box-shadow: 0 10px 24px rgba(16, 79, 52, .22);
+    }
+
+    #medicalDevicesPage .medical-header-icon {
+      width: 52px;
+      height: 52px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+      background: rgba(255, 255, 255, .16);
+      border: 1px solid rgba(255, 255, 255, .35);
+      border-radius: 16px;
+    }
+
+    #medicalDevicesPage .medical-header-text h2 {
+      font-size: 21px;
+      font-weight: 800;
+      letter-spacing: -.2px;
+    }
+
+    #medicalDevicesPage .medical-header-text p {
+      font-size: 12px;
+      opacity: .85;
+      margin-top: 4px;
+    }
+
+    /* SECTIONS */
+
+    #medicalDevicesPage .medical-block {
+      margin: 0 16px 22px;
+    }
+
+    #medicalDevicesPage .medical-block-head {
+      margin-bottom: 12px;
+    }
+
+    #medicalDevicesPage .medical-block-head.is-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    #medicalDevicesPage .medical-block-head h3 {
+      font-size: 15px;
+      font-weight: 800;
+      color: #1c2b25;
+      letter-spacing: -.1px;
+    }
+
+    #medicalDevicesPage .medical-block-head p {
+      font-size: 12px;
+      color: #7b8a83;
+      margin-top: 3px;
+    }
+
+    /* SUMMARY CARDS */
+
+    #medicalDevicesPage .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 10px;
+    }
+
+    #medicalDevicesPage .summary-card {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      background: #ffffff;
+      border: 1px solid #e6ece9;
+      border-top: 3px solid #cfd8d4;
+      border-radius: 16px;
+      padding: 14px;
+      box-shadow: 0 4px 14px rgba(24, 46, 37, .05);
+    }
+
+    #medicalDevicesPage .summary-card-top {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    #medicalDevicesPage .summary-icon {
+      font-size: 16px;
+    }
+
+    #medicalDevicesPage .summary-label {
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      color: #7b8a83;
+    }
+
+    #medicalDevicesPage .summary-value {
+      font-size: 26px;
+      font-weight: 800;
+      line-height: 1;
+      color: #22302a;
+    }
+
+    #medicalDevicesPage .summary-card.is-total { border-top-color: #14724e; }
+    #medicalDevicesPage .summary-card.is-new { border-top-color: #2554a6; }
+    #medicalDevicesPage .summary-card.is-new .summary-value { color: #2554a6; }
+    #medicalDevicesPage .summary-card.is-progress { border-top-color: #b56a05; }
+    #medicalDevicesPage .summary-card.is-progress .summary-value { color: #b56a05; }
+    #medicalDevicesPage .summary-card.is-parts { border-top-color: #7a2fb0; }
+    #medicalDevicesPage .summary-card.is-parts .summary-value { color: #7a2fb0; }
+    #medicalDevicesPage .summary-card.is-complete { border-top-color: #0f7a4e; }
+    #medicalDevicesPage .summary-card.is-complete .summary-value { color: #0f7a4e; }
+
+    /* PRIORITY OVERVIEW */
+
+    #medicalDevicesPage .priority-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 10px;
+    }
+
+    #medicalDevicesPage .priority-card {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: #ffffff;
+      border: 1px solid #e6ece9;
+      border-left: 4px solid #cfd8d4;
+      border-radius: 16px;
+      padding: 14px;
+      box-shadow: 0 4px 14px rgba(24, 46, 37, .05);
+    }
+
+    #medicalDevicesPage .priority-icon {
+      font-size: 20px;
+    }
+
+    #medicalDevicesPage .priority-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 0;
+    }
+
+    #medicalDevicesPage .priority-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: #5f6f68;
+    }
+
+    #medicalDevicesPage .priority-value {
+      font-size: 22px;
+      font-weight: 800;
+      line-height: 1;
+      color: #22302a;
+    }
+
+    #medicalDevicesPage .priority-card.is-critical { border-left-color: #c03a2c; }
+    #medicalDevicesPage .priority-card.is-critical .priority-value { color: #c03a2c; }
+    #medicalDevicesPage .priority-card.is-high { border-left-color: #e67e22; }
+    #medicalDevicesPage .priority-card.is-high .priority-value { color: #e67e22; }
+    #medicalDevicesPage .priority-card.is-medium { border-left-color: #b56a05; }
+    #medicalDevicesPage .priority-card.is-medium .priority-value { color: #b56a05; }
+    #medicalDevicesPage .priority-card.is-low { border-left-color: #0f7a4e; }
+    #medicalDevicesPage .priority-card.is-low .priority-value { color: #0f7a4e; }
+
+    /* قواعد نموذج المهام محفوظة كما كانت لعدم تغيير الأقسام الأخرى */
+
+    .task-form input, .task-form textarea {
+      width: 100%;
+      border: 1px solid #ddd;
+      border-radius: 12px;
+      padding: 12px;
+      font-family: inherit;
+      font-size: 14px;
+      background: #fff;
+      margin-bottom: 5px;
+    }
+
+    .task-form input[readonly] {
+      background: #f9f9f9;
+      color: #888;
+    }
+
+    /* ADD FAULT */
+
+    #medicalDevicesPage .medical-actions {
+      margin: 0 16px 22px;
+    }
+
+    #medicalDevicesPage .add-fault-btn {
+      width: 100%;
+      border: 0;
+      border-radius: 16px;
+      padding: 16px;
+      background: #14724e;
+      color: #ffffff;
+      font-family: inherit;
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: .02em;
+      cursor: pointer;
+      box-shadow: 0 8px 18px rgba(20, 114, 78, .24);
+    }
+
+    #medicalDevicesPage .add-fault-btn:active {
+      transform: scale(.99);
+    }
+
+    /* FAULT FORM */
+
+    #medicalDevicesPage .fault-form {
+      background: #ffffff;
+      border: 1px solid #e6ece9;
+      border-radius: 18px;
+      padding: 18px;
+      margin: 0 16px 22px;
+      box-shadow: 0 8px 22px rgba(24, 46, 37, .07);
+    }
+
+    #medicalDevicesPage .fault-form-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid #eef3f0;
+    }
+
+    #medicalDevicesPage .fault-form-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    #medicalDevicesPage .fault-form-icon {
+      width: 44px;
+      height: 44px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      border-radius: 14px;
+      background: #e8f5ef;
+      border: 1px solid #cfe9de;
+    }
+
+    #medicalDevicesPage .fault-form-head h3 {
+      font-size: 17px;
+      font-weight: 800;
+      color: #1c2b25;
+    }
+
+    #medicalDevicesPage .fault-form-head p {
+      font-size: 12px;
+      color: #7b8a83;
+      margin-top: 3px;
+    }
+
+    #medicalDevicesPage .fault-form-close {
+      width: 34px;
+      height: 34px;
+      flex-shrink: 0;
+      border: 1px solid #e2e9e5;
+      border-radius: 10px;
+      background: #f6f9f7;
+      color: #5f6f68;
+      font-size: 18px;
+      line-height: 1;
+      cursor: pointer;
+    }
+
+    #medicalDevicesPage .fault-required-note {
+      font-size: 11px;
+      font-weight: 700;
+      color: #83918a;
+      margin-top: 12px;
+    }
+
+    #medicalDevicesPage .required-mark {
+      color: #c03a2c;
+      font-weight: 800;
+    }
+
+    /* FORM SECTIONS */
+
+    #medicalDevicesPage .form-section {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid #f1f5f3;
+    }
+
+    #medicalDevicesPage .form-section-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      color: #14724e;
+      margin-bottom: 12px;
+    }
+
+    #medicalDevicesPage .form-section-icon {
+      font-size: 15px;
+    }
+
+    #medicalDevicesPage .fault-form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    #medicalDevicesPage .fault-field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      min-width: 0;
+    }
+
+    #medicalDevicesPage .fault-field.is-wide {
+      grid-column: 1 / -1;
+    }
+
+    #medicalDevicesPage .fault-field label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #4c5c55;
+    }
+
+    #medicalDevicesPage .medical-input {
+      width: 100%;
+      font-family: inherit;
+      font-size: 14px;
+      color: #23302b;
+      background: #ffffff;
+      border: 1px solid #dde5e1;
+      border-radius: 12px;
+      padding: 11px 12px;
+    }
+
+    #medicalDevicesPage .medical-input:focus {
+      outline: none;
+      border-color: #14724e;
+      box-shadow: 0 0 0 3px rgba(20, 114, 78, .12);
+    }
+
+    #medicalDevicesPage .medical-input[readonly] {
+      background: #f7faf8;
+      color: #7b8a83;
+    }
+
+    #medicalDevicesPage .medical-input.is-invalid {
+      border-color: #c03a2c;
+      background: #fef7f6;
+    }
+
+    #medicalDevicesPage .medical-input.is-invalid:focus {
+      border-color: #c03a2c;
+      box-shadow: 0 0 0 3px rgba(192, 58, 44, .14);
+    }
+
+    #medicalDevicesPage textarea.medical-input {
+      min-height: 120px;
+      line-height: 1.6;
+      resize: vertical;
+    }
+
+    #medicalDevicesPage .field-error {
+      display: none;
+      font-size: 11px;
+      font-weight: 700;
+      color: #c03a2c;
+    }
+
+    #medicalDevicesPage .field-error:not(:empty) {
+      display: block;
+    }
+
+    #medicalDevicesPage .fault-form-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 18px;
+      padding-top: 16px;
+      border-top: 1px solid #eef3f0;
+    }
+
+    #medicalDevicesPage .save-fault-btn {
+      flex: 1;
+      border: 0;
+      border-radius: 12px;
+      padding: 14px;
+      background: #14724e;
+      color: #ffffff;
+      font-family: inherit;
+      font-size: 15px;
+      font-weight: 800;
+      cursor: pointer;
+      box-shadow: 0 6px 14px rgba(20, 114, 78, .2);
+    }
+
+    #medicalDevicesPage .save-fault-btn:disabled {
+      background: #9fb8ac;
+      box-shadow: none;
+      cursor: not-allowed;
+    }
+
+    #medicalDevicesPage .cancel-fault-btn {
+      border: 1px solid #dde5e1;
+      border-radius: 12px;
+      padding: 14px 20px;
+      background: #ffffff;
+      color: #5f6f68;
+      font-family: inherit;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+  /* REQUESTS LIST */
+
+    #medicalDevicesPage .medical-count {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 34px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: #eef4f1;
+      color: #14724e;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    #medicalDevicesPage .medical-count.is-complete {
+      background: #e8f5ef;
+      color: #0f7a4e;
+    }
+
+    #medicalDevicesPage .requests-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    #medicalDevicesPage .requests-empty {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      text-align: center;
+      background: #ffffff;
+      border: 1px dashed #d8e2dd;
+      border-radius: 16px;
+      padding: 26px 18px;
+    }
+
+    #medicalDevicesPage .requests-empty-icon {
+      font-size: 26px;
+      margin-bottom: 2px;
+    }
+
+    #medicalDevicesPage .requests-empty strong {
+      font-size: 14px;
+      font-weight: 800;
+      color: #3c4b45;
+    }
+
+    #medicalDevicesPage .requests-empty p {
+      font-size: 12px;
+      color: #83918a;
+    }
+
+    #medicalDevicesPage .request-card {
+      background: #ffffff;
+      border: 1px solid #e6ece9;
+      border-radius: 16px;
+      padding: 14px;
+      box-shadow: 0 4px 14px rgba(24, 46, 37, .05);
+    }
+
+    #medicalDevicesPage .request-card-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    #medicalDevicesPage .request-id {
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: .04em;
+      color: #14724e;
+      background: #eef4f1;
+      padding: 5px 10px;
+      border-radius: 8px;
+    }
+
+    #medicalDevicesPage .request-badges {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    #medicalDevicesPage .request-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 5px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: .03em;
+      text-transform: uppercase;
+      border: 1px solid transparent;
+    }
+
+    #medicalDevicesPage .request-badge.is-status-NEW { background: #e8effc; color: #2554a6; border-color: #d3e0f8; }
+    #medicalDevicesPage .request-badge.is-status-IN-PROGRESS { background: #fdf1de; color: #b56a05; border-color: #f7e3c4; }
+    #medicalDevicesPage .request-badge.is-status-AWAITING-PARTS { background: #f3e9fb; color: #7a2fb0; border-color: #e7d7f6; }
+    #medicalDevicesPage .request-badge.is-status-COMPLETE { background: #e6f4ed; color: #0f7a4e; border-color: #d2eade; }
+
+    #medicalDevicesPage .request-badge.is-priority-CRITICAL { background: #fdeaea; color: #c03a2c; border-color: #f8d7d3; }
+    #medicalDevicesPage .request-badge.is-priority-HIGH { background: #fdf2e4; color: #e67e22; border-color: #f8e3c9; }
+    #medicalDevicesPage .request-badge.is-priority-MEDIUM { background: #fdf1de; color: #b56a05; border-color: #f7e3c4; }
+    #medicalDevicesPage .request-badge.is-priority-LOW { background: #e6f4ed; color: #0f7a4e; border-color: #d2eade; }
+
+    #medicalDevicesPage .request-device {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+
+    #medicalDevicesPage .request-device-name {
+      font-size: 15px;
+      font-weight: 800;
+      color: #1c2b25;
+    }
+
+    #medicalDevicesPage .request-serial {
+      font-size: 11px;
+      font-weight: 700;
+      color: #7b8a83;
+      background: #f5f8f6;
+      border-radius: 6px;
+      padding: 3px 8px;
+    }
+
+    #medicalDevicesPage .request-meta {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 8px 14px;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid #eef2f0;
+    }
+
+    #medicalDevicesPage .request-meta-item {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 0;
+    }
+
+    #medicalDevicesPage .request-meta-label {
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      color: #93a19b;
+    }
+
+    #medicalDevicesPage .request-meta-value {
+      font-size: 13px;
+      font-weight: 600;
+      color: #33413b;
+      word-break: break-word;
+    }
+
+    #medicalDevicesPage .request-desc {
+      margin-top: 12px;
+      padding: 10px 12px;
+      background: #f7faf8;
+      border-left: 3px solid #14724e;
+      border-radius: 10px;
+      font-size: 13px;
+      line-height: 1.5;
+      color: #3c4b45;
+    }
+
+    #medicalDevicesPage .request-complete-btn {
+      width: 100%;
+      margin-top: 14px;
+      border: 0;
+      border-radius: 12px;
+      padding: 12px;
+      background: #14724e;
+      color: #ffffff;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    #medicalDevicesPage .request-complete-btn:active {
+      transform: scale(.99);
+    }
+
+    /* RESPONSIVE */
+
+    @media (max-width: 640px) {
+      #medicalDevicesPage .fault-form-grid {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      #medicalDevicesPage .fault-field.is-wide {
+        grid-column: auto;
+      }
+
+      #medicalDevicesPage .medical-header {
+        padding: 16px;
+      }
+
+      #medicalDevicesPage .medical-header-text h2 {
+        font-size: 19px;
+      }
+    }
+
   </style>
 
 </head>
@@ -465,7 +1170,7 @@ content="default"
   <button
     type="button"
     class="main-card"
-    onclick="showMessage('الأجهزة الطبية')"
+    onclick="openMedicalDevices()"
   >
 
     <div class="card-top">
@@ -935,6 +1640,296 @@ content="default"
 
 </section>
 ```
+
+  </main>
+
+  <!-- MEDICAL DEVICES -->
+
+  <main
+    id="medicalDevicesPage"
+    class="page"
+  >
+
+    <div class="medical-topbar">
+      <button type="button" class="medical-back-btn" onclick="goHome()">
+        ← Back to Home
+      </button>
+      <span class="medical-live-badge">
+        <span class="medical-live-dot"></span>
+        Live Data
+      </span>
+    </div>
+
+    <!-- PAGE HEADER -->
+    <header class="medical-header">
+      <div class="medical-header-icon">⚕️</div>
+      <div class="medical-header-text">
+        <h2>Medical Devices</h2>
+        <p>Medical Equipment Maintenance &amp; Fault Management</p>
+      </div>
+    </header>
+
+    <!-- DEVICE STATUS (SUMMARY CARDS) -->
+    <section class="medical-block">
+      <div class="medical-block-head">
+        <h3>Device Status</h3>
+        <p>Live maintenance request counters from Firestore</p>
+      </div>
+
+      <div class="summary-grid">
+        <div class="summary-card is-total">
+          <div class="summary-card-top">
+            <span class="summary-icon">📋</span>
+            <span class="summary-label">Total Requests</span>
+          </div>
+          <span id="stat-total" class="summary-value">0</span>
+        </div>
+
+        <div class="summary-card is-new">
+          <div class="summary-card-top">
+            <span class="summary-icon">📝</span>
+            <span class="summary-label">New</span>
+          </div>
+          <span id="stat-new" class="summary-value">0</span>
+        </div>
+
+        <div class="summary-card is-progress">
+          <div class="summary-card-top">
+            <span class="summary-icon">🔧</span>
+            <span class="summary-label">In Progress</span>
+          </div>
+          <span id="stat-in_progress" class="summary-value">0</span>
+        </div>
+
+        <div class="summary-card is-parts">
+          <div class="summary-card-top">
+            <span class="summary-icon">📦</span>
+            <span class="summary-label">Awaiting Parts</span>
+          </div>
+          <span id="stat-awaiting_parts" class="summary-value">0</span>
+        </div>
+
+        <div class="summary-card is-complete">
+          <div class="summary-card-top">
+            <span class="summary-icon">✅</span>
+            <span class="summary-label">Completed</span>
+          </div>
+          <span id="stat-complete" class="summary-value">0</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- PRIORITY OVERVIEW -->
+    <section class="medical-block">
+      <div class="medical-block-head">
+        <h3>Priority Overview</h3>
+        <p>Distribution of maintenance requests by priority level</p>
+      </div>
+
+      <div class="priority-grid">
+        <div class="priority-card is-critical">
+          <span class="priority-icon">🚨</span>
+          <div class="priority-info">
+            <span class="priority-label">Critical</span>
+            <span id="stat-critical" class="priority-value">0</span>
+          </div>
+        </div>
+
+        <div class="priority-card is-high">
+          <span class="priority-icon">⚠️</span>
+          <div class="priority-info">
+            <span class="priority-label">High</span>
+            <span id="stat-high" class="priority-value">0</span>
+          </div>
+        </div>
+
+        <div class="priority-card is-medium">
+          <span class="priority-icon">🔔</span>
+          <div class="priority-info">
+            <span class="priority-label">Medium</span>
+            <span id="stat-medium" class="priority-value">0</span>
+          </div>
+        </div>
+
+        <div class="priority-card is-low">
+          <span class="priority-icon">📉</span>
+          <div class="priority-info">
+            <span class="priority-label">Low</span>
+            <span id="stat-low" class="priority-value">0</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ADD FAULT -->
+    <section class="medical-actions">
+      <button
+        type="button"
+        class="add-fault-btn"
+        onclick="openFaultForm()"
+      >
+        + Add Fault
+      </button>
+    </section>
+
+    <!-- FAULT REGISTRATION FORM (existing workflow, English labels) -->
+    <section
+      id="faultForm"
+      class="fault-form"
+      style="display:none;"
+    >
+      <div class="fault-form-head">
+        <div class="fault-form-title">
+          <div class="fault-form-icon">🩺</div>
+          <div>
+            <h3>Report Medical Device Fault</h3>
+            <p>Record the device details and a full description of the reported fault.</p>
+          </div>
+        </div>
+        <button type="button" class="fault-form-close" onclick="closeFaultForm()" aria-label="Close form">×</button>
+      </div>
+
+      <p class="fault-required-note">
+        Fields marked with <span class="required-mark">*</span> are required.
+      </p>
+
+      <!-- DEVICE INFORMATION -->
+      <div class="form-section">
+        <div class="form-section-title">
+          <span class="form-section-icon">🔧</span>
+          Device Information
+        </div>
+
+        <div class="fault-form-grid">
+          <div class="fault-field">
+            <label for="faultDevice">Device Name <span class="required-mark">*</span></label>
+            <select id="faultDevice" class="medical-input" onchange="onDeviceSelectChange(); clearFaultFieldError(this);">
+              <option value="">Select device...</option>
+            </select>
+            <span id="error-faultDevice" class="field-error"></span>
+          </div>
+
+          <div class="fault-field">
+            <label for="faultSerial">Serial Number <span class="required-mark">*</span></label>
+            <input type="text" id="faultSerial" class="medical-input" placeholder="Enter the device serial number" autocomplete="off" oninput="clearFaultFieldError(this)">
+            <span id="error-faultSerial" class="field-error"></span>
+          </div>
+
+          <div class="fault-field">
+            <label for="faultBrand">Brand</label>
+            <input type="text" id="faultBrand" class="medical-input" readonly placeholder="Filled automatically">
+          </div>
+
+          <div class="fault-field">
+            <label for="faultOrigin">Country of Origin</label>
+            <input type="text" id="faultOrigin" class="medical-input" readonly placeholder="Filled automatically">
+          </div>
+        </div>
+      </div>
+
+      <!-- FAULT DETAILS -->
+      <div class="form-section">
+        <div class="form-section-title">
+          <span class="form-section-icon">📝</span>
+          Fault Details
+        </div>
+
+        <div class="fault-form-grid">
+          <div class="fault-field is-wide">
+            <label for="faultDescription">Fault Description <span class="required-mark">*</span></label>
+            <textarea id="faultDescription" class="medical-input" rows="6" placeholder="Describe the fault, its symptoms and any relevant observations..." oninput="clearFaultFieldError(this)"></textarea>
+            <span id="error-faultDescription" class="field-error"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- REPORTING INFORMATION -->
+      <div class="form-section">
+        <div class="form-section-title">
+          <span class="form-section-icon">👤</span>
+          Reporting Information
+        </div>
+
+        <div class="fault-form-grid">
+          <div class="fault-field">
+            <label for="faultReportedBy">Reported By <span class="required-mark">*</span></label>
+            <input type="text" id="faultReportedBy" class="medical-input" placeholder="Name of the person reporting the fault" autocomplete="off" oninput="clearFaultFieldError(this)">
+            <span id="error-faultReportedBy" class="field-error"></span>
+          </div>
+
+        <div class="fault-field">
+            <label for="faultPriority">Priority <span class="required-mark">*</span></label>
+            <select id="faultPriority" class="medical-input" onchange="clearFaultFieldError(this)">
+              <option value="">Select priority...</option>
+              <option value="CRITICAL">Critical</option>
+              <option value="HIGH">High</option>
+              <option value="MEDIUM" selected>Medium</option>
+              <option value="LOW">Low</option>
+            </select>
+            <span id="error-faultPriority" class="field-error"></span>
+          </div>
+
+          <div class="fault-field">
+            <label for="faultStatus">Status <span class="required-mark">*</span></label>
+            <select id="faultStatus" class="medical-input" onchange="clearFaultFieldError(this)">
+              <option value="">Select status...</option>
+              <option value="NEW" selected>New</option>
+              <option value="IN PROGRESS">In Progress</option>
+              <option value="AWAITING PARTS">Awaiting Parts</option>
+              <option value="COMPLETE">Complete</option>
+            </select>
+            <span id="error-faultStatus" class="field-error"></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="fault-form-actions">
+        <button type="button" id="saveFaultBtn" class="save-fault-btn" onclick="addFault()">
+          Submit Fault
+        </button>
+        <button type="button" class="cancel-fault-btn" onclick="closeFaultForm()">
+          Cancel
+        </button>
+      </div>
+    </section>
+
+    <!-- MAINTENANCE REQUESTS -->
+    <section class="medical-block">
+      <div class="medical-block-head is-row">
+        <div>
+          <h3>Maintenance Requests</h3>
+          <p>Open requests currently under maintenance</p>
+        </div>
+        <span id="pendingFaultCount" class="medical-count">0</span>
+      </div>
+
+      <div id="pendingFaults" class="requests-grid">
+        <div class="requests-empty">
+          <div class="requests-empty-icon">🛠️</div>
+          <strong>No maintenance requests found.</strong>
+          <p>Use “+ Add Fault” to register a new maintenance request.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- RECENT (COMPLETED) REQUESTS -->
+    <section class="medical-block">
+      <div class="medical-block-head is-row">
+        <div>
+          <h3>Recent Requests</h3>
+          <p>Requests that have been fully serviced</p>
+        </div>
+        <span id="completedFaultCount" class="medical-count is-complete">0</span>
+      </div>
+
+      <div id="completedFaults" class="requests-grid">
+        <div class="requests-empty">
+          <div class="requests-empty-icon">✅</div>
+          <strong>No completed requests yet.</strong>
+          <p>Serviced requests will appear here.</p>
+        </div>
+      </div>
+    </section>
 
   </main>
 

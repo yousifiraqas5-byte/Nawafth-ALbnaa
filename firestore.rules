@@ -40,5 +40,15 @@ service cloud.firestore {
       allow read, write: if true;
     }
 
+    // الأجهزة الطبية (الأعطال)
+    match /medical_device_faults/{documentId} {
+      allow read, write: if true;
+    }
+
+    // عداد التذاكر (Ticket ID Counter)
+    match /counters/{documentId} {
+      allow read, write: if true;
+    }
+
   }
 }

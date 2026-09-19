@@ -9,6 +9,8 @@ const TASKS_COLLECTION = "tasks";
 const MATERIALS_COLLECTION = "materials";
 const NOTIFICATIONS_COLLECTION = "notifications";
 const TOKENS_COLLECTION = "notificationTokens";
+const MEDICAL_FAULTS_COLLECTION = "medical_device_faults";
+const MEDICAL_COUNTERS_COLLECTION = "counters";
 
 // مهم: ضع هنا مفتاح VAPID العام من
 // Firebase Console > Project settings > Cloud Messaging > Web push certificates
@@ -44,6 +46,242 @@ const ENGINEERS = [
     "م. حسين",
     "د. إبراهيم",
     "م. نور"
+];
+
+// ============================================================
+// قائمة الأجهزة الطبية (من كتالوج الأجهزة الفعلي)
+// ============================================================
+
+const MEDICAL_DEVICES = [
+    "(Automated Clinical Analyzer) CLINICAL CHEMISTRY LAB / BIOCHEMISTERY FULL AUTOMATED",
+    "(Laryngoscope) Video Laryngoscope",
+    "A/B SCAN",
+    "ACT MACHINE",
+    "Anaesthesia Machine,",
+    "Analyser, Haematology, Multi-Parameter (3 parts Differential)",
+    "Analyser, Haematology, Multi-Parameter (5 parts Differential)",
+    "ANALYZERS, COAGULATION, AUTOMATED",
+    "APRON, LEAD",
+    "Audiometer, Clinical",
+    "AUTO IMMUNE ANALYZER",
+    "Auto lense meter",
+    "Auto refractokeratmeter with electrical lift table",
+    "Autoclave 20L",
+    "Autoclave large (DOUBLE DOOR)",
+    "Autoclave small",
+    "BACTERIA IDENTIFICATION SYSTEM",
+    "Balance board",
+    "Balance, Precision",
+    "Basinette, Infant",
+    "BATHS, TISSUE FLOATATION",
+    "Bilirubin Anaylzer",
+    "bilirubin meter",
+    "Biometry and anterior corneal measurement device",
+    "Blood gas analyzer",
+    "blood gas analyzer (portable)",
+    "Blunder",
+    "body washing table",
+    "Bone Densitometer",
+    "Breast Pump",
+    "BROCHOSCOPY PEDIATRIC SIZE FLXIABLE",
+    "CARDIAC MARKER ANALYZER",
+    "CENTERFUAGE",
+    "Centrifuge (PCV)",
+    "Centrifuge, Bench Mounted, General Purpose",
+    "Centrifuge, Haematocrit",
+    "Chair, Patient, ENT",
+    "Class II Cabinet, Containment, A2",
+    "Cogaluation",
+    "Colposcopy device",
+    "COMBINATION THERAPY, ULTRASOUND AND ELECTROTHERAPY",
+    "COMPRESSION UNIT SEQUENTIAL",
+    "CONTINIOUS AND PULSED MICROWAVE THERAPY",
+    "CONTINUOUS AND PULSED SHORTWAVE THERAPY",
+    "Corneal topography, with electrical lift table",
+    "Counter / Sink, + Water gun, air gun (Double)",
+    "CPM Lower",
+    "CPM Upper",
+    "CRB / D-DIMAR",
+    "CRIBS BAY",
+    "CRYOSTAT",
+    "Curettage set",
+    "Defibrillator & Accessories",
+    "dental chair, set complete",
+    "dental microscopy",
+    "dental x-ray portable",
+    "dermoscope",
+    "Digital Fluoroscopy x-ray",
+    "Digital Radiography DR Unit / General & Bucky",
+    "DIGITAL TOURNIQUET",
+    "Digital X-Ray Unit, C-Arm",
+    "digital-ready slit lamp",
+    "Dumb-Bells with Rack",
+    "Echo portable machine",
+    "ECHO/ Cardiac HOSPITAL TYPE",
+    "EEG Monitoring System",
+    "Eggsercizer",
+    "Electronic Scales, Lab.",
+    "Electrosurgical unit (Electro Surgery Unit / Basic)",
+    "ElectroSurgicalUnit,With Trolley",
+    "ELIZA ANALYZER",
+    "ELYCRTOLYTE ANALYZER",
+    "EMG Machine",
+    "Endoscope cabinet",
+    "Endoscope washer and disinfection unit",
+    "Endoscopes Washer",
+    "ENDOSCOPY TOWER (GIT)",
+    "ENDOSCOPY TOWER (GIT) PEDIATRIC",
+    "ENT Head Light Examination Set",
+    "ENT, Treatment Unit complete.",
+    "Epiluminescence Microscope",
+    "ESR ANALYSER",
+    "ESWL, lithotripsy unit",
+    "Exercise stick.wood, 100 cm",
+    "EXTRACTION",
+    "EXTRACTION DEVICE",
+    "Eye-test chart unit",
+    "Foetal, Doppler, portable",
+    "Gypsum Saw Machine",
+    "HARMONE ANALYZER",
+    "Harmonic knife machine",
+    "HBA1C ANALYZER",
+    "Hemorrhoidectomy set",
+    "HIGH ENERGY INDUCTIVE THERAPY,with Trolly and fixed Arm with Trolly",
+    "HIGH POWER LASER",
+    "High pressure regulator",
+    "HOLTER ANALYSES SYSTEM",
+    "Holter ECG recorder",
+    "IABP Machine",
+    "incubator transport, infant",
+    "infant incubator",
+    "INFRA-RED EQUIPMENT",
+    "Infusion Pump",
+    "Instrument set, Basic Orthopedics",
+    "Instrument set, Major Basic set",
+    "Instrument set, Minor Basic Surgery",
+    "Instrument set, Open Urethra Surgery",
+    "Instrument set, Suture Instrument",
+    "Instrument set, Vaginal Hysterectomy",
+    "Instrument set, Vaginal Plastic Surgery",
+    "Instrument set, Vaginal speculum",
+    "LAMINECTOMY SET",
+    "Large Rotator / Shaker for Blood Bags",
+    "Laryngoscope ,SET",
+    "Light, Operating Light, portable(Lamp, Examination, Mobile)",
+    "Low Temp. Sterilizer 150L",
+    "Magnetic Stirrer / Heater",
+    "Massage Unit",
+    "Medical exercise mat",
+    "Medical GYM Bike Rehab",
+    "Medical GYM Chest Press",
+    "Medical GYM Leg Extension",
+    "Medical GYM Treadmill",
+    "Medicine ball, leather",
+    "Microbiology Analyser",
+    "Microcentrifuge",
+    "MICROSCOPE",
+    "Microscope, Binocular, Routine",
+    "Microscope, Laboratory Binocular",
+    "MICROSCOPE, LABORATORY, LIGHT",
+    "MICROSCOPY (FLUORESCENT)",
+    "MICROTOME",
+    "Mixer, Vortex",
+    "Monitor, Foetal, Antepartum, Twin / CTG Option",
+    "Monitor, Patient",
+    "Monitor, Patient, Central",
+    "Monitor, Patient, ICU",
+    "Monitor, Patient, mobile",
+    "Mortuary storage 6 body",
+    "nebulizer, portable",
+    "OCT WITH FUNDUS CAMERA FA",
+    "Operating Table for /LDR",
+    "Operating Table for OPHTHALMOLOGY Surgery Accessories",
+    "Operating Table for Orthopaedic Surgery W/Accessories",
+    "Operating Table for Surgery Accessories",
+    "Ophthalmology Surgical microscopy",
+    "ophthalmoscope,",
+    "Opthalmoscope, Indirect",
+    "ORTHOPEDIC POWER DRILL AND SAW SYSTEM(ORTHOPEDIC POWER TOOLS SYSTEM)",
+    "Otoscope Diagnostic Set",
+    "Oxygen Flowmeter,",
+    "Pacemaker, External, Invasive",
+    "packing devices",
+    "PAPER TROLLY",
+    "Parallel bars",
+    "patient monitor etco",
+    "Perimetry SAP measurement unit",
+    "phaco machine",
+    "phototherapy cylinderical(Intensive care Incubator 360, Neonatal)",
+    "phototherapy free stand",
+    "PHYSIOTHERAPY COUCH 2-section",
+    "PHYSIOTHERAPY COUCH Hight adjustable, 3-section",
+    "Pipette, Hand, Automatic",
+    "Pipette, Multichannel",
+    "Plasma Extractor",
+    "Platelet Shaker Incubator (Incubator, Laboratory)",
+    "Pulmonary Function Test machine with cabinet",
+    "Real-time PCR",
+    "Reanimation Table with Accessories",
+    "RECORDER, ECG, 12 CHANNEL W/ INTERPRETIVE SOFTWARE",
+    "Refrigerator, Laboratory, Blood Refrigeration",
+    "Renal Dialysis, Machine",
+    "Renal, Chair",
+    "Rep exercise band",
+    "Resuscitator Neonatal warming with table (Resuscitator, Neonatal )",
+    "Resuscitator, Neonatal, portable (Resuscitator, Neonatal )",
+    "Retinoscope & ophthalmoscope, AC power",
+    "Rinser, Spray Gun",
+    "Roller, Tubes Machine",
+    "Scales, Balance, Patient",
+    "Scales, Balance, Patient, Pediatric",
+    "shaker vibroter",
+    "Shaker, Flask, Orbital",
+    "SHOCKWAVE THERAPY",
+    "Shoulder wheel",
+    "SLIDE STAINER, HEMATOLOGY, AUTO",
+    "SLIDE STAINER, POWER SUPPLY AND MONITOR",
+    "SMOKE EVACUATION",
+    "Sphygmomanometer, Digital Automatic",
+    "storage, Instrument",
+    "Suction Regulator",
+    "Suction,SurgicalSuction Unit",
+    "SURGICAL Light, Mobile",
+    "Swiss Ball",
+    "Syringe Pump,",
+    "Table Operating, Caesarean Surgery",
+    "Table Operating, General Surgery for minor operating",
+    "TECAR THERAPY,With Cream and Trolly",
+    "Thermometer, Electronic (lab)",
+    "THERMOTHERAPY - CHILLING UNIT",
+    "THERMOTHERAPY - Packheater,50 - 80 Liter with 12 different Packs",
+    "THERMOTHERAPY - Wax Bath",
+    "TISSUE EMBEDDING EQUIPMENT",
+    "TISSUE PROCESSOR",
+    "Tonometer, non-contact type WITH PACHYMETER",
+    "Tourniquet, Automatic",
+    "TRACTION UNIT WITH COUCHES,with full accessories and cervical",
+    "Treadmill Machine with ECG 12 channel",
+    "Trial lenses",
+    "Ultrasonic nebulizer pediatric\\ adult. Hospital type.",
+    "Ultrasound Unit (Ob-Gyn)",
+    "Ultrasound Unit hospital type",
+    "Ultraviolet Lamp Therapy unit ( UV Cabinet)",
+    "vacuum extractor",
+    "Ventilator, Adult/Paediatric, hospital type",
+    "Ventilator, Paediatric",
+    "vien viewer device",
+    "Wall bars",
+    "WARMER, BLOOD AND FLUID",
+    "WARMER,PATIENT, BLANKET",
+    "washer devices large (DOUBLE DOOR)",
+    "Washer, Ultrasonic",
+    "water monometer",
+    "Water, Bath",
+    "Wrislets",
+    "X-ray dental Panoramic",
+    "X-ray unit, mobile(DR MOBILE)",
+    "X-Ray Viewer, Double",
+    "X-Ray Viewer, Single"
 ];
 
 // ============================================================
@@ -149,6 +387,8 @@ function openPurchases() {
     getPurchases();
 
 }
+
+// ملاحظة: openMedicalDevices يتم تعريفها مرة واحدة فقط داخل قسم الأجهزة الطبية.
 
 // ============================================================
 // رسائل
@@ -3119,6 +3359,520 @@ async function returnTask(
 
     }
 
+}
+
+// ============================================================
+// =================== الأجهزة الطبية (Medical) ================
+// ============================================================
+
+// ملاحظة: MEDICAL_FAULTS_COLLECTION و MEDICAL_COUNTERS_COLLECTION
+// معرّفتان مرة واحدة فقط في أعلى الملف (قسم الثوابت).
+
+let medicalFaultsCache = [];
+let medicalFaultsUnsubscribe = null;
+
+// حالة إرسال نموذج العطل (لمنع الإرسال المزدوج من ضغطة واحدة)
+let faultFormSubmitting = false;
+
+// ملاحظة: MEDICAL_DEVICES_DATA قائمة الأجهزة الحالية المتوافقة مع التنفيذ القائم.
+// لا يتم توليد أي بيانات وهمية هنا، وربط ملف Excel مؤجَّل لمهمة لاحقة.
+let MEDICAL_DEVICES_DATA = [
+    { name: "(Automated Clinical Analyzer) CLINICAL CHEMISTRY LAB", brand: "", origin: "" },
+    { name: "(Laryngoscope) Video Laryngoscope", brand: "", origin: "" }
+];
+
+const FAULT_STATUS_LABELS = {
+    "NEW": "New",
+    "IN PROGRESS": "In Progress",
+    "AWAITING PARTS": "Awaiting Parts",
+    "COMPLETE": "Completed"
+};
+
+const FAULT_STATUS_ORDER = ["NEW", "IN PROGRESS", "AWAITING PARTS", "COMPLETE"];
+
+const FAULT_PRIORITY_LABELS = {
+    "CRITICAL": "CRITICAL",
+    "HIGH": "HIGH",
+    "MEDIUM": "MEDIUM",
+    "LOW": "LOW"
+};
+
+const FAULT_PRIORITY_ORDER = ["CRITICAL", "HIGH", "MEDIUM", "LOW"];
+
+// فتح قسم الأجهزة الطبية
+function openMedicalDevices() {
+    showPage("medicalDevicesPage");
+    populateFaultDeviceSelect();
+    // عرض أحدث البيانات المتوفرة ثم بدء الاشتراك الحيّ لتحديث العدّادات تلقائياً
+    getMedicalFaults();
+    subscribeMedicalFaults();
+}
+
+// ملء قائمة الأجهزة
+function populateFaultDeviceSelect() {
+    const select = document.getElementById("faultDevice");
+    if (!select) return;
+
+    // تنظيف القائمة الحالية (ترك الخيار الأول)
+    select.innerHTML = '<option value="">Select device...</option>';
+
+    MEDICAL_DEVICES_DATA.forEach(device => {
+        const option = document.createElement("option");
+        option.value = device.name;
+        option.textContent = device.name;
+        select.appendChild(option);
+    });
+}
+
+// عند اختيار جهاز، تعبئة البراند والمنشأ تلقائياً
+function onDeviceSelectChange() {
+    const deviceName = document.getElementById("faultDevice").value;
+    const brandInput = document.getElementById("faultBrand");
+    const originInput = document.getElementById("faultOrigin");
+
+    const device = MEDICAL_DEVICES_DATA.find(d => d.name === deviceName);
+    if (device) {
+        brandInput.value = device.brand || "";
+        originInput.value = device.origin || "";
+    } else {
+        brandInput.value = "";
+        originInput.value = "";
+    }
+}
+
+// ============================================================
+// نموذج تسجيل عطل جهاز طبي (Medical Device Fault Form)
+// ============================================================
+
+// الحقول المطلوبة ورسالة التحقق الإنجليزية الخاصة بكل حقل
+const FAULT_REQUIRED_FIELDS = [
+    { id: "faultDevice", message: "Device Name is required." },
+    { id: "faultSerial", message: "Serial Number is required." },
+    { id: "faultDescription", message: "Fault Description is required." },
+    { id: "faultReportedBy", message: "Reported By is required." },
+    { id: "faultPriority", message: "Priority is required." },
+    { id: "faultStatus", message: "Status is required." }
+];
+
+// فتح النموذج بحالة نظيفة
+function openFaultForm() {
+    const form = document.getElementById("faultForm");
+    if (!form) return;
+
+    clearFaultFormErrors();
+    setFaultFormBusy(false);
+
+    // استخدام بيانات المُبلِّغ المتوفرة حالياً في التطبيق (إن وُجدت) دون إنشاء مستخدمين وهميين
+    const reportedByInput = document.getElementById("faultReportedBy");
+    if (reportedByInput && !String(reportedByInput.value).trim() && currentEngineer) {
+        reportedByInput.value = currentEngineer;
+    }
+
+    form.style.display = "block";
+}
+
+// مسح كل رسائل التحقق وحالات الخطأ داخل النموذج
+function clearFaultFormErrors() {
+    document.querySelectorAll("#faultForm .field-error").forEach(el => {
+        el.textContent = "";
+    });
+
+    document.querySelectorAll("#faultForm .medical-input").forEach(el => {
+        el.classList.remove("is-invalid");
+    });
+}
+
+// مسح خطأ حقل واحد (يُستدعى عند تصحيح المستخدم للقيمة)
+function clearFaultFieldError(input) {
+    if (!input) return;
+
+    input.classList.remove("is-invalid");
+
+    const errorEl = document.getElementById("error-" + input.id);
+    if (errorEl) errorEl.textContent = "";
+}
+
+// إظهار رسالة خطأ أسفل الحقل
+function showFaultFieldError(fieldId, message) {
+    const input = document.getElementById(fieldId);
+    if (input) input.classList.add("is-invalid");
+
+    const errorEl = document.getElementById("error-" + fieldId);
+    if (errorEl) errorEl.textContent = message;
+}
+
+// تعطيل/تمكين زر الإرسال لمنع الإرسال المزدوج من ضغطة واحدة
+function setFaultFormBusy(isBusy) {
+    faultFormSubmitting = isBusy;
+
+    const button = document.getElementById("saveFaultBtn");
+    if (button) {
+        button.disabled = isBusy;
+        button.textContent = isBusy ? "Submitting..." : "Submit Fault";
+    }
+}
+
+// التحقق من الحقول المطلوبة — يعيد true فقط عند اكتمال النموذج
+function validateFaultForm() {
+    clearFaultFormErrors();
+
+    let valid = true;
+    let firstInvalidId = "";
+
+    FAULT_REQUIRED_FIELDS.forEach(field => {
+        const el = document.getElementById(field.id);
+        const value = el ? String(el.value).trim() : "";
+
+        if (!value) {
+            showFaultFieldError(field.id, field.message);
+            if (!firstInvalidId) firstInvalidId = field.id;
+            valid = false;
+        }
+    });
+
+    if (firstInvalidId) {
+        const firstInvalid = document.getElementById(firstInvalidId);
+        if (firstInvalid && firstInvalid.focus) firstInvalid.focus();
+    }
+
+    return valid;
+}
+
+function closeFaultForm() {
+    const form = document.getElementById("faultForm");
+    if (form) form.style.display = "none";
+
+    // ريست للحقول النصية والقوائم
+    ["faultDevice", "faultBrand", "faultOrigin", "faultSerial", "faultReportedBy", "faultDescription", "faultPriority", "faultStatus"].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = "";
+    });
+
+    // إرجاع القيم الافتراضية الآمنة للقوائم (نفس قيم Firestore الحالية)
+    const prioritySelect = document.getElementById("faultPriority");
+    if (prioritySelect) prioritySelect.value = "MEDIUM";
+
+    const statusSelect = document.getElementById("faultStatus");
+    if (statusSelect) statusSelect.value = "NEW";
+
+    clearFaultFormErrors();
+    setFaultFormBusy(false);
+}
+
+// جلب الأعطال (قراءة أولية)
+async function getMedicalFaults() {
+    const db = getFirestoreDB();
+    if (!db) return;
+
+    try {
+        const { collection, getDocs, query, orderBy } = await import("https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js");
+        
+        const q = query(collection(db, MEDICAL_FAULTS_COLLECTION), orderBy("createdAt", "desc"));
+        const snapshot = await getDocs(q);
+        
+        medicalFaultsCache = [];
+        snapshot.forEach(doc => {
+            medicalFaultsCache.push({ id: doc.id, ...doc.data() });
+        });
+
+        renderMedicalDevicesPage();
+    } catch (error) {
+        console.error("Error loading faults:", error);
+        showMessage("Unable to load maintenance requests.", "error");
+    }
+}
+
+// الاشتراك الحيّ في مجموعة الأعطال: تحديث العدّادات والقوائم تلقائياً
+function subscribeMedicalFaults() {
+    stopMedicalFaultsSubscription();
+
+    const db = getFirestoreDB();
+    if (!db) return;
+
+    import("https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js")
+        .then(({ collection, query, orderBy, onSnapshot }) => {
+            const q = query(collection(db, MEDICAL_FAULTS_COLLECTION), orderBy("createdAt", "desc"));
+
+            medicalFaultsUnsubscribe = onSnapshot(q, snapshot => {
+                medicalFaultsCache = [];
+                snapshot.forEach(doc => {
+                    medicalFaultsCache.push({ id: doc.id, ...doc.data() });
+                });
+                renderMedicalDevicesPage();
+            }, error => {
+                console.error("Error subscribing to faults:", error);
+            });
+        })
+        .catch(error => {
+            console.error("Error starting faults subscription:", error);
+        });
+}
+
+// إيقاف الاشتراك (يُستخدم عند مغادرة القسم أو إعادة الاشتراك)
+function stopMedicalFaultsSubscription() {
+    if (typeof medicalFaultsUnsubscribe === "function") {
+        medicalFaultsUnsubscribe();
+    }
+    medicalFaultsUnsubscribe = null;
+}
+
+// توليد Ticket ID متسلسل باستخدام Transaction
+async function getNextTicketID(db) {
+    const { doc, runTransaction, serverTimestamp } = await import("https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js");
+    
+    const counterDocRef = doc(db, MEDICAL_COUNTERS_COLLECTION, "faults_counter");
+    const year = new Date().getFullYear();
+
+    return await runTransaction(db, async (transaction) => {
+        const counterDoc = await transaction.get(counterDocRef);
+        let nextNumber = 1;
+
+        if (counterDoc.exists()) {
+            const data = counterDoc.data();
+            if (data.year === year) {
+                nextNumber = (data.lastNumber || 0) + 1;
+            }
+        }
+
+        transaction.set(counterDocRef, {
+            year: year,
+            lastNumber: nextNumber,
+            updatedAt: serverTimestamp()
+        });
+
+        const paddedNumber = String(nextNumber).padStart(3, '0');
+        return `REQ-${year}-${paddedNumber}`;
+    });
+}
+
+// إضافة عطل جديد (نفس مجموعة Firestore والبنية الحالية)
+async function addFault() {
+    // منع الإرسال المزدوج من ضغطة واحدة
+    if (faultFormSubmitting) return;
+
+    // التحقق من الحقول المطلوبة قبل الإرسال
+    if (!validateFaultForm()) {
+        showMessage("Please complete the required fields before submitting.", "error");
+        return;
+    }
+
+    const device = document.getElementById("faultDevice").value.trim();
+    const brand = document.getElementById("faultBrand").value.trim();
+    const origin = document.getElementById("faultOrigin").value.trim();
+    const serial = document.getElementById("faultSerial").value.trim();
+    const reportedBy = document.getElementById("faultReportedBy").value.trim();
+    const priority = document.getElementById("faultPriority").value;
+    const status = document.getElementById("faultStatus").value;
+    const description = document.getElementById("faultDescription").value.trim();
+
+    const db = getFirestoreDB();
+    if (!db) {
+        showMessage("Unable to connect to the database. Please try again.", "error");
+        return;
+    }
+
+    setFaultFormBusy(true);
+
+    try {
+        const { collection, addDoc, serverTimestamp } = await import("https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js");
+
+        const ticketID = await getNextTicketID(db);
+
+        await addDoc(collection(db, MEDICAL_FAULTS_COLLECTION), {
+            ticketID,
+            device,
+            brand,
+            origin,
+            serial,
+            reportedBy,
+            priority,
+            status,
+            description,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+            completedAt: status === "COMPLETE" ? serverTimestamp() : null
+        });
+
+        closeFaultForm();
+        showMessage("Fault submitted successfully - Ticket: " + ticketID);
+        await getMedicalFaults();
+    } catch (error) {
+        console.error("Error adding fault:", error);
+        showMessage("Unable to submit the fault. Please try again.", "error");
+    } finally {
+        setFaultFormBusy(false);
+    }
+}
+
+// تحديث لوحة الإحصائيات والقوائم
+function renderMedicalDevicesPage() {
+    renderDashboard();
+    renderFaultsLists();
+}
+
+// توحيد قيمة الحالة القادمة من Firestore
+// (يدعم البيانات القديمة التي كُتبت بحروف صغيرة أو بصيغة COMPLETED)
+const FAULT_STATUS_ALIASES = {
+    NEW: "NEW",
+    "IN PROGRESS": "IN PROGRESS",
+    "AWAITING PARTS": "AWAITING PARTS",
+    COMPLETE: "COMPLETE",
+    COMPLETED: "COMPLETE"
+};
+
+function normalizeFaultStatus(value) {
+    const key = String(value || "").trim().toUpperCase().replace(/_/g, " ");
+    return FAULT_STATUS_ALIASES[key] || key;
+}
+
+// توحيد قيمة الأولوية القادمة من Firestore
+function normalizeFaultPriority(value) {
+    return String(value || "").trim().toUpperCase().replace(/_/g, " ");
+}
+
+function renderDashboard() {
+    // إجمالي الطلبات (Total Requests) — الرقم الفعلي من Firestore
+    const totalEl = document.getElementById("stat-total");
+    if (totalEl) {
+        totalEl.textContent = medicalFaultsCache.length;
+    }
+
+    // تحديث حالات الأعطال
+    FAULT_STATUS_ORDER.forEach(status => {
+        const count = medicalFaultsCache.filter(f => normalizeFaultStatus(f.status) === status).length;
+        const el = document.getElementById(`stat-${status.toLowerCase().replace(" ", "_")}`);
+        if (el) el.textContent = count;
+    });
+
+    // تحديث الأولويات
+    FAULT_PRIORITY_ORDER.forEach(priority => {
+        const count = medicalFaultsCache.filter(f => normalizeFaultPriority(f.priority) === priority).length;
+        const el = document.getElementById(`stat-${priority.toLowerCase()}`);
+        if (el) el.textContent = count;
+    });
+}
+
+function renderFaultsLists() {
+    const pendingContainer = document.getElementById("pendingFaults");
+    const completedContainer = document.getElementById("completedFaults");
+
+    const pending = medicalFaultsCache.filter(f => normalizeFaultStatus(f.status) !== "COMPLETE");
+    const completed = medicalFaultsCache.filter(f => normalizeFaultStatus(f.status) === "COMPLETE");
+
+    document.getElementById("pendingFaultCount").textContent = pending.length;
+    document.getElementById("completedFaultCount").textContent = completed.length;
+
+    if (pending.length === 0) {
+        pendingContainer.innerHTML = `
+            <div class="requests-empty">
+                <div class="requests-empty-icon">🛠️</div>
+                <strong>No maintenance requests found.</strong>
+                <p>Use “+ Add Fault” to register a new maintenance request.</p>
+            </div>`;
+    } else {
+        pendingContainer.innerHTML = pending.map(f => createFaultCardHTML(f)).join("");
+    }
+
+    if (completed.length === 0) {
+        completedContainer.innerHTML = `
+            <div class="requests-empty">
+                <div class="requests-empty-icon">✅</div>
+                <strong>No completed requests yet.</strong>
+                <p>Serviced requests will appear here.</p>
+            </div>`;
+    } else {
+        completedContainer.innerHTML = completed.map(f => createFaultCardHTML(f, true)).join("");
+    }
+}
+
+function createFaultCardHTML(fault, isCompleted = false) {
+    const createdDate = fault.createdAt ? formatPurchaseDate(fault.createdAt) : "---";
+    const completedDate = fault.completedAt ? formatPurchaseDate(fault.completedAt) : "";
+
+    const statusKey = normalizeFaultStatus(fault.status);
+    const priorityKey = normalizeFaultPriority(fault.priority);
+
+    const statusLabel = FAULT_STATUS_LABELS[statusKey] || statusKey || "---";
+    const priorityLabel = FAULT_PRIORITY_LABELS[priorityKey] || priorityKey || "---";
+
+    const statusClass = "is-status-" + (statusKey.replace(/[^A-Z0-9]+/g, "-") || "UNKNOWN");
+    const priorityClass = "is-priority-" + (priorityKey.replace(/[^A-Z0-9]+/g, "-") || "UNKNOWN");
+
+    let actionsHTML = "";
+    if (!isCompleted) {
+        actionsHTML = `
+            <button type="button" class="request-complete-btn" onclick="markAsComplete('${fault.id}')">
+                Mark as Completed
+            </button>`;
+    }
+
+    let completedMetaHTML = "";
+    if (isCompleted) {
+        completedMetaHTML = `
+                <div class="request-meta-item">
+                    <span class="request-meta-label">Completed At</span>
+                    <span class="request-meta-value">${completedDate || "---"}</span>
+                </div>`;
+    }
+
+    return `
+        <article class="request-card">
+            <div class="request-card-top">
+                <span class="request-id">${escapeHTML(fault.ticketID || "---")}</span>
+                <span class="request-badges">
+                    <span class="request-badge ${statusClass}">${escapeHTML(statusLabel)}</span>
+                    <span class="request-badge ${priorityClass}">${escapeHTML(priorityLabel)}</span>
+                </span>
+            </div>
+
+            <div class="request-device">
+                <span class="request-device-name">${escapeHTML(fault.device || "Unnamed device")}</span>
+                ${fault.serial ? `<span class="request-serial">SN: ${escapeHTML(fault.serial)}</span>` : ""}
+            </div>
+
+            <div class="request-meta">
+                <div class="request-meta-item">
+                    <span class="request-meta-label">Brand</span>
+                    <span class="request-meta-value">${escapeHTML(fault.brand || "---")}</span>
+                </div>
+                <div class="request-meta-item">
+                    <span class="request-meta-label">Origin</span>
+                    <span class="request-meta-value">${escapeHTML(fault.origin || "---")}</span>
+                </div>
+                <div class="request-meta-item">
+                    <span class="request-meta-label">Reported By</span>
+                    <span class="request-meta-value">${escapeHTML(fault.reportedBy || "---")}</span>
+                </div>
+                <div class="request-meta-item">
+                    <span class="request-meta-label">Created At</span>
+                    <span class="request-meta-value">${createdDate}</span>
+                </div>${completedMetaHTML}
+            </div>
+
+            <p class="request-desc">${escapeHTML(fault.description || "No description provided.")}</p>
+            ${actionsHTML}
+        </article>`;
+}
+
+async function markAsComplete(id) {
+    const db = getFirestoreDB();
+    if (!db) return;
+
+    try {
+        const { doc, updateDoc, serverTimestamp } = await import("https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js");
+        
+        await updateDoc(doc(db, MEDICAL_FAULTS_COLLECTION, id), {
+            status: "COMPLETE",
+            completedAt: serverTimestamp(),
+            updatedAt: serverTimestamp()
+        });
+
+        showMessage("Maintenance request completed.");
+        await getMedicalFaults();
+    } catch (error) {
+        console.error("Error updating fault status:", error);
+        showMessage("Unable to complete the maintenance request.", "error");
+    }
 }
 
 // ============================================================
