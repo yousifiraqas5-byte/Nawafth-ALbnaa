@@ -1028,6 +1028,62 @@ content="default"
       transform: scale(.99);
     }
 
+    /* زر حذف العطل + صف الإجراءات على بطاقة الطلب */
+    #medicalDevicesPage .request-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    #medicalDevicesPage .request-actions .request-complete-btn {
+      width: auto;
+      flex: 1;
+      margin-top: 0;
+    }
+
+    #medicalDevicesPage .request-delete-btn {
+      flex: 1;
+      border: 1px solid #f3c9c2;
+      border-radius: 12px;
+      padding: 12px;
+      background: #fdeeec;
+      color: #c0392b;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    #medicalDevicesPage .request-delete-btn:active {
+      transform: scale(.99);
+    }
+
+    /* نفس تنسيق أزرار الجرد (inventory-btn/hint) لكن مُطبّق هنا أيضًا،
+       لأن زر "سحب ملف Excel" موجود فعليًا داخل #medicalDevicesPage
+       وليس داخل #deviceInventoryPage، وكانت القاعدة الأصلية لا تطاله. */
+    #medicalDevicesPage .inventory-btn {
+      border: 1px solid #dde5e1;
+      border-radius: 12px;
+      padding: 11px 16px;
+      background: #ffffff;
+      color: #5f6f68;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    #medicalDevicesPage .inventory-btn:hover {
+      border-color: #14724e;
+      color: #14724e;
+    }
+
+    #medicalDevicesPage .inventory-hint {
+      font-size: 12px;
+      font-weight: 700;
+      color: #83918a;
+    }
+
     /* ==========================================================
        MEDICAL DEVICE INVENTORY (Excel inventory, English / LTR)
        كل التنسيقات محصورة داخل #deviceInventoryPage
@@ -1691,7 +1747,10 @@ content="default"
       onclick="openAuth()"
       aria-label="تسجيل الدخول"
     >
-      🔓
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" style="display:block;">
+        <rect x="4" y="11" width="16" height="10" rx="2" stroke="currentColor" stroke-width="2"></rect>
+        <path d="M8 11V7a4 4 0 0 1 7.6-1.8" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
+      </svg>
     </button>
 
   </div>
@@ -1735,7 +1794,6 @@ content="default"
         id="authForm"
         autocomplete="off"
         novalidate
-        onsubmit="authSubmit(event)"
       >
 
         <div class="auth-field">
@@ -2710,6 +2768,20 @@ content="default"
           <strong>No completed requests yet.</strong>
           <p>Serviced requests will appear here.</p>
         </div>
+      </div>
+    </section>
+
+    <!-- EXCEL PULL ACTIVITY -->
+    <section class="medical-block">
+      <div class="medical-block-head">
+        <h3>Excel Data Pull</h3>
+        <p>Pull medical device data from the official Excel inventory file</p>
+      </div>
+      <div class="medical-actions" style="display:flex; gap:10px; flex-wrap:wrap;">
+        <button type="button" class="inventory-btn" onclick="pullMedicalDevicesFromExcel()">
+          سحب ملف Excel
+        </button>
+        <span id="excelPullStatus" class="inventory-hint"></span>
       </div>
     </section>
 
@@ -3827,6 +3899,13 @@ FIREBASE
     );
 
     // مراقبة حالة تسجيل الدخول — يستدعي منطقًا موجودًا في script.js
+    // ملاحظة: onAuthStateChanged قد يُطلق قبل اكتمال تحميل script.js
+    // (خصوصًا عند وجود جلسة دخول محفوظة مسبقًا)، فإذا كانت
+    // handleAuthStateChanged غير معرّفة بعد نخزّن آخر حالة ونُعيد
+    // تطبيقها بعد تحميل script.js بدل تجاهلها بصمت.
+    window.__pendingAuthUser = undefined;
+    window.__pendingAuthUserSet = false;
+
     if (typeof onAuthStateChanged === "function") {
 
       onAuthStateChanged(
@@ -3839,6 +3918,11 @@ FIREBASE
               user,
               window.firebaseAuth
             );
+
+          } else {
+
+            window.__pendingAuthUser = user;
+            window.__pendingAuthUserSet = true;
 
           }
 
@@ -3861,6 +3945,20 @@ FIREBASE
         console.log(
           "script.js loaded successfully"
         );
+
+        if (
+          window.__pendingAuthUserSet &&
+          typeof handleAuthStateChanged === "function"
+        ) {
+
+          handleAuthStateChanged(
+            window.__pendingAuthUser,
+            window.firebaseAuth
+          );
+
+          window.__pendingAuthUserSet = false;
+
+        }
 
       };
 

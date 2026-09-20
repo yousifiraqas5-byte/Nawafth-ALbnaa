@@ -1,6 +1,6 @@
-﻿// ============================================================
-// شركة نوافذ البناء - script.js
-// المشتريات + التقارير اليومية + المهام
+// ============================================================
+// ???? ????? ?????? - script.js
+// ????????? + ???????? ??????? + ??????
 // ============================================================
 
 const PURCHASES_COLLECTION = "purchases";
@@ -13,12 +13,12 @@ const MEDICAL_FAULTS_COLLECTION = "medical_device_faults";
 const MEDICAL_COUNTERS_COLLECTION = "counters";
 const FUEL_TANKS_COLLECTION = "fuelTanks";
 
-// مهم: ضع هنا مفتاح VAPID العام من
+// ???: ?? ??? ????? VAPID ????? ??
 // Firebase Console > Project settings > Cloud Messaging > Web push certificates
 const VAPID_KEY = "BHbv8qWWjW8vpXgOUwauTqEev2HCJSAtpXsOiR9_YRKNWY2LwBXbiZwn_SnIpRNNL0vkvIFM0yVHkBoD-DsCfp4";
 
 // ============================================================
-// المتغيرات
+// ?????????
 // ============================================================
 
 let purchasesCache = [];
@@ -36,21 +36,21 @@ let toastTimer = null;
 let currentEngineer = "";
 
 // ============================================================
-// أسماء المهندسين
+// ????? ?????????
 // ============================================================
 
 const ENGINEERS = [
-    "م. يوسف",
-    "م. محمد",
-    "م. أحمد",
-    "م. بلال",
-    "م. حسين",
-    "د. إبراهيم",
-    "م. نور"
+    "?. ????",
+    "?. ????",
+    "?. ????",
+    "?. ????",
+    "?. ????",
+    "?. ???????",
+    "?. ???"
 ];
 
 // ============================================================
-// قائمة الأجهزة الطبية (من كتالوج الأجهزة الفعلي)
+// ????? ??????? ?????? (?? ?????? ??????? ??????)
 // ============================================================
 
 const MEDICAL_DEVICES = [
@@ -286,18 +286,18 @@ const MEDICAL_DEVICES = [
 ];
 
 // ============================================================
-// مواقع الجرد (المخازن + المطبخ)
+// ????? ????? (??????? + ??????)
 // ============================================================
 
 const INVENTORY_LOCATIONS = {
-    containers: { name: "الحاويات", icon: "🚢", sub: "مخزن الحاويات" },
-    hall: { name: "القاعة", icon: "🏭", sub: "مخزن القاعة" },
-    building6: { name: "مخزن بناية 6", icon: "🏢", sub: "مخزن بناية 6" },
-    kitchen: { name: "المطبخ", icon: "🍽️", sub: "إدارة ومتابعة المطبخ" }
+    containers: { name: "????????", icon: "??", sub: "???? ????????" },
+    hall: { name: "??????", icon: "??", sub: "???? ??????" },
+    building6: { name: "???? ????? 6", icon: "??", sub: "???? ????? 6" },
+    kitchen: { name: "??????", icon: "???", sub: "????? ??????? ??????" }
 };
 
 // ============================================================
-// الحصول على Firebase
+// ?????? ??? Firebase
 // ============================================================
 
 function getFirestoreDB() {
@@ -305,11 +305,11 @@ function getFirestoreDB() {
     if (!window.firebaseDb) {
 
         console.error(
-            "Firebase Firestore غير متوفر"
+            "Firebase Firestore ??? ?????"
         );
 
         showMessage(
-            "حدث خطأ في الاتصال بقاعدة البيانات",
+            "??? ??? ?? ??????? ?????? ????????",
             "error"
         );
 
@@ -320,7 +320,7 @@ function getFirestoreDB() {
 }
 
 // ============================================================
-// التنقل بين الصفحات
+// ?????? ??? ???????
 // ============================================================
 
 function showPage(pageId) {
@@ -349,7 +349,7 @@ function showPage(pageId) {
     } else {
 
         console.error(
-            "الصفحة غير موجودة:",
+            "?????? ??? ??????:",
             pageId
         );
 
@@ -358,7 +358,7 @@ function showPage(pageId) {
 }
 
 // ============================================================
-// الصفحة الرئيسية
+// ?????? ????????
 // ============================================================
 
 function goHome() {
@@ -387,10 +387,10 @@ function openPurchases() {
 
 }
 
-// ملاحظة: openMedicalDevices يتم تعريفها مرة واحدة فقط داخل قسم الأجهزة الطبية.
+// ??????: openMedicalDevices ??? ??????? ??? ????? ??? ???? ??? ??????? ??????.
 
 // ============================================================
-// رسائل
+// ?????
 // ============================================================
 
 function showMessage(
@@ -497,7 +497,7 @@ function showMessage(
 }
 
 // ============================================================
-// ========================= المشتريات ========================
+// ========================= ????????? ========================
 // ============================================================
 
 function openPurchaseForm() {
@@ -586,7 +586,7 @@ async function getPurchases() {
     } catch (error) {
 
         console.error(
-            "خطأ تحميل المشتريات:",
+            "??? ????? ?????????:",
             error
         );
 
@@ -642,12 +642,12 @@ async function getPurchases() {
         } catch (secondError) {
 
             console.error(
-                "خطأ التحميل الثاني:",
+                "??? ??????? ??????:",
                 secondError
             );
 
             showMessage(
-                "تعذر تحميل المشتريات",
+                "???? ????? ?????????",
                 "error"
             );
 
@@ -683,7 +683,7 @@ async function addPurchase() {
     ) {
 
         showMessage(
-            "حقول المشتريات غير موجودة",
+            "???? ????????? ??? ??????",
             "error"
         );
 
@@ -707,7 +707,7 @@ async function addPurchase() {
     ) {
 
         showMessage(
-            "يرجى ملء جميع الحقول",
+            "???? ??? ???? ??????",
             "error"
         );
 
@@ -762,11 +762,11 @@ async function addPurchase() {
         closePurchaseForm();
 
         showMessage(
-            "تمت إضافة الطلب بنجاح"
+            "??? ????? ????? ?????"
         );
 
         notify(
-            "طلب شراء جديد",
+            "??? ???? ????",
             item + " - " + quantity + " " + unit,
             "purchase"
         );
@@ -776,16 +776,16 @@ async function addPurchase() {
     } catch (error) {
 
         console.error(
-            "خطأ إضافة الطلب:",
+            "??? ????? ?????:",
             error
         );
 
         showMessage(
-            "حدث خطأ أثناء إضافة الطلب: " +
+            "??? ??? ????? ????? ?????: " +
             (
                 error.code ||
                 error.message ||
-                "خطأ غير معروف"
+                "??? ??? ?????"
             ),
             "error"
         );
@@ -853,16 +853,16 @@ function renderPurchases() {
                 <div class="empty-purchases">
 
                     <div class="empty-purchases-icon">
-                        🛒
+                        ??
                     </div>
 
                     <strong>
-                        لا توجد طلبات شراء
+                        ?? ???? ????? ????
                     </strong>
 
                     <span>
-                        اضغط على "طلب شراء"
-                        لإضافة مادة جديدة
+                        ???? ??? "??? ????"
+                        ?????? ???? ?????
                     </span>
 
                 </div>
@@ -894,16 +894,16 @@ function renderPurchases() {
                 <div class="empty-purchases completed-empty">
 
                     <div class="empty-purchases-icon">
-                        📦
+                        ??
                     </div>
 
                     <strong>
-                        لا توجد مواد مجهزة
+                        ?? ???? ???? ?????
                     </strong>
 
                     <span>
-                        الطلبات التي يتم شراؤها
-                        ستظهر هنا
+                        ??????? ???? ??? ??????
+                        ????? ???
                     </span>
 
                 </div>
@@ -957,7 +957,7 @@ function createPurchaseHTML(
                 color:#555;
                 margin-bottom:6px;
             ">
-                الوحدة:
+                ??????:
                 ${escapeHTML(
                     purchase.unit
                 )}
@@ -967,7 +967,7 @@ function createPurchaseHTML(
                 color:#555;
                 margin-bottom:6px;
             ">
-                العدد:
+                ?????:
                 ${escapeHTML(
                     purchase.quantity
                 )}
@@ -978,7 +978,7 @@ function createPurchaseHTML(
                 font-size:13px;
                 margin-bottom:12px;
             ">
-                تاريخ الطلب:
+                ????? ?????:
                 ${formatPurchaseDate(
                     purchase.createdAt
                 )}
@@ -997,7 +997,7 @@ function createPurchaseHTML(
                     cursor:pointer;
                 "
             >
-                تم التجهيز
+                ?? ???????
             </button>
 
         </div>
@@ -1035,7 +1035,7 @@ function createCompletedPurchaseHTML(
                 color:#555;
                 margin-bottom:6px;
             ">
-                الوحدة:
+                ??????:
                 ${escapeHTML(
                     purchase.unit
                 )}
@@ -1045,7 +1045,7 @@ function createCompletedPurchaseHTML(
                 color:#555;
                 margin-bottom:6px;
             ">
-                العدد:
+                ?????:
                 ${escapeHTML(
                     purchase.quantity
                 )}
@@ -1056,7 +1056,7 @@ function createCompletedPurchaseHTML(
                 font-size:13px;
                 margin-bottom:6px;
             ">
-                تاريخ الطلب:
+                ????? ?????:
                 ${formatPurchaseDate(
                     purchase.createdAt
                 )}
@@ -1067,7 +1067,7 @@ function createCompletedPurchaseHTML(
                 font-size:13px;
                 margin-bottom:12px;
             ">
-                تاريخ التجهيز:
+                ????? ???????:
                 ${formatPurchaseDate(
                     purchase.completedAt
                 )}
@@ -1086,7 +1086,7 @@ function createCompletedPurchaseHTML(
                     cursor:pointer;
                 "
             >
-                إرجاع للطلبات
+                ????? ???????
             </button>
 
         </div>
@@ -1133,13 +1133,13 @@ async function completePurchase(id) {
         const purchase = purchasesCache.find(p => p.id === id);
 
         notify(
-            "تم تجهيز طلب",
-            "تم شراء وتجهيز: " + (purchase ? purchase.item : ""),
+            "?? ????? ???",
+            "?? ???? ??????: " + (purchase ? purchase.item : ""),
             "purchase"
         );
 
         showMessage(
-            "تم نقل الطلب إلى تم تجهيزه"
+            "?? ??? ????? ??? ?? ??????"
         );
 
         await getPurchases();
@@ -1147,12 +1147,12 @@ async function completePurchase(id) {
     } catch (error) {
 
         console.error(
-            "خطأ تحديث الطلب:",
+            "??? ????? ?????:",
             error
         );
 
         showMessage(
-            "حدث خطأ أثناء تحديث الطلب",
+            "??? ??? ????? ????? ?????",
             "error"
         );
 
@@ -1194,7 +1194,7 @@ async function returnPurchase(id) {
         );
 
         showMessage(
-            "تم إرجاع الطلب"
+            "?? ????? ?????"
         );
 
         await getPurchases();
@@ -1202,12 +1202,12 @@ async function returnPurchase(id) {
     } catch (error) {
 
         console.error(
-            "خطأ إرجاع الطلب:",
+            "??? ????? ?????:",
             error
         );
 
         showMessage(
-            "حدث خطأ أثناء إرجاع الطلب",
+            "??? ??? ????? ????? ?????",
             "error"
         );
 
@@ -1278,7 +1278,7 @@ function formatPurchaseDate(
 }
 
 // ============================================================
-// ==================== المخازن والمطبخ (الجرد) ===============
+// ==================== ??????? ??????? (?????) ===============
 // ============================================================
 
 function openWarehouse(locationKey) {
@@ -1291,7 +1291,7 @@ function openKitchen() {
 
 function showInventory(locationKey) {
     if (!INVENTORY_LOCATIONS[locationKey]) {
-        showMessage("المكان غير موجود", "error");
+        showMessage("?????? ??? ?????", "error");
         return;
     }
 
@@ -1314,10 +1314,10 @@ function showInventory(locationKey) {
     const backButton = document.getElementById("inventoryBackButton");
     if (backButton) {
         if (locationKey === "kitchen") {
-            backButton.textContent = "→ الرئيسية";
+            backButton.textContent = "? ????????";
             backButton.setAttribute("onclick", "goHome()");
         } else {
-            backButton.textContent = "→ المخازن";
+            backButton.textContent = "? ???????";
             backButton.setAttribute("onclick", "openStorage()");
         }
     }
@@ -1333,7 +1333,7 @@ function showInventory(locationKey) {
 
 function openMaterialForm(actionType) {
     if (!currentLocation) {
-        showMessage("اختر المخزن أو المطبخ أولاً", "error");
+        showMessage("???? ?????? ?? ?????? ?????", "error");
         return;
     }
 
@@ -1344,7 +1344,7 @@ function openMaterialForm(actionType) {
 
     const title = document.getElementById("materialFormTitle");
     if (title) {
-        title.textContent = currentMaterialAction === "withdraw" ? "سحب مادة" : "إضافة مادة";
+        title.textContent = currentMaterialAction === "withdraw" ? "??? ????" : "????? ????";
     }
 
     const today = new Date().toISOString().split("T")[0];
@@ -1387,8 +1387,8 @@ async function getMaterials() {
         renderInventory();
 
     } catch (error) {
-        console.error("خطأ تحميل المواد:", error);
-        showMessage("تعذر تحميل المواد", "error");
+        console.error("??? ????? ??????:", error);
+        showMessage("???? ????? ??????", "error");
     }
 }
 
@@ -1402,7 +1402,7 @@ async function saveMaterial() {
     const notesInput = document.getElementById("materialNotes");
 
     if (!itemInput || !unitInput || !quantityInput || !dateInput || !notesInput) {
-        showMessage("حقول المواد غير موجودة", "error");
+        showMessage("???? ?????? ??? ??????", "error");
         return;
     }
 
@@ -1413,12 +1413,12 @@ async function saveMaterial() {
     const notes = notesInput.value.trim();
 
     if (!item || !unit || !quantity || !actionDate) {
-        showMessage("يرجى ملء جميع الحقول المطلوبة", "error");
+        showMessage("???? ??? ???? ?????? ????????", "error");
         return;
     }
 
     if (parseFloat(quantity) <= 0) {
-        showMessage("الكمية يجب أن تكون أكبر من صفر", "error");
+        showMessage("?????? ??? ?? ???? ???? ?? ???", "error");
         return;
     }
 
@@ -1439,11 +1439,11 @@ async function saveMaterial() {
             createdAt: serverTimestamp()
         });
 
-        const locationName = INVENTORY_LOCATIONS[currentLocation]?.name || "المكان";
+        const locationName = INVENTORY_LOCATIONS[currentLocation]?.name || "??????";
         const isWithdraw = currentMaterialAction === "withdraw";
 
         notify(
-            isWithdraw ? "سحب مادة" : "إضافة مادة",
+            isWithdraw ? "??? ????" : "????? ????",
             locationName + ": " + item + " - " + (isWithdraw ? "-" : "+") + quantity + " " + unit,
             "material"
         );
@@ -1455,20 +1455,20 @@ async function saveMaterial() {
 
         closeMaterialForm();
 
-        showMessage("تم حفظ العملية بنجاح");
+        showMessage("?? ??? ??????? ?????");
 
         await getMaterials();
 
     } catch (error) {
-        console.error("خطأ حفظ المادة:", error);
-        showMessage("حدث خطأ أثناء حفظ العملية: " + (error.code || error.message || "خطأ غير معروف"), "error");
+        console.error("??? ??? ??????:", error);
+        showMessage("??? ??? ????? ??? ???????: " + (error.code || error.message || "??? ??? ?????"), "error");
     }
 }
 
 async function deleteMaterial(id) {
     if (!requireLoginForWrite(() => deleteMaterial(id))) return;
 
-    if (!confirm("هل تريد حذف هذه الحركة؟")) {
+    if (!confirm("?? ???? ??? ??? ???????")) {
         return;
     }
 
@@ -1480,13 +1480,13 @@ async function deleteMaterial(id) {
 
         await deleteDoc(doc(db, MATERIALS_COLLECTION, id));
 
-        showMessage("تم حذف الحركة");
+        showMessage("?? ??? ??????");
 
         await getMaterials();
 
     } catch (error) {
-        console.error("خطأ حذف المادة:", error);
-        showMessage("حدث خطأ أثناء حذف الحركة", "error");
+        console.error("??? ??? ??????:", error);
+        showMessage("??? ??? ????? ??? ??????", "error");
     }
 }
 
@@ -1548,18 +1548,18 @@ function renderStockSummary(movements) {
     container.innerHTML = `
         <div class="stock-summary-card">
             <div class="stock-summary-header">
-                <h3>📦 الرصيد الحالي</h3>
+                <h3>?? ?????? ??????</h3>
                 <span class="stock-badge">${entries.length}</span>
             </div>
             <div class="materials-table-wrap">
                 <table class="inventory-table">
                     <thead>
                         <tr>
-                            <th>المادة</th>
-                            <th>الوحدة</th>
-                            <th>المضاف</th>
-                            <th>المسحوب</th>
-                            <th>الرصيد</th>
+                            <th>??????</th>
+                            <th>??????</th>
+                            <th>??????</th>
+                            <th>???????</th>
+                            <th>??????</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -1598,9 +1598,9 @@ function renderMaterialsTable(movements) {
     if (movements.length === 0) {
         container.innerHTML = `
             <div class="empty-materials">
-                <div class="empty-materials-icon">📦</div>
-                <strong>لا توجد حركات بعد</strong>
-                <span>استخدم "إضافة مادة" أو "سحب مادة" لتسجيل أول حركة</span>
+                <div class="empty-materials-icon">??</div>
+                <strong>?? ???? ????? ???</strong>
+                <span>?????? "????? ????" ?? "??? ????" ?????? ??? ????</span>
             </div>
         `;
         return;
@@ -1611,7 +1611,7 @@ function renderMaterialsTable(movements) {
     movements.forEach(m => {
         const isWithdraw = m.actionType === "withdraw";
         const badgeClass = isWithdraw ? "operation-withdraw" : "operation-add";
-        const badgeText = isWithdraw ? "سحب" : "إضافة";
+        const badgeText = isWithdraw ? "???" : "?????";
         const qtyClass = isWithdraw ? "qty-withdraw" : "qty-add";
         const qtySign = isWithdraw ? "-" : "+";
 
@@ -1627,7 +1627,7 @@ function renderMaterialsTable(movements) {
                         type="button"
                         class="delete-material-button"
                         onclick="deleteMaterial('${m.id}')"
-                    >حذف</button>
+                    >???</button>
                 </td>
             </tr>
         `;
@@ -1637,12 +1637,12 @@ function renderMaterialsTable(movements) {
         <table class="inventory-table">
             <thead>
                 <tr>
-                    <th>المادة</th>
-                    <th>الوحدة</th>
-                    <th>النوع</th>
-                    <th>الكمية</th>
-                    <th>تاريخ العملية</th>
-                    <th>خيارات</th>
+                    <th>??????</th>
+                    <th>??????</th>
+                    <th>?????</th>
+                    <th>??????</th>
+                    <th>????? ???????</th>
+                    <th>??????</th>
                 </tr>
             </thead>
             <tbody>
@@ -1653,7 +1653,7 @@ function renderMaterialsTable(movements) {
 }
 
 // ============================================================
-// ========================= التقارير =========================
+// ========================= ???????? =========================
 // ============================================================
 
 async function getReports() {
@@ -1715,12 +1715,12 @@ async function getReports() {
     } catch (error) {
 
         console.error(
-            "خطأ تحميل التقارير:",
+            "??? ????? ????????:",
             error
         );
 
         showMessage(
-            "تعذر تحميل التقارير",
+            "???? ????? ????????",
             "error"
         );
 
@@ -1744,55 +1744,55 @@ function prepareReportForm() {
 
 }
 
-// بناء قائمة التاريخ المنسدلة بالأيام والتواريخ العربية
-// قيمة كل خيار تبقى بصيغة ISO حتى لا تتغير البيانات المحفوظة في Firestore
+// ???? ????? ??????? ???????? ??????? ????????? ???????
+// ???? ?? ???? ???? ????? ISO ??? ?? ????? ???????? ???????? ?? Firestore
 const REPORT_DATE_DAYS_COUNT = 90;
 
 function formatArabicDate(date) {
 
     const dayNames = [
 
-        "الأحد",
+        "?????",
 
-        "الاثنين",
+        "???????",
 
-        "الثلاثاء",
+        "????????",
 
-        "الأربعاء",
+        "????????",
 
-        "الخميس",
+        "??????",
 
-        "الجمعة",
+        "??????",
 
-        "السبت"
+        "?????"
 
     ];
 
     const monthNames = [
 
-        "يناير",
+        "?????",
 
-        "فبراير",
+        "??????",
 
-        "مارس",
+        "????",
 
-        "أبريل",
+        "?????",
 
-        "مايو",
+        "????",
 
-        "يونيو",
+        "?????",
 
-        "يوليو",
+        "?????",
 
-        "أغسطس",
+        "?????",
 
-        "سبتمبر",
+        "??????",
 
-        "أكتوبر",
+        "??????",
 
-        "نوفمبر",
+        "??????",
 
-        "ديسمبر"
+        "??????"
 
     ];
 
@@ -1816,7 +1816,7 @@ function populateReportDateOptions() {
         new Date();
 
     let optionsHtml =
-        '<option value="">اختر التاريخ</option>';
+        '<option value="">???? ???????</option>';
 
     for (let i = 0; i < REPORT_DATE_DAYS_COUNT; i++) {
 
@@ -1849,7 +1849,7 @@ function populateReportDateOptions() {
 
     } else {
 
-        // الحفاظ على السلوك السابق: اليوم الحالي هو القيمة الافتراضية
+        // ?????? ??? ?????? ??????: ????? ?????? ?? ?????? ??????????
         const todayIso =
             today.getFullYear() + "-" +
             String(today.getMonth() + 1).padStart(2, "0") + "-" +
@@ -1897,19 +1897,19 @@ function updateDayFromDate() {
 
     const days = [
 
-        "الأحد",
+        "?????",
 
-        "الاثنين",
+        "???????",
 
-        "الثلاثاء",
+        "????????",
 
-        "الأربعاء",
+        "????????",
 
-        "الخميس",
+        "??????",
 
-        "الجمعة",
+        "??????",
 
-        "السبت"
+        "?????"
 
     ];
 
@@ -1946,7 +1946,7 @@ async function saveReport() {
     ) {
 
         showMessage(
-            "حقول التقرير غير موجودة",
+            "???? ??????? ??? ??????",
             "error"
         );
 
@@ -1970,7 +1970,7 @@ async function saveReport() {
     ) {
 
         showMessage(
-            "يرجى ملء جميع بيانات التقرير",
+            "???? ??? ???? ?????? ???????",
             "error"
         );
 
@@ -2015,12 +2015,12 @@ async function saveReport() {
         textInput.value = "";
 
         showMessage(
-            "تم حفظ التقرير بنجاح"
+            "?? ??? ??????? ?????"
         );
 
         notify(
-            "تقرير يومي جديد",
-            "تم تسجيل تقرير يوم " + formatArabicDate(new Date(date + "T00:00:00")),
+            "????? ???? ????",
+            "?? ????? ????? ??? " + formatArabicDate(new Date(date + "T00:00:00")),
             "report"
         );
 
@@ -2029,16 +2029,16 @@ async function saveReport() {
     } catch (error) {
 
         console.error(
-            "خطأ حفظ التقرير:",
+            "??? ??? ???????:",
             error
         );
 
         showMessage(
-            "حدث خطأ أثناء حفظ التقرير: " +
+            "??? ??? ????? ??? ???????: " +
             (
                 error.code ||
                 error.message ||
-                "خطأ غير معروف"
+                "??? ??? ?????"
             ),
             "error"
         );
@@ -2056,15 +2056,15 @@ function renderReports() {
     if (reportsCache.length === 0) {
         container.innerHTML = `
             <div class="empty-reports">
-                <div class="empty-reports-icon">📋</div>
-                <strong>لا توجد تقارير حالياً</strong>
-                <span>اضغط على "إضافة تقرير" لإنشاء أول تقرير</span>
+                <div class="empty-reports-icon">??</div>
+                <strong>?? ???? ?????? ??????</strong>
+                <span>???? ??? "????? ?????" ?????? ??? ?????</span>
             </div>
         `;
         return;
     }
 
-    // التأكد من أن التقرير المحدد موجود ضمن البيانات الحالية (افتراضياً الأحدث)
+    // ?????? ?? ?? ??????? ?????? ????? ??? ???????? ??????? (????????? ??????)
     if (!selectedReportId || !reportsCache.some(r => r.id === selectedReportId)) {
         selectedReportId = reportsCache[0].id;
     }
@@ -2072,8 +2072,8 @@ function renderReports() {
     const optionsHtml = reportsCache.map(report => {
         const dateObj = report.date ? new Date(report.date + "T00:00:00") : null;
         const label = dateObj
-            ? `${getArabicDayName(dateObj)} — ${formatArabicDate(dateObj)}`
-            : (report.day || "تقرير");
+            ? `${getArabicDayName(dateObj)} � ${formatArabicDate(dateObj)}`
+            : (report.day || "?????");
         const selected = report.id === selectedReportId ? " selected" : "";
         return `<option value="${escapeHTML(report.id)}"${selected}>${escapeHTML(label)}</option>`;
     }).join("");
@@ -2082,7 +2082,7 @@ function renderReports() {
 
     container.innerHTML = `
         <div class="report-day-picker form-group">
-            <label for="reportDaySelect">اختر اليوم</label>
+            <label for="reportDaySelect">???? ?????</label>
             <select id="reportDaySelect" onchange="onReportDayChange(this.value)">
                 ${optionsHtml}
             </select>
@@ -2093,7 +2093,7 @@ function renderReports() {
     `;
 }
 
-// تغيير اليوم المحدد من القائمة المنسدلة — يعرض محتوى التقرير المحفوظ لذلك اليوم
+// ????? ????? ?????? ?? ??????? ???????? � ???? ????? ??????? ??????? ???? ?????
 function onReportDayChange(reportId) {
     selectedReportId = reportId;
     renderReports();
@@ -2113,17 +2113,17 @@ function renderReportSummary() {
     summary.className = "report-summary";
     summary.innerHTML = `
         <div class="report-stat-box">
-            <div class="report-stat-icon">📋</div>
+            <div class="report-stat-icon">??</div>
             <div class="report-stat-text">
                 <strong>${reportsCache.length}</strong>
-                <span>إجمالي التقارير</span>
+                <span>?????? ????????</span>
             </div>
         </div>
         <div class="report-stat-box">
-            <div class="report-stat-icon">📅</div>
+            <div class="report-stat-icon">??</div>
             <div class="report-stat-text">
                 <strong>${todayCount}</strong>
-                <span>تقارير اليوم</span>
+                <span>?????? ?????</span>
             </div>
         </div>
     `;
@@ -2138,7 +2138,7 @@ function createReportHTML(report, index) {
         <div class="report-card">
             <div class="report-card-header">
                 <div class="report-date-box">
-                    <div class="report-date-icon">📋</div>
+                    <div class="report-date-icon">??</div>
                     <div class="report-date-text">
                         <strong>${escapeHTML(report.day)}</strong>
                         <span>${escapeHTML(report.date ? formatArabicDate(new Date(report.date + "T00:00:00")) : "")}</span>
@@ -2148,16 +2148,16 @@ function createReportHTML(report, index) {
                     type="button"
                     class="delete-report-button"
                     onclick="deleteReport('${report.id}')"
-                    aria-label="حذف التقرير"
-                >حذف</button>
+                    aria-label="??? ???????"
+                >???</button>
             </div>
             <div class="report-body">
-                <div class="report-body-title">تفاصيل التقرير</div>
+                <div class="report-body-title">?????? ???????</div>
                 <div class="report-body-text">${escapeHTML(report.text)}</div>
             </div>
             <div class="report-card-footer">
-                <span class="report-time">⏰ ${formatPurchaseDate(report.createdAt)}</span>
-                <span class="report-time">رقم التقرير ${reportNumber}</span>
+                <span class="report-time">? ${formatPurchaseDate(report.createdAt)}</span>
+                <span class="report-time">??? ??????? ${reportNumber}</span>
             </div>
         </div>
     `;
@@ -2177,7 +2177,7 @@ async function deleteReport(id) {
 
     if (
         !confirm(
-            "هل تريد حذف التقرير؟"
+            "?? ???? ??? ????????"
         )
     ) {
 
@@ -2208,7 +2208,7 @@ async function deleteReport(id) {
         );
 
         showMessage(
-            "تم حذف التقرير"
+            "?? ??? ???????"
         );
 
         await getReports();
@@ -2216,12 +2216,12 @@ async function deleteReport(id) {
     } catch (error) {
 
         console.error(
-            "خطأ حذف التقرير:",
+            "??? ??? ???????:",
             error
         );
 
         showMessage(
-            "حدث خطأ أثناء حذف التقرير",
+            "??? ??? ????? ??? ???????",
             "error"
         );
 
@@ -2230,7 +2230,7 @@ async function deleteReport(id) {
 }
 
 // ============================================================
-// ========================= الإشعارات ========================
+// ========================= ????????? ========================
 // ============================================================
 
 function openNotifications() {
@@ -2266,7 +2266,7 @@ async function getNotifications() {
         updateNotificationBadge();
 
     } catch (error) {
-        console.error("خطأ تحميل الإشعارات:", error);
+        console.error("??? ????? ?????????:", error);
     }
 }
 
@@ -2277,9 +2277,9 @@ function renderNotifications() {
     if (notificationsCache.length === 0) {
         container.innerHTML = `
             <div class="empty-notifications">
-                <div class="empty-notifications-icon">🔔</div>
-                <strong>لا توجد إشعارات بعد</strong>
-                <span>ستظهر هنا التحديثات فور حدوثها</span>
+                <div class="empty-notifications-icon">??</div>
+                <strong>?? ???? ??????? ???</strong>
+                <span>????? ??? ????????? ??? ??????</span>
             </div>
         `;
         return;
@@ -2305,11 +2305,11 @@ function renderNotifications() {
 }
 
 function getNotificationIcon(type) {
-    if (type === "report") return "📋";
-    if (type === "task") return "✅";
-    if (type === "purchase") return "🛒";
-    if (type === "material") return "📦";
-    return "🔔";
+    if (type === "report") return "??";
+    if (type === "task") return "?";
+    if (type === "purchase") return "??";
+    if (type === "material") return "??";
+    return "??";
 }
 
 function formatNotificationTime(timestamp) {
@@ -2355,7 +2355,7 @@ async function notify(title, body, type = "general") {
             "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js"
         );
 
-        // حفظ الإشعار داخل Firestore
+        // ??? ??????? ???? Firestore
         const ref = await addDoc(
             collection(db, NOTIFICATIONS_COLLECTION),
             {
@@ -2368,7 +2368,7 @@ async function notify(title, body, type = "general") {
 
         localNotifiedIds.add(ref.id);
 
-        // إظهار الإشعار داخل التطبيق
+        // ????? ??????? ???? ???????
         showToast(title, body);
 
         if (notificationsCache.length > 0) {
@@ -2382,17 +2382,17 @@ async function notify(title, body, type = "general") {
             updateNotificationBadge();
         }
 
-        // إرسال Push فقط لإشعارات المهام
+        // ????? Push ??? ???????? ??????
 
 if (type === "task" || type === "purchase") {
-        console.log("🔥 TASK PUSH START:", {
+        console.log("?? TASK PUSH START:", {
         title: title,
         body: body,
         type: type
     });
 
     try {
-        console.log("📡 CALLING WORKER...");
+        console.log("?? CALLING WORKER...");
 
         const response = await fetch(
             "https://nawafth-notifications.yousifiraqas5.workers.dev/",
@@ -2408,27 +2408,27 @@ if (type === "task" || type === "purchase") {
             }
         );
 
-        console.log("📡 WORKER HTTP STATUS:", response.status);
+        console.log("?? WORKER HTTP STATUS:", response.status);
 
         const result = await response.json();
 
-        console.log("📦 WORKER RESULT:", result);
+        console.log("?? WORKER RESULT:", result);
 
         if (!response.ok || !result.ok) {
             console.error(
-                "❌ فشل إرسال Push:",
+                "? ??? ????? Push:",
                 result
             );
         } else {
             console.log(
-                "✅ تم إرسال Push:",
+                "? ?? ????? Push:",
                 result
             );
         }
 
     } catch (pushError) {
         console.error(
-            "❌ خطأ الاتصال بـ Cloudflare Worker:",
+            "? ??? ??????? ?? Cloudflare Worker:",
             pushError
         );
     }
@@ -2437,7 +2437,7 @@ if (type === "task" || type === "purchase") {
 
     } catch (error) {
         console.error(
-            "خطأ إرسال الإشعار:",
+            "??? ????? ???????:",
             error
         );
 
@@ -2456,12 +2456,12 @@ function showToast(title, body) {
     toast.className = "toast-message";
 
     toast.innerHTML = `
-        <div class="toast-icon">🔔</div>
+        <div class="toast-icon">??</div>
         <div class="toast-content">
             <h4 class="toast-title">${escapeHTML(title)}</h4>
             <p class="toast-body">${escapeHTML(body)}</p>
         </div>
-        <button type="button" class="toast-close" aria-label="إغلاق">×</button>
+        <button type="button" class="toast-close" aria-label="?????">�</button>
     `;
 
     toast.querySelector(".toast-close").addEventListener("click", () => {
@@ -2512,13 +2512,13 @@ function startNotificationsListener() {
 
                 newItems.forEach(d => {
                     if (!localNotifiedIds.has(d.id)) {
-                        showToast(d.title || "إشعار جديد", d.body || "");
+                        showToast(d.title || "????? ????", d.body || "");
                     }
                 });
             });
         })
         .catch(error => {
-            console.error("خطأ بدء مستمع الإشعارات:", error);
+            console.error("??? ??? ????? ?????????:", error);
         });
 }
 
@@ -2532,8 +2532,8 @@ async function setupMessagingForeground() {
         window.firebaseMessaging = messaging;
 
         onMessage(messaging, payload => {
-            const title = payload.notification?.title || payload.data?.title || "إشعار جديد";
-            const body = payload.notification?.body || payload.data?.body || "تحديث جديد من شركة نوافذ البناء";
+            const title = payload.notification?.title || payload.data?.title || "????? ????";
+            const body = payload.notification?.body || payload.data?.body || "????? ???? ?? ???? ????? ??????";
             showToast(title, body);
         });
 
@@ -2541,7 +2541,7 @@ async function setupMessagingForeground() {
             navigator.serviceWorker.register("firebase-messaging-sw.js").catch(() => {});
         }
     } catch (error) {
-        console.error("خطأ إعداد استقبال الإشعارات:", error);
+        console.error("??? ????? ??????? ?????????:", error);
     }
 }
 
@@ -2549,12 +2549,12 @@ async function enablePushNotifications() {
     if (!requireLoginForWrite(enablePushNotifications)) return;
 
     if (!("Notification" in window)) {
-        showMessage("المتصفح لا يدعم الإشعارات", "error");
+        showMessage("??????? ?? ???? ?????????", "error");
         return;
     }
 
     if (Notification.permission === "denied") {
-        showMessage("تم رفض إذن الإشعارات، قم بالسماح من إعدادات الموقع", "error");
+        showMessage("?? ??? ??? ?????????? ?? ??????? ?? ??????? ??????", "error");
         return;
     }
 
@@ -2562,17 +2562,17 @@ async function enablePushNotifications() {
         const permission = await Notification.requestPermission();
 
         if (permission !== "granted") {
-            showMessage("يرجى السماح بالإشعارات من إعدادات الموقع", "error");
+            showMessage("???? ?????? ?????????? ?? ??????? ??????", "error");
             return;
         }
     } catch (error) {
-        console.error("طلب إذن الإشعارات:", error);
-        showMessage("يرجى السماح بالإشعارات من إعدادات الموقع", "error");
+        console.error("??? ??? ?????????:", error);
+        showMessage("???? ?????? ?????????? ?? ??????? ??????", "error");
         return;
     }
 
     if (VAPID_KEY === "YOUR_VAPID_PUBLIC_KEY") {
-        showMessage("يرجى إضافة مفتاح VAPID في ملف script.js أولاً", "error");
+        showMessage("???? ????? ????? VAPID ?? ??? script.js ?????", "error");
         return;
     }
 
@@ -2591,7 +2591,7 @@ async function enablePushNotifications() {
         });
 
         if (!token) {
-            showMessage("تعذر الحصول على رمز الإشعار", "error");
+            showMessage("???? ?????? ??? ??? ???????", "error");
             return;
         }
 
@@ -2604,31 +2604,31 @@ async function enablePushNotifications() {
             userAgent: navigator.userAgent
         });
 
-        showMessage("تم تفعيل الإشعارات بنجاح 🔔");
+        showMessage("?? ????? ????????? ????? ??");
 
     } catch (error) {
-        console.error("خطأ تفعيل الإشعارات:", error);
-        showMessage("حدث خطأ أثناء تفعيل الإشعارات: " + (error.message || "خطأ غير معروف"), "error");
+        console.error("??? ????? ?????????:", error);
+        showMessage("??? ??? ????? ????? ?????????: " + (error.message || "??? ??? ?????"), "error");
     }
 }
 
 // ============================================================
-// =========================== المهام ==========================
+// =========================== ?????? ==========================
 // ============================================================
 
-// مهم:
-// واجهة المهام موجودة مسبقاً في index.html.
-// لا ننشئ نسخة ثانية من المهام هنا.
+// ???:
+// ????? ?????? ?????? ?????? ?? index.html.
+// ?? ???? ???? ????? ?? ?????? ???.
 
 function createTasksInterface() {
 
-    // لا شيء
-    // صفحات المهام موجودة أصلاً في index.html.
+    // ?? ???
+    // ????? ?????? ?????? ????? ?? index.html.
 
 }
 
 // ============================================================
-// فتح صفحة المهام
+// ??? ???? ??????
 // ============================================================
 
 async function openTasks() {
@@ -2646,7 +2646,7 @@ async function openTasks() {
 }
 
 // ============================================================
-// عرض المهندسين
+// ??? ?????????
 // ============================================================
 
 function renderEngineers() {
@@ -2659,20 +2659,20 @@ function renderEngineers() {
     if (!container) {
 
         console.error(
-            "قسم المهندسين غير موجود في index.html"
+            "??? ????????? ??? ????? ?? index.html"
         );
 
         return;
 
     }
 
-    // المهندسون موجودون أصلاً في index.html
-    // لذلك لا نضيف بطاقات جديدة.
+    // ????????? ??????? ????? ?? index.html
+    // ???? ?? ???? ?????? ?????.
 
 }
 
 // ============================================================
-// إحصائيات المهام لكل مهندس
+// ???????? ?????? ??? ?????
 // ============================================================
 
 function updateEngineerStats() {
@@ -2732,7 +2732,7 @@ function updateEngineerStats() {
 }
 
 // ============================================================
-// فتح مهام المهندس
+// ??? ???? ???????
 // ============================================================
 
 async function openEngineerTasks(
@@ -2766,7 +2766,7 @@ async function openEngineerTasks(
     if (formEngineer) {
 
         formEngineer.textContent =
-            "المهمة للمهندس: " +
+            "?????? ???????: " +
             engineerName;
 
     }
@@ -2778,7 +2778,7 @@ async function openEngineerTasks(
 }
 
 // ============================================================
-// فتح نموذج المهمة
+// ??? ????? ??????
 // ============================================================
 
 function openTaskForm() {
@@ -2786,7 +2786,7 @@ function openTaskForm() {
     if (!currentEngineer) {
 
         showMessage(
-            "يرجى اختيار المهندس أولاً",
+            "???? ?????? ??????? ?????",
             "error"
         );
 
@@ -2820,7 +2820,7 @@ function openTaskForm() {
 }
 
 // ============================================================
-// إغلاق نموذج المهمة
+// ????? ????? ??????
 // ============================================================
 
 function closeTaskForm() {
@@ -2840,7 +2840,7 @@ function closeTaskForm() {
 }
 
 // ============================================================
-// جلب المهام من Firebase
+// ??? ?????? ?? Firebase
 // ============================================================
 
 async function loadTasksCache() {
@@ -2902,16 +2902,16 @@ async function loadTasksCache() {
     } catch (error) {
 
         console.error(
-            "خطأ تحميل المهام:",
+            "??? ????? ??????:",
             error
         );
 
         showMessage(
-            "تعذر تحميل المهام: " +
+            "???? ????? ??????: " +
             (
                 error.code ||
                 error.message ||
-                "خطأ غير معروف"
+                "??? ??? ?????"
             ),
             "error"
         );
@@ -2934,7 +2934,7 @@ async function getTasks() {
 }
 
 // ============================================================
-// إضافة مهمة
+// ????? ????
 // ============================================================
 
 async function addTask() {
@@ -2949,7 +2949,7 @@ async function addTask() {
     if (!input) {
 
         showMessage(
-            "حقل المهمة غير موجود",
+            "??? ?????? ??? ?????",
             "error"
         );
 
@@ -2963,7 +2963,7 @@ async function addTask() {
     if (!text) {
 
         showMessage(
-            "اكتب المهمة أولاً",
+            "???? ?????? ?????",
             "error"
         );
 
@@ -2974,7 +2974,7 @@ async function addTask() {
     if (!currentEngineer) {
 
         showMessage(
-            "لم يتم تحديد المهندس",
+            "?? ??? ????? ???????",
             "error"
         );
 
@@ -3027,12 +3027,12 @@ async function addTask() {
         closeTaskForm();
 
         showMessage(
-            "تمت إضافة المهمة بنجاح"
+            "??? ????? ?????? ?????"
         );
 
         notify(
-            "مهمة جديدة",
-            "تمت إضافة مهمة للمهندس " + currentEngineer + ": " + text,
+            "???? ?????",
+            "??? ????? ???? ??????? " + currentEngineer + ": " + text,
             "task"
         );
 
@@ -3041,7 +3041,7 @@ async function addTask() {
     } catch (error) {
 
         console.error(
-            "خطأ إضافة المهمة:",
+            "??? ????? ??????:",
             error
         );
 
@@ -3056,7 +3056,7 @@ async function addTask() {
         );
 
         let errorMessage =
-            "حدث خطأ أثناء إضافة المهمة";
+            "??? ??? ????? ????? ??????";
 
         if (
             error.code ===
@@ -3064,7 +3064,7 @@ async function addTask() {
         ) {
 
             errorMessage =
-                "Firebase رفض حفظ المهمة بسبب الصلاحيات";
+                "Firebase ??? ??? ?????? ???? ?????????";
 
         } else if (
             error.code ===
@@ -3072,7 +3072,7 @@ async function addTask() {
         ) {
 
             errorMessage =
-                "يجب تسجيل الدخول إلى Firebase";
+                "??? ????? ?????? ??? Firebase";
 
         } else if (
             error.code ===
@@ -3080,14 +3080,14 @@ async function addTask() {
         ) {
 
             errorMessage =
-                "Firebase يحتاج إلى إعداد إضافي";
+                "Firebase ????? ??? ????? ?????";
 
         } else if (
             error.message
         ) {
 
             errorMessage =
-                "فشل حفظ المهمة: " +
+                "??? ??? ??????: " +
                 error.message;
 
         }
@@ -3102,7 +3102,7 @@ async function addTask() {
 }
 
 // ============================================================
-// عرض مهام المهندس
+// ??? ???? ???????
 // ============================================================
 
 function renderEngineerTasks() {
@@ -3123,7 +3123,7 @@ function renderEngineerTasks() {
     ) {
 
         console.error(
-            "عناصر المهام غير موجودة في index.html"
+            "????? ?????? ??? ?????? ?? index.html"
         );
 
         return;
@@ -3152,7 +3152,7 @@ function renderEngineerTasks() {
         );
 
     // ========================================================
-    // المهام الحالية
+    // ?????? ???????
     // ========================================================
 
     if (
@@ -3164,16 +3164,16 @@ function renderEngineerTasks() {
             <div class="empty-tasks">
 
                 <div class="empty-tasks-icon">
-                    📋
+                    ??
                 </div>
 
                 <strong>
-                    لا توجد مهام حالياً
+                    ?? ???? ???? ??????
                 </strong>
 
                 <p>
-                    اضغط على إضافة مهمة
-                    لإنشاء مهمة جديدة
+                    ???? ??? ????? ????
+                    ?????? ???? ?????
                 </p>
 
             </div>
@@ -3207,7 +3207,7 @@ function renderEngineerTasks() {
     }
 
     // ========================================================
-    // المهام المنجزة
+    // ?????? ???????
     // ========================================================
 
     if (
@@ -3219,15 +3219,15 @@ function renderEngineerTasks() {
             <div class="empty-tasks">
 
                 <div class="empty-tasks-icon">
-                    ✅
+                    ?
                 </div>
 
                 <strong>
-                    لا توجد مهام منجزة
+                    ?? ???? ???? ?????
                 </strong>
 
                 <p>
-                    المهام المكتملة ستظهر هنا
+                    ?????? ???????? ????? ???
                 </p>
 
             </div>
@@ -3263,7 +3263,7 @@ function renderEngineerTasks() {
 }
 
 // ============================================================
-// شكل المهمة الحالية
+// ??? ?????? ???????
 // ============================================================
 
 function createTaskHTML(
@@ -3277,7 +3277,7 @@ function createTaskHTML(
             <div class="task-card-main">
 
                 <div class="task-card-icon">
-                    📋
+                    ??
                 </div>
 
                 <div class="task-card-info">
@@ -3290,7 +3290,7 @@ function createTaskHTML(
 
                     <div class="task-date">
 
-                        تاريخ الإضافة:
+                        ????? ???????:
                         ${formatPurchaseDate(
                             task.createdAt
                         )}
@@ -3306,7 +3306,7 @@ function createTaskHTML(
                 class="complete-task-button"
                 onclick="completeTask('${task.id}')"
             >
-                ✓ تم الإنجاز
+                ? ?? ???????
             </button>
 
         </div>
@@ -3316,7 +3316,7 @@ function createTaskHTML(
 }
 
 // ============================================================
-// شكل المهمة المنجزة
+// ??? ?????? ???????
 // ============================================================
 
 function createCompletedTaskHTML(
@@ -3330,7 +3330,7 @@ function createCompletedTaskHTML(
             <div class="task-card-main">
 
                 <div class="task-card-icon">
-                    ✅
+                    ?
                 </div>
 
                 <div class="task-card-info">
@@ -3343,7 +3343,7 @@ function createCompletedTaskHTML(
 
                     <div class="task-date">
 
-                        تم الإنجاز:
+                        ?? ???????:
                         ${formatPurchaseDate(
                             task.completedAt
                         )}
@@ -3359,7 +3359,7 @@ function createCompletedTaskHTML(
                 class="return-task-button"
                 onclick="returnTask('${task.id}')"
             >
-                إرجاع للمهمات
+                ????? ???????
             </button>
 
         </div>
@@ -3369,7 +3369,7 @@ function createCompletedTaskHTML(
 }
 
 // ============================================================
-// إنجاز المهمة
+// ????? ??????
 // ============================================================
 
 async function completeTask(
@@ -3413,13 +3413,13 @@ async function completeTask(
         const task = tasksCache.find(t => t.id === id);
 
         notify(
-            "تم إنجاز مهمة",
-            "أنجز " + (task ? task.engineer : "") + ": " + (task ? task.text : ""),
+            "?? ????? ????",
+            "???? " + (task ? task.engineer : "") + ": " + (task ? task.text : ""),
             "task"
         );
 
         showMessage(
-            "تم نقل المهمة إلى المنجزة"
+            "?? ??? ?????? ??? ???????"
         );
 
         await getTasks();
@@ -3427,16 +3427,16 @@ async function completeTask(
     } catch (error) {
 
         console.error(
-            "خطأ إنجاز المهمة:",
+            "??? ????? ??????:",
             error
         );
 
         showMessage(
-            "حدث خطأ أثناء تحديث المهمة: " +
+            "??? ??? ????? ????? ??????: " +
             (
                 error.code ||
                 error.message ||
-                "خطأ غير معروف"
+                "??? ??? ?????"
             ),
             "error"
         );
@@ -3446,7 +3446,7 @@ async function completeTask(
 }
 
 // ============================================================
-// إرجاع المهمة من المنجزة
+// ????? ?????? ?? ???????
 // ============================================================
 
 async function returnTask(
@@ -3487,7 +3487,7 @@ async function returnTask(
         );
 
         showMessage(
-            "تم إرجاع المهمة"
+            "?? ????? ??????"
         );
 
         await getTasks();
@@ -3495,16 +3495,16 @@ async function returnTask(
     } catch (error) {
 
         console.error(
-            "خطأ إرجاع المهمة:",
+            "??? ????? ??????:",
             error
         );
 
         showMessage(
-            "حدث خطأ أثناء إرجاع المهمة: " +
+            "??? ??? ????? ????? ??????: " +
             (
                 error.code ||
                 error.message ||
-                "خطأ غير معروف"
+                "??? ??? ?????"
             ),
             "error"
         );
@@ -3514,21 +3514,21 @@ async function returnTask(
 }
 
 // ============================================================
-// =================== الأجهزة الطبية (Medical) ================
+// =================== ??????? ?????? (Medical) ================
 // ============================================================
 
-// ملاحظة: MEDICAL_FAULTS_COLLECTION و MEDICAL_COUNTERS_COLLECTION
-// معرّفتان مرة واحدة فقط في أعلى الملف (قسم الثوابت).
+// ??????: MEDICAL_FAULTS_COLLECTION ? MEDICAL_COUNTERS_COLLECTION
+// ???????? ??? ????? ??? ?? ???? ????? (??? ???????).
 
 let medicalFaultsCache = [];
 let medicalFaultsUnsubscribe = null;
 
-// حالة إرسال نموذج العطل (لمنع الإرسال المزدوج من ضغطة واحدة)
+// ???? ????? ????? ????? (???? ??????? ??????? ?? ???? ?????)
 let faultFormSubmitting = false;
 
-// ملاحظة: لم تعد هناك قائمة أجهزة مكتوبة داخل الكود.
-// قائمة أجهزة نموذج الأعطال تُبنى الآن من جرد Excel الحقيقي
-// (نفس سجلات Device Inventory — مصدر واحد للحقيقة، بلا أجهزة وهمية).
+// ??????: ?? ??? ???? ????? ????? ?????? ???? ?????.
+// ????? ????? ????? ??????? ????? ???? ?? ??? Excel ???????
+// (??? ????? Device Inventory � ???? ???? ???????? ??? ????? ?????).
 
 const FAULT_STATUS_LABELS = {
     "NEW": "New",
@@ -3548,21 +3548,21 @@ const FAULT_PRIORITY_LABELS = {
 
 const FAULT_PRIORITY_ORDER = ["CRITICAL", "HIGH", "MEDIUM", "LOW"];
 
-// فتح قسم الأجهزة الطبية
+// ??? ??? ??????? ??????
 function openMedicalDevices() {
     showPage("medicalDevicesPage");
     populateFaultDeviceSelect();
-    // عرض أحدث البيانات المتوفرة ثم بدء الاشتراك الحيّ لتحديث العدّادات تلقائياً
+    // ??? ???? ???????? ???????? ?? ??? ???????? ????? ?????? ????????? ????????
     getMedicalFaults();
     subscribeMedicalFaults();
 }
 
 // ============================================================
-// ربط قائمة الأجهزة بنموذج الأعطال مع جرد Excel الحقيقي
-// (نفس سجلات Device Inventory — مصدر واحد للحقيقة)
+// ??? ????? ??????? ?????? ??????? ?? ??? Excel ???????
+// (??? ????? Device Inventory � ???? ???? ???????)
 // ============================================================
 
-// إرجاع سجل Excel الكامل المطابق للجهاز المختار حالياً
+// ????? ??? Excel ?????? ??????? ?????? ??????? ??????
 function getSelectedFaultInventoryRecord() {
 
     const select =
@@ -3580,22 +3580,22 @@ function getSelectedFaultInventoryRecord() {
 
 }
 
-// أسماء تُستثنى من قائمة اختيار الجهاز في نموذج العطل فقط
-// ("أجهزة مضافة" ليست جهازاً فعلياً — تبقى في جدول الجرد دون أن تظهر كمُحدِّد)
+// ????? ??????? ?? ????? ?????? ?????? ?? ????? ????? ???
+// ("????? ?????" ???? ?????? ?????? � ???? ?? ???? ????? ??? ?? ???? ????????)
 const FAULT_DEVICE_SELECTOR_EXCLUDED_NAMES = [
-    normalizeMedicalText("اجهزة مضافة")
+    normalizeMedicalText("????? ?????")
 ];
 
-// نص الخيار يعرض اسم الجهاز فقط — دون ماركة أو منشأ أو كمية أو رقم صف
-// (التكرار يُزال عند تطابق الثلاثية: الاسم + الماركة + المنشأ؛
-//  كل مجموعة فريدة مرتبطة داخلياً بمعرّف سجل Excel الفعلي row-<excelRow>)
+// ?? ?????? ???? ??? ?????? ??? � ??? ????? ?? ???? ?? ???? ?? ??? ??
+// (??????? ????? ??? ????? ????????: ????? + ??????? + ???????
+//  ?? ?????? ????? ?????? ??????? ?????? ??? Excel ?????? row-<excelRow>)
 function buildFaultDeviceOptionLabel(record) {
 
     return record.name;
 
 }
 
-// ملء قائمة الأجهزة من جرد Excel (حالات: جاهز / تحميل / خطأ)
+// ??? ????? ??????? ?? ??? Excel (?????: ???? / ????? / ???)
 function populateFaultDeviceSelect() {
 
     const select =
@@ -3620,9 +3620,9 @@ function populateFaultDeviceSelect() {
         select.innerHTML =
             '<option value="">Select device...</option>';
 
-        // خيارات المُحدِّد: اسم الجهاز فقط، مع استثناء "أجهزة مضافة"
-        // وإزالة التكرار فقط عند تطابق الثلاثية (الاسم + الماركة + المنشأ) —
-        // يُحتفظ بأول سجل Excel كمُمثل، وتبقى المجموعات المختلفة خيارات مستقلة
+        // ?????? ?????????: ??? ?????? ???? ?? ??????? "????? ?????"
+        // ?????? ??????? ??? ??? ????? ???????? (????? + ??????? + ??????) �
+        // ?????? ???? ??? Excel ??????? ????? ????????? ???????? ?????? ??????
         const seenIdentityKeys = new Set();
 
         const selectorRecords = state.records
@@ -3646,7 +3646,7 @@ function populateFaultDeviceSelect() {
             .slice()
             .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base", numeric: true }));
 
-        // كل مجموعة فريدة (الاسم + الماركة + المنشأ) تُمثَّل بأول سجل Excel مطابق
+        // ?? ?????? ????? (????? + ??????? + ??????) ??????? ???? ??? Excel ?????
         selectorRecords.forEach(record => {
 
             const option =
@@ -3662,7 +3662,7 @@ function populateFaultDeviceSelect() {
 
         });
 
-        // الحفاظ على الاختيار الحالي إن كان لا يزال صالحاً
+        // ?????? ??? ???????? ?????? ?? ??? ?? ???? ??????
         if (previousValue && selectorRecords.some(record => record.id === previousValue)) {
 
             select.value =
@@ -3721,7 +3721,7 @@ function populateFaultDeviceSelect() {
 
     }
 
-    // idle — بدء تحميل جرد Excel بنفس المحمّل المستخدم في Device Inventory
+    // idle � ??? ????? ??? Excel ???? ??????? ???????? ?? Device Inventory
     select.disabled =
         true;
 
@@ -3741,7 +3741,7 @@ function populateFaultDeviceSelect() {
 
 }
 
-// إعادة محاولة تحميل جرد Excel بعد فشل سابق
+// ????? ?????? ????? ??? Excel ??? ??? ????
 function retryFaultDeviceLoad(event) {
 
     if (event && typeof event.preventDefault === "function") {
@@ -3756,7 +3756,7 @@ function retryFaultDeviceLoad(event) {
 
 }
 
-// عند اختيار جهاز، تعبئة الماركة والمنشأ من سجل Excel المختار بالضبط
+// ??? ?????? ????? ????? ??????? ??????? ?? ??? Excel ??????? ??????
 function onDeviceSelectChange() {
 
     const brandInput =
@@ -3768,7 +3768,7 @@ function onDeviceSelectChange() {
     const record =
         getSelectedFaultInventoryRecord();
 
-    // القيم تأتي من نفس صف Excel المختار — لا اختراع ولا دمج للسجلات المكررة
+    // ????? ???? ?? ??? ?? Excel ??????? � ?? ?????? ??? ??? ??????? ???????
     if (brandInput) {
 
         brandInput.value =
@@ -3786,10 +3786,10 @@ function onDeviceSelectChange() {
 }
 
 // ============================================================
-// نموذج تسجيل عطل جهاز طبي (Medical Device Fault Form)
+// ????? ????? ??? ???? ??? (Medical Device Fault Form)
 // ============================================================
 
-// الحقول المطلوبة ورسالة التحقق الإنجليزية الخاصة بكل حقل
+// ?????? ???????? ?????? ?????? ?????????? ?????? ??? ???
 const FAULT_REQUIRED_FIELDS = [
     { id: "faultDevice", message: "Device Name is required." },
     { id: "faultSerial", message: "Serial Number is required." },
@@ -3799,7 +3799,7 @@ const FAULT_REQUIRED_FIELDS = [
     { id: "faultStatus", message: "Status is required." }
 ];
 
-// فتح النموذج بحالة نظيفة
+// ??? ??????? ????? ?????
 function openFaultForm() {
     const form = document.getElementById("faultForm");
     if (!form) return;
@@ -3807,10 +3807,10 @@ function openFaultForm() {
     clearFaultFormErrors();
     setFaultFormBusy(false);
 
-    // التأكد من أن قائمة الأجهزة جاهزة من جرد Excel (حالة تحميل/خطأ واضحة)
+    // ?????? ?? ?? ????? ??????? ????? ?? ??? Excel (???? ?????/??? ?????)
     populateFaultDeviceSelect();
 
-    // استخدام بيانات المُبلِّغ المتوفرة حالياً في التطبيق (إن وُجدت) دون إنشاء مستخدمين وهميين
+    // ??????? ?????? ????????? ???????? ?????? ?? ??????? (?? ?????) ??? ????? ???????? ??????
     const reportedByInput = document.getElementById("faultReportedBy");
     if (reportedByInput && !String(reportedByInput.value).trim() && currentEngineer) {
         reportedByInput.value = currentEngineer;
@@ -3819,7 +3819,7 @@ function openFaultForm() {
     form.style.display = "block";
 }
 
-// مسح كل رسائل التحقق وحالات الخطأ داخل النموذج
+// ??? ?? ????? ?????? ?????? ????? ???? ???????
 function clearFaultFormErrors() {
     document.querySelectorAll("#faultForm .field-error").forEach(el => {
         el.textContent = "";
@@ -3830,7 +3830,7 @@ function clearFaultFormErrors() {
     });
 }
 
-// مسح خطأ حقل واحد (يُستدعى عند تصحيح المستخدم للقيمة)
+// ??? ??? ??? ???? (??????? ??? ????? ???????? ??????)
 function clearFaultFieldError(input) {
     if (!input) return;
 
@@ -3840,7 +3840,7 @@ function clearFaultFieldError(input) {
     if (errorEl) errorEl.textContent = "";
 }
 
-// إظهار رسالة خطأ أسفل الحقل
+// ????? ????? ??? ???? ?????
 function showFaultFieldError(fieldId, message) {
     const input = document.getElementById(fieldId);
     if (input) input.classList.add("is-invalid");
@@ -3849,7 +3849,7 @@ function showFaultFieldError(fieldId, message) {
     if (errorEl) errorEl.textContent = message;
 }
 
-// تعطيل/تمكين زر الإرسال لمنع الإرسال المزدوج من ضغطة واحدة
+// ?????/????? ?? ??????? ???? ??????? ??????? ?? ???? ?????
 function setFaultFormBusy(isBusy) {
     faultFormSubmitting = isBusy;
 
@@ -3860,7 +3860,7 @@ function setFaultFormBusy(isBusy) {
     }
 }
 
-// التحقق من الحقول المطلوبة — يعيد true فقط عند اكتمال النموذج
+// ?????? ?? ?????? ???????? � ???? true ??? ??? ?????? ???????
 function validateFaultForm() {
     clearFaultFormErrors();
 
@@ -3890,13 +3890,13 @@ function closeFaultForm() {
     const form = document.getElementById("faultForm");
     if (form) form.style.display = "none";
 
-    // ريست للحقول النصية والقوائم
+    // ???? ?????? ?????? ????????
     ["faultDevice", "faultBrand", "faultOrigin", "faultSerial", "faultReportedBy", "faultDescription", "faultPriority", "faultStatus"].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.value = "";
     });
 
-    // إرجاع القيم الافتراضية الآمنة للقوائم (نفس قيم Firestore الحالية)
+    // ????? ????? ?????????? ?????? ??????? (??? ??? Firestore ???????)
     const prioritySelect = document.getElementById("faultPriority");
     if (prioritySelect) prioritySelect.value = "MEDIUM";
 
@@ -3906,12 +3906,12 @@ function closeFaultForm() {
     clearFaultFormErrors();
     setFaultFormBusy(false);
 
-    // مسح حالة التحميل/الخطأ الخاصة بقائمة أجهزة Excel
+    // ??? ???? ???????/????? ?????? ?????? ????? Excel
     const faultDeviceHint = document.getElementById("faultDeviceHint");
     if (faultDeviceHint) faultDeviceHint.innerHTML = "";
 }
 
-// جلب الأعطال (قراءة أولية)
+// ??? ??????? (????? ?????)
 async function getMedicalFaults() {
     const db = getFirestoreDB();
     if (!db) return;
@@ -3934,7 +3934,7 @@ async function getMedicalFaults() {
     }
 }
 
-// الاشتراك الحيّ في مجموعة الأعطال: تحديث العدّادات والقوائم تلقائياً
+// ???????? ????? ?? ?????? ???????: ????? ????????? ???????? ????????
 function subscribeMedicalFaults() {
     stopMedicalFaultsSubscription();
 
@@ -3960,7 +3960,7 @@ function subscribeMedicalFaults() {
         });
 }
 
-// إيقاف الاشتراك (يُستخدم عند مغادرة القسم أو إعادة الاشتراك)
+// ????? ???????? (??????? ??? ?????? ????? ?? ????? ????????)
 function stopMedicalFaultsSubscription() {
     if (typeof medicalFaultsUnsubscribe === "function") {
         medicalFaultsUnsubscribe();
@@ -3968,7 +3968,7 @@ function stopMedicalFaultsSubscription() {
     medicalFaultsUnsubscribe = null;
 }
 
-// توليد Ticket ID متسلسل باستخدام Transaction
+// ????? Ticket ID ?????? ???????? Transaction
 async function getNextTicketID(db) {
     const { doc, runTransaction, serverTimestamp } = await import("https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js");
     
@@ -3997,20 +3997,20 @@ async function getNextTicketID(db) {
     });
 }
 
-// إضافة عطل جديد (نفس مجموعة Firestore والبنية الحالية)
+// ????? ??? ???? (??? ?????? Firestore ??????? ???????)
 async function addFault() {
-    // منع الإرسال المزدوج من ضغطة واحدة
+    // ??? ??????? ??????? ?? ???? ?????
     if (faultFormSubmitting) return;
 
     if (!requireLoginForWrite(addFault)) return;
 
-    // التحقق من الحقول المطلوبة قبل الإرسال
+    // ?????? ?? ?????? ???????? ??? ???????
     if (!validateFaultForm()) {
         showMessage("Please complete the required fields before submitting.", "error");
         return;
     }
 
-    // التحقق من اختيار جهاز حقيقي من جرد Excel قبل الحفظ
+    // ?????? ?? ?????? ???? ????? ?? ??? Excel ??? ?????
     const selectedDeviceRecord =
         getSelectedFaultInventoryRecord();
 
@@ -4030,8 +4030,8 @@ async function addFault() {
 
     }
 
-    // الاسم يُحفظ كنص Excel الأصلي (نفس صيغة السجلات الحالية) لضمان التوافق،
-    // بينما تأتي الماركة والمنشأ من نفس السجل المختار بالضبط
+    // ????? ????? ??? Excel ?????? (??? ???? ??????? ???????) ????? ????????
+    // ????? ???? ??????? ??????? ?? ??? ????? ??????? ??????
     const device =
         selectedDeviceRecord.name;
 
@@ -4086,14 +4086,14 @@ async function addFault() {
     }
 }
 
-// تحديث لوحة الإحصائيات والقوائم
+// ????? ???? ?????????? ????????
 function renderMedicalDevicesPage() {
     renderDashboard();
     renderFaultsLists();
 }
 
-// توحيد قيمة الحالة القادمة من Firestore
-// (يدعم البيانات القديمة التي كُتبت بحروف صغيرة أو بصيغة COMPLETED)
+// ????? ???? ?????? ??????? ?? Firestore
+// (???? ???????? ??????? ???? ????? ????? ????? ?? ????? COMPLETED)
 const FAULT_STATUS_ALIASES = {
     NEW: "NEW",
     "IN PROGRESS": "IN PROGRESS",
@@ -4107,13 +4107,13 @@ function normalizeFaultStatus(value) {
     return FAULT_STATUS_ALIASES[key] || key;
 }
 
-// توحيد قيمة الأولوية القادمة من Firestore
+// ????? ???? ???????? ??????? ?? Firestore
 function normalizeFaultPriority(value) {
     return String(value || "").trim().toUpperCase().replace(/_/g, " ");
 }
 
 function renderDashboard() {
-    // ملخص التذاكر (Ticket Summary) — إجمالي السجلات وسجلات الحالة الجديدة
+    // ???? ??????? (Ticket Summary) � ?????? ??????? ?????? ?????? ???????
     const totalTicketsEl = document.getElementById("stat-total-tickets");
     if (totalTicketsEl) {
         totalTicketsEl.textContent = medicalFaultsCache.length;
@@ -4126,14 +4126,14 @@ function renderDashboard() {
         ).length;
     }
 
-    // تحديث حالات الأعطال
+    // ????? ????? ???????
     FAULT_STATUS_ORDER.forEach(status => {
         const count = medicalFaultsCache.filter(f => normalizeFaultStatus(f.status) === status).length;
         const el = document.getElementById(`stat-${status.toLowerCase().replace(" ", "_")}`);
         if (el) el.textContent = count;
     });
 
-    // تحديث الأولويات
+    // ????? ?????????
     FAULT_PRIORITY_ORDER.forEach(priority => {
         const count = medicalFaultsCache.filter(f => normalizeFaultPriority(f.priority) === priority).length;
         const el = document.getElementById(`stat-${priority.toLowerCase()}`);
@@ -4154,9 +4154,9 @@ function renderFaultsLists() {
     if (pending.length === 0) {
         pendingContainer.innerHTML = `
             <div class="requests-empty">
-                <div class="requests-empty-icon">🛠️</div>
+                <div class="requests-empty-icon">???</div>
                 <strong>No maintenance requests found.</strong>
-                <p>Use “+ Add Fault” to register a new maintenance request.</p>
+                <p>Use �+ Add Fault� to register a new maintenance request.</p>
             </div>`;
     } else {
         pendingContainer.innerHTML = pending.map(f => createFaultCardHTML(f)).join("");
@@ -4165,7 +4165,7 @@ function renderFaultsLists() {
     if (completed.length === 0) {
         completedContainer.innerHTML = `
             <div class="requests-empty">
-                <div class="requests-empty-icon">✅</div>
+                <div class="requests-empty-icon">?</div>
                 <strong>No completed requests yet.</strong>
                 <p>Serviced requests will appear here.</p>
             </div>`;
@@ -4187,13 +4187,16 @@ function createFaultCardHTML(fault, isCompleted = false) {
     const statusClass = "is-status-" + (statusKey.replace(/[^A-Z0-9]+/g, "-") || "UNKNOWN");
     const priorityClass = "is-priority-" + (priorityKey.replace(/[^A-Z0-9]+/g, "-") || "UNKNOWN");
 
-    let actionsHTML = "";
-    if (!isCompleted) {
-        actionsHTML = `
+    let actionsHTML = `
+        <div class="request-actions">
+            ${!isCompleted ? `
             <button type="button" class="request-complete-btn" onclick="markAsComplete('${fault.id}')">
                 Mark as Completed
-            </button>`;
-    }
+            </button>` : ""}
+            <button type="button" class="request-delete-btn" onclick="deleteFault('${fault.id}')">
+                🗑️ حذف العطل
+            </button>
+        </div>`;
 
     let completedMetaHTML = "";
     if (isCompleted) {
@@ -4266,8 +4269,32 @@ async function markAsComplete(id) {
     }
 }
 
+// حذف عطل واحد فقط من نفس مصدر البيانات الحالي (MEDICAL_FAULTS_COLLECTION)
+// لا يحذف الجهاز الطبي ولا أي عطل آخر، ولا يمس ملف Excel الأصلي.
+async function deleteFault(id) {
+    if (!requireLoginForWrite(() => deleteFault(id))) return;
+
+    const confirmed = confirm("هل أنت متأكد من حذف هذا العطل؟");
+    if (!confirmed) return;
+
+    const db = getFirestoreDB();
+    if (!db) return;
+
+    try {
+        const { doc, deleteDoc } = await import("https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js");
+
+        await deleteDoc(doc(db, MEDICAL_FAULTS_COLLECTION, id));
+
+        showMessage("تم حذف العطل بنجاح.");
+        await getMedicalFaults();
+    } catch (error) {
+        console.error("Error deleting fault:", error);
+        showMessage("تعذر حذف العطل. حاول مرة أخرى.", "error");
+    }
+}
+
 // ============================================================
-// حماية HTML
+// ????? HTML
 // ============================================================
 
 function escapeHTML(
@@ -4313,7 +4340,7 @@ function escapeHTML(
 }
 
 // ============================================================
-// تهيئة التطبيق
+// ????? ???????
 // ============================================================
 
 function initializeCompanyApp() {
@@ -4323,7 +4350,7 @@ function initializeCompanyApp() {
     );
 
     console.log(
-        "شركة نوافذ البناء - التطبيق بدأ"
+        "???? ????? ?????? - ??????? ???"
     );
 
     startNotificationsListener();
@@ -4335,7 +4362,7 @@ function initializeCompanyApp() {
 }
 
 // ============================================================
-// منع بعض مشاكل اللمس
+// ??? ??? ????? ?????
 // ============================================================
 
 document.addEventListener(
@@ -4347,7 +4374,7 @@ document.addEventListener(
 );
 
 // ============================================================
-// بدء التطبيق
+// ??? ???????
 // ============================================================
 
 if (
@@ -4367,13 +4394,13 @@ if (
 }
 
 // ============================================================
-// MEDICAL DEVICE INVENTORY (Excel-driven) — قسم جرد الأجهزة الطبية
-// المصدر: ملف Excel الحقيقي في جذر المشروع
+// MEDICAL DEVICE INVENTORY (Excel-driven) � ??? ??? ??????? ??????
+// ??????: ??? Excel ??????? ?? ??? ???????
 // "Al-Fedhalyia medical  222 Final - 180.000.000.xlsx" (Sheet2)
-// - لا توجد أجهزة وهمية (Brand X / Brand Y) في هذا القسم.
-// - كل صف في Excel يبقى سجلاً مستقلاً حتى لو تكرر اسم الجهاز،
-//   لأن هوية السجل هي: اسم الجهاز + الماركة + بلد المنشأ + رقم الصف.
-// - هذا القسم مستقل ولا يعدّل أي قسم آخر في التطبيق.
+// - ?? ???? ????? ????? (Brand X / Brand Y) ?? ??? ?????.
+// - ?? ?? ?? Excel ???? ????? ??????? ??? ?? ???? ??? ???????
+//   ??? ???? ????? ??: ??? ?????? + ??????? + ??? ?????? + ??? ????.
+// - ??? ????? ????? ??? ????? ?? ??? ??? ?? ???????.
 // ============================================================
 
 const MEDICAL_INVENTORY_EXCEL_FILE =
@@ -4405,7 +4432,7 @@ const MEDICAL_INVENTORY_ORIGIN_HEADERS = [
     "country of origin"
 ];
 
-// أمثلة للاختلافات الموجودة داخل ملف Excel نفسه: TUR / Turkey و PRC / China
+// ????? ?????????? ???????? ???? ??? Excel ????: TUR / Turkey ? PRC / China
 const MEDICAL_INVENTORY_SEARCH_ALIASES = {
     "tur": ["turkey"],
     "turkey": ["tur"],
@@ -4426,8 +4453,8 @@ const medicalInventoryState = {
 
 let medicalInventoryLibraryPromise = null;
 
-// مستمعو جهوزية الجرد — يُستدعون مرة واحدة عند نجاح التحميل
-// (يستخدمهم نموذج الأعطال ليملء قائمة الأجهزة من نفس البيانات)
+// ?????? ?????? ????? � ???????? ??? ????? ??? ???? ???????
+// (???????? ????? ??????? ????? ????? ??????? ?? ??? ????????)
 let medicalInventoryReadyListeners = [];
 
 function onMedicalInventoryReady(callback) {
@@ -4483,7 +4510,7 @@ function clearMedicalInventoryReadyListeners() {
 }
 
 // ============================================================
-// أدوات مساعدة للجرد
+// ????? ?????? ?????
 // ============================================================
 
 function medicalInventoryGetElement(id) {
@@ -4549,7 +4576,7 @@ function highlightMedicalMatch(rawText, query) {
 
     }
 
-    // تجنّب الاستعلامات التي تحتوي محارف HTML
+    // ????? ??????????? ???? ????? ????? HTML
     if (/[<>&"'`]/.test(trimmedQuery)) {
 
         return escaped;
@@ -4641,7 +4668,7 @@ function findInventoryHeaderColumns(row) {
 }
 
 // ============================================================
-// تحليل ملف Excel وبناء سجلات الجرد
+// ????? ??? Excel ????? ????? ?????
 // ============================================================
 
 function parseMedicalInventoryWorkbook(workbook) {
@@ -4677,7 +4704,7 @@ function parseMedicalInventoryWorkbook(workbook) {
 
     }
 
-    // تحديد صف العناوين وأعمدة البيانات من ملف Excel الفعلي
+    // ????? ?? ???????? ?????? ???????? ?? ??? Excel ??????
     let columns = null;
     let headerIndex = 0;
 
@@ -4702,7 +4729,7 @@ function parseMedicalInventoryWorkbook(workbook) {
 
     if (!columns) {
 
-        // التخطيط المقاس أثناء فحص ملف Excel (A=المرجع، B=الاسم، C=الكمية، D=الماركة، E=المنشأ)
+        // ??????? ?????? ????? ??? ??? Excel (A=??????? B=?????? C=??????? D=???????? E=??????)
         columns = {
             ref: 0,
             name: 1,
@@ -4726,7 +4753,7 @@ function parseMedicalInventoryWorkbook(workbook) {
         const name =
             medicalInventoryToDisplay(row[columns.name]);
 
-        // الصفوف التي لا تحتوي اسم جهاز يتم استبعادها (13 صف في ملف Excel الحالي)
+        // ?????? ???? ?? ????? ??? ???? ??? ????????? (13 ?? ?? ??? Excel ??????)
         if (!name) {
 
             continue;
@@ -4814,7 +4841,7 @@ function computeMedicalInventoryTotals(records) {
 }
 
 // ============================================================
-// تحميل مكتبة قراءة Excel (SheetJS) عند الحاجة فقط
+// ????? ????? ????? Excel (SheetJS) ??? ?????? ???
 // ============================================================
 
 function loadMedicalInventoryLibrary() {
@@ -4878,7 +4905,7 @@ function loadMedicalInventoryLibrary() {
 }
 
 // ============================================================
-// إدارة حالات الشاشة (تحميل / خطأ / فراغ / جدول)
+// ????? ????? ?????? (????? / ??? / ???? / ????)
 // ============================================================
 
 function showMedicalInventoryPane(pane) {
@@ -4952,7 +4979,7 @@ function showMedicalInventoryError(message) {
 }
 
 // ============================================================
-// البحث (غير حساس لحالة الأحرف ويتعامل مع TUR/Turkey و PRC/China)
+// ????? (??? ???? ????? ?????? ??????? ?? TUR/Turkey ? PRC/China)
 // ============================================================
 
 function matchesMedicalInventoryQuery(record, query) {
@@ -4992,7 +5019,7 @@ function matchesMedicalInventoryQuery(record, query) {
 }
 
 // ============================================================
-// عرض الجدول
+// ??? ??????
 // ============================================================
 
 function renderMedicalInventory() {
@@ -5056,8 +5083,8 @@ function renderMedicalInventory() {
 
         sourceBadge.textContent =
             "Excel inventory" +
-            (state.sheetName ? " • " + state.sheetName : "") +
-            " • " + MEDICAL_INVENTORY_EXCEL_FILE;
+            (state.sheetName ? " � " + state.sheetName : "") +
+            " � " + MEDICAL_INVENTORY_EXCEL_FILE;
 
         sourceBadge.title =
             MEDICAL_INVENTORY_EXCEL_FILE;
@@ -5111,9 +5138,9 @@ function renderMedicalInventory() {
             "<tr data-excel-row=\"" + record.excelRow + "\">" +
             "<td class=\"inventory-row-index\">" + escapeMedicalHtml(refText) + "</td>" +
             "<td class=\"inventory-device-name\">" + highlightMedicalMatch(record.name, query) + "</td>" +
-            "<td>" + (record.brand ? highlightMedicalMatch(record.brand, query) : "<span class=\"inventory-cell-muted\">—</span>") + "</td>" +
-            "<td>" + (record.origin ? highlightMedicalMatch(record.origin, query) : "<span class=\"inventory-cell-muted\">—</span>") + "</td>" +
-            "<td class=\"inventory-qty-cell\">" + (record.qty ? "<span class=\"inventory-qty\">" + escapeMedicalHtml(record.qty) + "</span>" : "<span class=\"inventory-cell-muted\">—</span>") + "</td>" +
+            "<td>" + (record.brand ? highlightMedicalMatch(record.brand, query) : "<span class=\"inventory-cell-muted\">�</span>") + "</td>" +
+            "<td>" + (record.origin ? highlightMedicalMatch(record.origin, query) : "<span class=\"inventory-cell-muted\">�</span>") + "</td>" +
+            "<td class=\"inventory-qty-cell\">" + (record.qty ? "<span class=\"inventory-qty\">" + escapeMedicalHtml(record.qty) + "</span>" : "<span class=\"inventory-cell-muted\">�</span>") + "</td>" +
             "</tr>";
 
     }).join("");
@@ -5126,7 +5153,7 @@ function renderMedicalInventory() {
 }
 
 // ============================================================
-// تحميل ملف Excel وبناء الجرد
+// ????? ??? Excel ????? ?????
 // ============================================================
 
 function loadMedicalInventory(forceReload) {
@@ -5213,7 +5240,7 @@ function loadMedicalInventory(forceReload) {
             medicalInventoryState.status =
                 "ready";
 
-            // إشعار المستمعين (نموذج الأعطال) بأن بيانات الجرد جاهزة
+            // ????? ????????? (????? ???????) ??? ?????? ????? ?????
             notifyMedicalInventoryReady();
 
             renderMedicalInventory();
@@ -5254,7 +5281,7 @@ function loadMedicalInventory(forceReload) {
 }
 
 // ============================================================
-// أحداث الواجهة
+// ????? ???????
 // ============================================================
 
 function onMedicalInventorySearch(value) {
@@ -5298,7 +5325,7 @@ function reloadMedicalInventory() {
 
 }
 
-// فتح صفحة جرد الأجهزة (لوحة الأجهزة الطبية تبقى الشاشة الافتراضية)
+// ??? ???? ??? ??????? (???? ??????? ?????? ???? ?????? ??????????)
 function openDeviceInventory() {
 
     showPage("deviceInventoryPage");
@@ -5320,17 +5347,17 @@ function openDeviceInventory() {
 ;
 
 // ============================================================
-// خزانات الكاز (Fuel Tanks)
+// ?????? ????? (Fuel Tanks)
 // ------------------------------------------------------------
-// قسم مستقل تماماً عن باقي الأقسام. أربعة خزانات ثابتة فقط.
-// الحفظ في Firestore (مشروع Firebase الحالي، لا مشروع جديد).
+// ??? ????? ?????? ?? ???? ???????. ????? ?????? ????? ???.
+// ????? ?? Firestore (????? Firebase ??????? ?? ????? ????).
 // ============================================================
 
 const FUEL_TANKS_DEFINITIONS = [
-    { id: "hospitalGenerator", name: "خزان مولدات المستشفى", capacity: 36000, icon: "🛢️" },
-    { id: "complexGenerator", name: "خزان مولدة المجمع", capacity: 13000, icon: "🛢️" },
-    { id: "boiler1", name: "خزان بويلر رقم 1", capacity: 13500, icon: "🛢️" },
-    { id: "boiler2", name: "خزان بويلر رقم 2", capacity: 13500, icon: "🛢️" }
+    { id: "hospitalGenerator", name: "???? ?????? ????????", capacity: 36000, icon: "???" },
+    { id: "complexGenerator", name: "???? ????? ??????", capacity: 13000, icon: "???" },
+    { id: "boiler1", name: "???? ????? ??? 1", capacity: 13500, icon: "???" },
+    { id: "boiler2", name: "???? ????? ??? 2", capacity: 13500, icon: "???" }
 ];
 
 const FUEL_TANKS_TOTAL_CAPACITY = FUEL_TANKS_DEFINITIONS.reduce(
@@ -5338,13 +5365,13 @@ const FUEL_TANKS_TOTAL_CAPACITY = FUEL_TANKS_DEFINITIONS.reduce(
     0
 );
 
-// الحالة الحالية لكل خزان بعد التحميل من Firestore
+// ?????? ??????? ??? ???? ??? ??????? ?? Firestore
 // { [tankId]: { quantity: number|null, updatedAt: Timestamp|null } }
 let fuelTanksState = {};
 let fuelTanksLoaded = false;
 
 // ============================================================
-// فتح قسم خزانات الكاز
+// ??? ??? ?????? ?????
 // ============================================================
 
 async function openFuelTanks() {
@@ -5354,7 +5381,7 @@ async function openFuelTanks() {
 }
 
 // ============================================================
-// تحميل بيانات الخزانات من Firestore
+// ????? ?????? ???????? ?? Firestore
 // ============================================================
 
 async function getFuelTanks() {
@@ -5384,22 +5411,22 @@ async function getFuelTanks() {
         renderFuelTanksCards();
 
     } catch (error) {
-        console.error("خطأ تحميل خزانات الكاز:", error);
-        showMessage("حدث خطأ أثناء تحميل بيانات خزانات الكاز", "error");
+        console.error("??? ????? ?????? ?????:", error);
+        showMessage("??? ??? ????? ????? ?????? ?????? ?????", "error");
     }
 }
 
 // ============================================================
-// تحويل Timestamp من Firestore إلى تاريخ عربي مبسّط
-// مثال: 19 سبتمبر 2026 (بدون اسم اليوم)
+// ????? Timestamp ?? Firestore ??? ????? ???? ?????
+// ????: 19 ?????? 2026 (???? ??? ?????)
 // ============================================================
 
 function formatFuelTankDate(timestamp) {
-    if (!timestamp) return "لا يوجد تاريخ بعد";
+    if (!timestamp) return "?? ???? ????? ???";
 
     const monthNames = [
-        "يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو",
-        "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"
+        "?????", "??????", "????", "?????", "????", "?????",
+        "?????", "?????", "??????", "??????", "??????", "??????"
     ];
 
     try {
@@ -5416,21 +5443,21 @@ function formatFuelTankDate(timestamp) {
         return date.getDate() + " " + monthNames[date.getMonth()] + " " + date.getFullYear();
 
     } catch (error) {
-        return "لا يوجد تاريخ بعد";
+        return "?? ???? ????? ???";
     }
 }
 
 // ============================================================
-// تنسيق رقم الكمية باللتر (فواصل الآلاف)
+// ????? ??? ?????? ?????? (????? ??????)
 // ============================================================
 
 function formatFuelLiters(value) {
     const number = Number(value) || 0;
-    return number.toLocaleString("en-US") + " لتر";
+    return number.toLocaleString("en-US") + " ???";
 }
 
 // ============================================================
-// بناء بطاقات الخزانات (مرة واحدة عند فتح الصفحة)
+// ???? ?????? ???????? (??? ????? ??? ??? ??????)
 // ============================================================
 
 function renderFuelTanksCards() {
@@ -5451,12 +5478,12 @@ function renderFuelTanksCards() {
                 '<div class="fuel-tank-icon">' + tank.icon + '</div>' +
                 '<div>' +
                     '<div class="fuel-tank-name">' + escapeHTML(tank.name) + '</div>' +
-                    '<div class="fuel-tank-capacity">السعة الكلية: ' + formatFuelLiters(tank.capacity) + '</div>' +
+                    '<div class="fuel-tank-capacity">????? ??????: ' + formatFuelLiters(tank.capacity) + '</div>' +
                 '</div>' +
             '</div>' +
 
             '<div class="fuel-tank-field">' +
-                '<label for="fuelQty-' + tank.id + '">الكمية الموجودة حالياً (لتر)</label>' +
+                '<label for="fuelQty-' + tank.id + '">?????? ???????? ?????? (???)</label>' +
                 '<input ' +
                     'type="number" ' +
                     'id="fuelQty-' + tank.id + '" ' +
@@ -5464,7 +5491,7 @@ function renderFuelTanksCards() {
                     'min="0" ' +
                     'max="' + tank.capacity + '" ' +
                     'step="1" ' +
-                    'placeholder="أدخل الكمية الحالية" ' +
+                    'placeholder="???? ?????? ???????" ' +
                     'value="' + (saved.quantity !== null ? saved.quantity : "") + '" ' +
                     'oninput="onFuelTankQuantityInput(\'' + tank.id + '\')"' +
                 '>' +
@@ -5472,27 +5499,27 @@ function renderFuelTanksCards() {
             '</div>' +
 
             '<div class="fuel-tank-required-box">' +
-                '<span class="fuel-tank-required-label">المطلوب</span>' +
+                '<span class="fuel-tank-required-label">???????</span>' +
                 '<span class="fuel-tank-required-value" id="fuelRequired-' + tank.id + '">-</span>' +
             '</div>' +
 
             '<div class="fuel-tank-date" id="fuelDate-' + tank.id + '">' +
-                'تاريخ إضافة الكمية: ' + formatFuelTankDate(saved.updatedAt) +
+                '????? ????? ??????: ' + formatFuelTankDate(saved.updatedAt) +
             '</div>' +
 
             '<button type="button" class="auth-submit-btn" onclick="saveFuelTankQuantity(\'' + tank.id + '\')">' +
-                '💾 حفظ الكمية' +
+                '?? ??? ??????' +
             '</button>';
 
         grid.appendChild(card);
     });
 
-    updateFuelTankRequiredValue(); // يحسب "المطلوب" لكل خزان + الإجماليات
+    updateFuelTankRequiredValue(); // ???? "???????" ??? ???? + ??????????
 }
 
 // ============================================================
-// قراءة الكمية الحالية المُدخلة في الحقل (وليس بالضرورة المحفوظة)
-// ترجع null إذا كان الحقل فارغاً
+// ????? ?????? ??????? ???????? ?? ????? (???? ???????? ????????)
+// ???? null ??? ??? ????? ??????
 // ============================================================
 
 function getFuelTankInputQuantity(tankId) {
@@ -5504,29 +5531,29 @@ function getFuelTankInputQuantity(tankId) {
 }
 
 // ============================================================
-// التحقق من صحة كمية خزان معيّن
+// ?????? ?? ??? ???? ???? ?????
 // ============================================================
 
 function validateFuelTankQuantity(tankId, quantity) {
     const tank = FUEL_TANKS_DEFINITIONS.find(function (t) { return t.id === tankId; });
-    if (!tank) return "خزان غير معروف";
+    if (!tank) return "???? ??? ?????";
 
-    if (quantity === null) return null; // حقل فارغ ليس خطأ بحد ذاته
+    if (quantity === null) return null; // ??? ???? ??? ??? ??? ????
 
     if (quantity < 0) {
-        return "لا يمكن إدخال كمية سالبة";
+        return "?? ???? ????? ???? ?????";
     }
 
     if (quantity > tank.capacity) {
-        return "الكمية أكبر من سعة الخزان (" + formatFuelLiters(tank.capacity) + ")";
+        return "?????? ???? ?? ??? ?????? (" + formatFuelLiters(tank.capacity) + ")";
     }
 
     return null;
 }
 
 // ============================================================
-// عند تغيير قيمة أي حقل كمية: تحديث "المطلوب" لهذا الخزان
-// والإجماليات فوراً، مع إظهار خطأ التحقق إن وجد
+// ??? ????? ???? ?? ??? ????: ????? "???????" ???? ??????
+// ??????????? ?????? ?? ????? ??? ?????? ?? ???
 // ============================================================
 
 function onFuelTankQuantityInput(tankId) {
@@ -5575,7 +5602,7 @@ function updateFuelTankRequiredValue() {
 }
 
 // ============================================================
-// حفظ كمية خزان واحد في Firestore (يتطلب تسجيل الدخول)
+// ??? ???? ???? ???? ?? Firestore (????? ????? ??????)
 // ============================================================
 
 async function saveFuelTankQuantity(tankId) {
@@ -5587,7 +5614,7 @@ async function saveFuelTankQuantity(tankId) {
     const quantity = getFuelTankInputQuantity(tankId);
 
     if (quantity === null) {
-        showMessage("يرجى إدخال الكمية أولاً", "error");
+        showMessage("???? ????? ?????? ?????", "error");
         return;
     }
 
@@ -5612,18 +5639,18 @@ async function saveFuelTankQuantity(tankId) {
             updatedAt: serverTimestamp()
         });
 
-        showMessage("تم حفظ كمية " + tank.name + " بنجاح");
+        showMessage("?? ??? ???? " + tank.name + " ?????");
 
         await getFuelTanks();
 
     } catch (error) {
-        console.error("خطأ حفظ خزان الكاز:", error);
-        showMessage("حدث خطأ أثناء حفظ الكمية: " + (error.code || error.message || "خطأ غير معروف"), "error");
+        console.error("??? ??? ???? ?????:", error);
+        showMessage("??? ??? ????? ??? ??????: " + (error.code || error.message || "??? ??? ?????"), "error");
     }
 }
 
 // ============================================================
-// AUTH (Firebase Authentication — Email/Password)
+// AUTH (Firebase Authentication � Email/Password)
 // Reuses window.firebaseAuth initialized in the inline <script> module.
 // ------------------------------------------------------------
 // State
@@ -5645,9 +5672,9 @@ function isAuthed() {
 }
 
 // ============================================================
-// Navigation guard — kept for backward compatibility.
-// التصفح أصبح مفتوحًا للجميع؛ هذه الدالة لم تعد تُستخدم لمنع فتح
-// الصفحات، لكن أُبقيت لأنها قد تُستدعى من كود آخر.
+// Navigation guard � kept for backward compatibility.
+// ?????? ???? ??????? ??????? ??? ?????? ?? ??? ??????? ???? ???
+// ???????? ??? ?????? ????? ?? ??????? ?? ??? ???.
 // ============================================================
 
 function ensureAuthed(pageId) {
@@ -5669,14 +5696,14 @@ function openAuthPage(pageId) {
 }
 
 // ============================================================
-// حماية عمليات الكتابة (إضافة / تعديل / حذف) بتسجيل الدخول
+// ????? ?????? ??????? (????? / ????? / ???) ?????? ??????
 // ------------------------------------------------------------
-// القراءة والتصفح مفتوحان دائمًا لكل الزوار. أي عملية تكتب إلى
-// Firestore يجب أن تبدأ باستدعاء requireLoginForWrite(...):
-// - إذا كان المستخدم مسجّل الدخول: تُنفَّذ العملية مباشرة.
-// - إذا لم يكن مسجّلاً: تظهر رسالة تنبيه، وتُفتح واجهة تسجيل
-//   الدخول الموجودة حالياً، وتُحفظ العملية لإعادة تنفيذها تلقائياً
-//   بعد نجاح تسجيل الدخول (بدون إعادة تحميل الصفحة).
+// ??????? ??????? ??????? ?????? ??? ??????. ?? ????? ???? ???
+// Firestore ??? ?? ???? ???????? requireLoginForWrite(...):
+// - ??? ??? ???????? ????? ??????: ??????? ??????? ??????.
+// - ??? ?? ??? ???????: ???? ????? ?????? ?????? ????? ?????
+//   ?????? ???????? ??????? ?????? ??????? ?????? ??????? ????????
+//   ??? ???? ????? ?????? (???? ????? ????? ??????).
 // ============================================================
 
 let pendingWriteAction = null;
@@ -5685,7 +5712,11 @@ let pageBeforeAuthPrompt = null;
 function getCurrentVisiblePageId() {
   const pages = document.querySelectorAll(".page");
   for (const page of pages) {
-    if (page.style.display === "block") {
+    // نتحقق عبر getComputedStyle بدل الاعتماد فقط على inline style،
+    // لأن بعض الصفحات (مثل homePage) تظهر افتراضياً عبر كلاس CSS
+    // "active" قبل أول استدعاء لـ showPage()، وليس عبر inline style.
+    // هذا يجعل الدالة تتعرف على الصفحة الظاهرة فعلياً في كل الحالات.
+    if (getComputedStyle(page).display !== "none") {
       return page.id;
     }
   }
@@ -5700,7 +5731,7 @@ function requireLoginForWrite(actionFn) {
   pendingWriteAction = typeof actionFn === "function" ? actionFn : null;
 
   showMessage(
-    "يرجى تسجيل الدخول أولاً لإضافة أو تعديل البيانات.",
+    "???? ????? ?????? ????? ?????? ?? ????? ????????.",
     "error"
   );
 
@@ -5710,7 +5741,7 @@ function requireLoginForWrite(actionFn) {
 }
 
 // ============================================================
-// Auth state observer — called by the inline module's onAuthStateChanged
+// Auth state observer � called by the inline module's onAuthStateChanged
 // ============================================================
 
 function handleAuthStateChanged(user, authInstance) {
@@ -5718,10 +5749,10 @@ function handleAuthStateChanged(user, authInstance) {
   authUserUid = user ? user.uid : null;
 
   if (user) {
-    // تسجيل الدخول نجح.
-    // لا نغيّر صفحة المستخدم قسرًا؛ التصفح مفتوح أصلاً.
-    // إن كانت هناك عملية كتابة معلّقة (تمت محاولتها قبل تسجيل الدخول)
-    // نعيد المستخدم إلى صفحته السابقة وننفّذ العملية تلقائياً.
+    // ????? ?????? ???.
+    // ?? ????? ???? ???????? ?????? ?????? ????? ?????.
+    // ?? ???? ???? ????? ????? ?????? (??? ???????? ??? ????? ??????)
+    // ???? ???????? ??? ????? ??????? ?????? ??????? ????????.
     if (pendingWriteAction) {
       const action = pendingWriteAction;
       const returnPageId = pageBeforeAuthPrompt;
@@ -5735,14 +5766,14 @@ function handleAuthStateChanged(user, authInstance) {
 
       action();
     } else if (getCurrentVisiblePageId() === "authPage") {
-      // تم فتح صفحة تسجيل الدخول يدويًا (مثلاً من زر الهيدر)
-      // بدون وجود عملية معلّقة — نعيد المستخدم لصفحته السابقة.
+      // ?? ??? ???? ????? ?????? ?????? (????? ?? ?? ??????)
+      // ???? ???? ????? ?????? � ???? ???????? ?????? ???????.
       showPage(pageBeforeAuthPrompt || "homePage");
       pageBeforeAuthPrompt = null;
     }
   }
-  // عدم تسجيل الدخول (أو تسجيل الخروج) لا يغيّر الصفحة الحالية أبداً —
-  // التصفح يبقى مفتوحًا دائمًا لكل الزوار.
+  // ??? ????? ?????? (?? ????? ??????) ?? ????? ?????? ??????? ????? �
+  // ?????? ???? ??????? ?????? ??? ??????.
 }
 
 // ============================================================
@@ -5757,8 +5788,8 @@ function openAuth() {
   renderAuth();
 }
 
-// إغلاق واجهة تسجيل الدخول والعودة للتصفح بدون تسجيل دخول
-// (يُلغي أي عملية كتابة كانت بانتظار تسجيل الدخول)
+// ????? ????? ????? ?????? ??????? ?????? ???? ????? ????
+// (????? ?? ????? ????? ???? ??????? ????? ??????)
 function closeAuthOverlay() {
   const target = pageBeforeAuthPrompt || "homePage";
   pendingWriteAction = null;
@@ -5769,8 +5800,8 @@ function closeAuthOverlay() {
 function renderAuth() {
   const title = document.getElementById("authTitle");
   const subtitle = document.getElementById("authSubtitle");
-  if (title) title.textContent = "تسجيل الدخول";
-  if (subtitle) subtitle.textContent = "أدخل بريدك وكلمة المرور للمتابعة";
+  if (title) title.textContent = "????? ??????";
+  if (subtitle) subtitle.textContent = "???? ????? ????? ?????? ????????";
   clearAuthErrors();
 }
 
@@ -5794,21 +5825,21 @@ function switchAuthMode(isRegister) {
   }
 
   if (submitBtn) {
-    submitBtn.textContent = isRegister ? "إنشاء حساب" : "تسجيل الدخول";
+    submitBtn.textContent = isRegister ? "????? ????" : "????? ??????";
   }
   if (toggleBtn) {
-    toggleBtn.textContent = isRegister ? "لدي حساب؟ سجل الدخول" : "إنشاء حساب جديد";
+    toggleBtn.textContent = isRegister ? "??? ????? ??? ??????" : "????? ???? ????";
   }
-  if (title) title.textContent = isRegister ? "إنشاء حساب" : "تسجيل الدخول";
+  if (title) title.textContent = isRegister ? "????? ????" : "????? ??????";
   if (subtitle) subtitle.textContent = isRegister
-    ? "أدخل بريدك وكلمة المرور لإنشاء حساب"
-    : "أدخل بريدك وكلمة المرور للمتابعة";
+    ? "???? ????? ????? ?????? ?????? ????"
+    : "???? ????? ????? ?????? ????????";
 
   clearAuthErrors();
 }
 
 // ============================================================
-// تبديل الوضع عند الضغط على زر "إنشاء حساب" / "لدي حساب؟ سجل الدخول"
+// ????? ????? ??? ????? ??? ?? "????? ????" / "??? ????? ??? ??????"
 // ============================================================
 
 function toggleAuthMode() {
@@ -5867,28 +5898,28 @@ async function authSubmit(e) {
   let valid = true;
 
   if (!email) {
-    validateAuthField("authEmail", "مطلوب البريد الإلكتروني");
+    validateAuthField("authEmail", "????? ?????? ??????????");
     valid = false;
   }
   if (!password) {
-    validateAuthField("authPassword", "مطلوبة كلمة المرور");
+    validateAuthField("authPassword", "?????? ???? ??????");
     valid = false;
   }
   if (isRegister && !confirm) {
-    validateAuthField("authConfirmPassword", "مطلوب تأكيد كلمة المرور");
+    validateAuthField("authConfirmPassword", "????? ????? ???? ??????");
     valid = false;
   }
   if (isRegister && password && confirm && password !== confirm) {
-    validateAuthField("authConfirmPassword", "كلمةا المرور غير متطابقة");
+    validateAuthField("authConfirmPassword", "????? ?????? ??? ???????");
     valid = false;
   }
 
   if (!valid) return;
 
-  let mode = isRegister ? "التسجيل" : "تسجيل الدخول";
+  let mode = isRegister ? "???????" : "????? ??????";
 
   if (!getAuth()) {
-    setAuthError("تم تهيئة Firebase غير كاملة. حاول مرة أخرى.");
+    setAuthError("?? ????? Firebase ??? ?????. ???? ??? ????.");
     return;
   }
 
@@ -5918,60 +5949,60 @@ async function authSubmit(e) {
       await signInWithEmailAndPassword(getAuth(), email, password);
     }
 
-    // onCreate / onLogin — onAuthStateChanged fires automatically.
+    // onCreate / onLogin � onAuthStateChanged fires automatically.
     clearAuthErrors();
   } catch (error) {
     console.error("Auth error:", error);
-    let msg = "حدث خطأ غير متوقع";
+    let msg = "??? ??? ??? ?????";
 
     if (error && error.code) {
       const code = error.code;
 
       if (code === "auth/invalid-email") {
-        msg = "صيغة البريد الإلكتروني غير صحيحة";
+        msg = "???? ?????? ?????????? ??? ?????";
       } else if (code === "auth/email-already-in-use") {
-        msg = "هذا البريد مسجّل بالفعل. جرّب تسجيل الدخول";
+        msg = "??? ?????? ????? ??????. ???? ????? ??????";
       } else if (code === "auth/weak-password") {
-        msg = "كلمة المرور ضعيفة (الحد الأدنى 6 حروف)";
+        msg = "???? ?????? ????? (???? ?????? 6 ????)";
       } else if (
         code === "auth/user-not-found" ||
         code === "auth/wrong-password"
       ) {
-        msg = "البريد الإلكتروني أو كلمة المرور غير صحيحة";
+        msg = "?????? ?????????? ?? ???? ?????? ??? ?????";
       } else if (code === "auth/missing-android-cred") {
-        msg = "خطأ في إعداد Firebase Authentication";
+        msg = "??? ?? ????? Firebase Authentication";
       } else if (code === "auth/requires-recent-login") {
-        msg = "يرجى تسجيل الدخول مرة أخرى";
+        msg = "???? ????? ?????? ??? ????";
       } else if (code === "auth/too-many-requests") {
-        msg = "تم تفعيل الحماية مؤقتًا بسبب محاولات كثيرة. حاول بعد قليل";
+        msg = "?? ????? ??????? ?????? ???? ??????? ?????. ???? ??? ????";
       } else if (code === "auth/network-request-failed") {
-        msg = "فشل الاتصال بالشبكة. تحقق من الإنترنت ثم حاول مرة أخرى";
+        msg = "??? ??????? ???????. ???? ?? ???????? ?? ???? ??? ????";
       } else if (code === "auth/unauthorized-domain") {
-        msg = "الموقع غير مفعّل في Firebase. اتصل بالمسؤول";
+        msg = "?????? ??? ????? ?? Firebase. ???? ????????";
       } else if (code === "auth/invalid-api-key") {
-        msg = "إعداد غير صحيح في Firebase. اتصل بالمسؤول";
+        msg = "????? ??? ???? ?? Firebase. ???? ????????";
       } else if (code === "auth/operation-not-allowed") {
-        msg = "تسجيل هذا النوع غير مفعّل. اتصل بالمسؤول";
+        msg = "????? ??? ????? ??? ?????. ???? ????????";
       } else if (code === "auth/user-disabled") {
-        msg = "الحساب معطّل. اتصل بالمسؤول";
+        msg = "?????? ?????. ???? ????????";
       } else if (code === "auth/credential-already-in-use") {
-        msg = "هذا الحساب مرتبط بحساب آخر. استخدم تسجيل الدخول";
+        msg = "??? ?????? ????? ????? ???. ?????? ????? ??????";
       } else if (code === "auth/invalid-credential") {
-        msg = "بيانات الاعتماد غير صالحة";
+        msg = "?????? ???????? ??? ?????";
       } else if (code === "auth/internal-error") {
-        msg = "خطأ داخلي في Firebase. حاول مرة أخرى بعد قليل";
+        msg = "??? ????? ?? Firebase. ???? ??? ???? ??? ????";
       } else {
-        msg = "خطأ في المصادقة: " + (error.message || "حدث خطأ غير معروف");
+        msg = "??? ?? ????????: " + (error.message || "??? ??? ??? ?????");
       }
     } else if (error && error.message) {
-      msg = "خطأ في المصادقة: " + error.message;
+      msg = "??? ?? ????????: " + error.message;
     }
 
     setAuthError(msg);
   } finally {
     if (btn) {
       btn.disabled = false;
-      btn.textContent = isRegister ? "إنشاء حساب" : "تسجيل الدخول";
+      btn.textContent = isRegister ? "????? ????" : "????? ??????";
     }
   }
 }
@@ -5990,6 +6021,97 @@ async function logoutUser() {
     renderAuth();
   } catch (error) {
     console.error("Logout error:", error);
-    showMessage("حدث خطأ أثناء تسجيل الخروج");
+    showMessage("??? ??? ????? ????? ??????");
+  }
+}
+
+
+
+// ============================================================
+// ربط حدث تسجيل الدخول (مسؤولية JS فقط، بدون inline onsubmit)
+// ============================================================
+
+document.addEventListener("DOMContentLoaded", () => {
+  const authForm = document.getElementById("authForm");
+  if (!authForm) {
+    console.error("AUTH FORM NOT FOUND");
+    return;
+  }
+  authForm.addEventListener("submit", authSubmit);
+  console.log("AUTH EVENT WIRED");
+});
+
+// ============================================================
+// سحب بيانات الأجهزة الطبية من ملف Excel
+// ============================================================
+
+async function pullMedicalDevicesFromExcel() {
+  const statusEl = document.getElementById("excelPullStatus");
+  if (!statusEl) return;
+
+  statusEl.textContent = "جارٍ التحميل...";
+
+  try {
+    // تحميل مكتبة XLSX إذا لم تكن محملة
+    await loadMedicalInventoryLibrary();
+
+    // جلب ملف Excel
+    const response = await fetch(MEDICAL_INVENTORY_EXCEL_URL);
+    if (!response.ok) {
+      throw new Error("فشل في جلب ملف Excel (HTTP " + response.status + ")");
+    }
+
+    const buffer = await response.arrayBuffer();
+    const workbook = XLSX.read(new Uint8Array(buffer), { type: "array" });
+
+    // استخدام نفس دالة التحليل المستخدمة في الجرد
+    const parsed = parseMedicalInventoryWorkbook(workbook);
+
+    if (!parsed.records.length) {
+      throw new Error("لا توجد أجهزة طبية في ملف Excel");
+    }
+
+    // تاريخ اليوم
+    const today = new Date();
+    const dateStr = String(today.getDate()).padStart(2, "0") + "-" +
+                    String(today.getMonth() + 1).padStart(2, "0") + "-" +
+                    today.getFullYear();
+
+    const title = "صيانة الأجهزة الطبية - " + dateStr;
+
+    // بناء سجل الصيانة
+    const maintenanceRecord = {
+      title: title,
+      date: dateStr,
+      deviceCount: parsed.records.length,
+      devices: parsed.records.map(r => ({
+        excelRow: r.excelRow,
+        ref: r.ref,
+        name: r.name,
+        brand: r.brand,
+        origin: r.origin,
+        qty: r.qty
+      })),
+      createdAt: new Date().toISOString()
+    };
+
+    // حفظ السجل في Firestore مجموعة medical_device_maintenance
+    const db = getFirestoreDB();
+    if (!db) {
+      throw new Error("قاعدة البيانات غير متاحة");
+    }
+
+    const { collection, addDoc } = await import(
+      "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js"
+    );
+
+    await addDoc(collection(db, "medical_device_maintenance"), maintenanceRecord);
+
+    statusEl.textContent = "تم سحب " + parsed.records.length + " جهازًا بنجاح";
+    console.log("تم حفظ سجل الصيانة:", title);
+
+  } catch (error) {
+    statusEl.textContent = "فشل: " + (error.message || error);
+    console.error("خطأ في سحب بيانات الأجهزة من Excel:", error);
   }
 }
