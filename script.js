@@ -12,6 +12,7 @@ const TOKENS_COLLECTION = "notificationTokens";
 const MEDICAL_FAULTS_COLLECTION = "medical_device_faults";
 const MEDICAL_COUNTERS_COLLECTION = "counters";
 const FUEL_TANKS_COLLECTION = "fuelTanks";
+const MEDICAL_LOCATIONS_COLLECTION = "medical_locations";
 
 // مهم: ضع هنا مفتاح VAPID العام من
 // Firebase Console > Project settings > Cloud Messaging > Web push certificates
@@ -2309,6 +2310,7 @@ function getNotificationIcon(type) {
     if (type === "task") return "✅";
     if (type === "purchase") return "🛒";
     if (type === "material") return "📦";
+if (type === "medical") return "🩺";
     return "🔔";
 }
 
@@ -3552,6 +3554,8 @@ const FAULT_PRIORITY_ORDER = ["CRITICAL", "HIGH", "MEDIUM", "LOW"];
 function openMedicalDevices() {
     showPage("medicalDevicesPage");
     populateFaultDeviceSelect();
+    populateFaultLocationSelect();
+    loadFaultLocations();
     // عرض أحدث البيانات المتوفرة ثم بدء الاشتراك الحيّ لتحديث العدّادات تلقائياً
     getMedicalFaults();
     subscribeMedicalFaults();
@@ -3786,6 +3790,648 @@ function onDeviceSelectChange() {
 }
 
 // ============================================================
+// إدارة المواقع (Location) داخل قسم Device Information
+// ------------------------------------------------------------
+// - القائمة الأساسية (9 مواقع) ثابتة داخل الكود وتظهر دائماً.
+// - المواقع المحفوظة تُقرأ من مجموعة medical_locations في Firestore
+//   وتُضاف إلى القائمة الأساسية (المجموعة تُنشأ تلقائياً عند أول
+//   عملية حفظ — لا حاجة لإنشائها يدوياً).
+// - "+ Add New Location": إدخال موقع جديد مع سؤال الحفظ
+//   (نعم، حفظ => يُسجَّل في Firestore ويبقى في القائمة)
+//   (لا، استخدام لهذا الجهاز فقط => لا يُكتب أي سجل في Firestore).
+// ============================================================
+
+// القائمة الأساسية الافتراضية — لا تُحذف ولا تُعدَّل
+const DEFAULT_MEDICAL_LOCATIONS = [
+    "ICU",
+    "Radiology",
+    "Emergency Room",
+    "Operating Room",
+    "VIP Ward",
+    "MRI Suite",
+    "Hemodialysis Unit",
+    "NICU",
+    "PICU"
+];
+
+// قيمة الخيار الخاص "+ Add New Location" داخل القائمة
+const NEW_FAULT_LOCATION_VALUE = "__add_new_location__";
+
+// ذاكرة المواقع المحفوظة في Firestore (أسماء نصية)
+let faultLocationsCache = [];
+let faultLocationsLoaded = false;
+let faultLocationsLoadPromise = null;
+
+// اسم الموقع الجديد المعلّق بانتظار رد المستخدم على سؤال الحفظ
+let pendingNewFaultLocation = null;
+
+// توحيد اسم الموقع للمقارنة (منع التكرار مهما اختلفت الحالة أو المسافات)
+function normalizeFaultLocationName(name) {
+    return String(name || "").trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+// معرّف مستند ثابت مشتق من الاسم — يمنع التكرار حتى مع النقر المزدوج
+function buildFaultLocationDocId(name) {
+    return normalizeFaultLocationName(name).replace(/\//g, "__").slice(0, 140);
+}
+
+// هل الاسم موجود مسبقاً؟ (الأساسية + المحفوظة + الخيارات الحالية بالقائمة)
+function isFaultLocationDuplicate(name) {
+
+    const normalized =
+        normalizeFaultLocationName(name);
+
+    if (!normalized) {
+        return false;
+    }
+
+    const existsInBase =
+        DEFAULT_MEDICAL_LOCATIONS.some(
+            location => normalizeFaultLocationName(location) === normalized
+        );
+
+    if (existsInBase) {
+        return true;
+    }
+
+    const existsInSaved =
+        faultLocationsCache.some(
+            location => normalizeFaultLocationName(location) === normalized
+        );
+
+    if (existsInSaved) {
+        return true;
+    }
+
+    const select =
+        document.getElementById("faultLocation");
+
+    if (select) {
+
+        const existsInDom =
+            Array.from(select.options).some(
+                option => normalizeFaultLocationName(option.value) === normalized
+            );
+
+        if (existsInDom) {
+            return true;
+        }
+
+    }
+
+    return false;
+
+}
+
+// تحميل المواقع المحفوظة من medical_locations (مرة واحدة لكل جلسة فتح)
+function loadFaultLocations() {
+
+    if (faultLocationsLoaded) {
+        return Promise.resolve();
+    }
+
+    if (faultLocationsLoadPromise) {
+        return faultLocationsLoadPromise;
+    }
+
+    faultLocationsLoadPromise = (async () => {
+
+        const db = getFirestoreDB();
+
+        if (!db) {
+            faultLocationsLoadPromise = null;
+            return;
+        }
+
+        try {
+
+            const { collection, getDocs } = await import("https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js");
+
+            const snapshot =
+                await getDocs(collection(db, MEDICAL_LOCATIONS_COLLECTION));
+
+            faultLocationsCache = [];
+
+            snapshot.forEach(docSnap => {
+
+                const data = docSnap.data() || {};
+
+                const name =
+                    String(data.name || "").trim();
+
+                if (name) {
+                    faultLocationsCache.push(name);
+                }
+
+            });
+
+            faultLocationsLoaded = true;
+
+            // إعادة بناء القائمة لدمج المواقع المحفوظة مع الأساسية
+            populateFaultLocationSelect();
+
+        } catch (error) {
+
+            console.error("Error loading saved locations:", error);
+
+            // تبقى القائمة الأساسية تعمل — وتُعاد المحاولة عند الفتح القادم
+            faultLocationsLoaded = false;
+
+        } finally {
+
+            faultLocationsLoadPromise = null;
+
+        }
+
+    })();
+
+    return faultLocationsLoadPromise;
+
+}
+
+// بناء قائمة المواقع: الأساسية + المحفوظة (بدون تكرار) + "+ Add New Location"
+function populateFaultLocationSelect() {
+
+    const select =
+        document.getElementById("faultLocation");
+
+    if (!select) {
+        return;
+    }
+
+    const previousValue =
+        select.value;
+
+    select.innerHTML =
+        '<option value="">Select location...</option>';
+
+    // 1) القائمة الأساسية الثابتة (بالترتيب المحدد — لا يتغير)
+    DEFAULT_MEDICAL_LOCATIONS.forEach(name => {
+
+        const option =
+            document.createElement("option");
+
+        option.value =
+            name;
+
+        option.textContent =
+            name;
+
+        select.appendChild(option);
+
+    });
+
+    // 2) المواقع المحفوظة في Firestore — بدون تكرار مع الأساسية أو فيما بينها
+    const seenLocationKeys = new Set(
+        DEFAULT_MEDICAL_LOCATIONS.map(normalizeFaultLocationName)
+    );
+
+    faultLocationsCache
+        .filter(name => {
+
+            const key =
+                normalizeFaultLocationName(name);
+
+            if (!key || seenLocationKeys.has(key)) {
+                return false;
+            }
+
+            seenLocationKeys.add(key);
+
+            return true;
+
+        })
+        .slice()
+        .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base", numeric: true }))
+        .forEach(name => {
+
+            const option =
+                document.createElement("option");
+
+            option.value =
+                name;
+
+            option.textContent =
+                name;
+
+            select.appendChild(option);
+
+        });
+
+    // 3) الحفاظ على اختيار حالي غير موجود بعد إعادة البناء
+    //    (مثل موقع "استخدام لهذا الجهاز فقط" من الجلسة الحالية)
+    if (previousValue && previousValue !== NEW_FAULT_LOCATION_VALUE) {
+
+        const stillExists =
+            Array.from(select.options).some(option => option.value === previousValue);
+
+        if (!stillExists) {
+
+            const tempOption =
+                document.createElement("option");
+
+            tempOption.value =
+                previousValue;
+
+            tempOption.textContent =
+                previousValue + " (هذا الجهاز فقط)";
+
+            select.appendChild(tempOption);
+
+        }
+
+        select.value =
+            previousValue;
+
+    }
+
+    // 4) خيار إضافة موقع جديد — يبقى دائماً في نهاية القائمة
+    const addNewOption =
+        document.createElement("option");
+
+    addNewOption.value =
+        NEW_FAULT_LOCATION_VALUE;
+
+    addNewOption.textContent =
+        "+ Add New Location";
+
+    select.appendChild(addNewOption);
+
+    // استعادة وضع "إضافة موقع جديد" إن كان المستخدم فيه قبل إعادة البناء
+    if (previousValue === NEW_FAULT_LOCATION_VALUE) {
+        select.value = NEW_FAULT_LOCATION_VALUE;
+    }
+
+}
+
+// إظهار/إخفاء حقل الإدخال وسؤال الحفظ عند تغيير اختيار الموقع
+function onFaultLocationChange() {
+
+    const select =
+        document.getElementById("faultLocation");
+
+    const newRow =
+        document.getElementById("faultLocationNewRow");
+
+    const question =
+        document.getElementById("faultLocationSaveQuestion");
+
+    if (!select || !newRow || !question) {
+        return;
+    }
+
+    if (select.value === NEW_FAULT_LOCATION_VALUE) {
+
+        pendingNewFaultLocation = null;
+
+        question.style.display = "none";
+        newRow.style.display = "flex";
+
+        const input =
+            document.getElementById("faultLocationNewName");
+
+        if (input) {
+            input.focus();
+        }
+
+        return;
+
+    }
+
+    // اختيار موقع عادي: إخفاء كل عناصر الإدخال والسؤال ومسح الحالة المعلّقة
+    pendingNewFaultLocation = null;
+
+    newRow.style.display = "none";
+    question.style.display = "none";
+
+    const input =
+        document.getElementById("faultLocationNewName");
+
+    if (input) {
+        input.value = "";
+        input.classList.remove("is-invalid");
+    }
+
+    const nameError =
+        document.getElementById("error-faultLocationNewName");
+
+    if (nameError) {
+        nameError.textContent = "";
+    }
+
+}
+
+// Enter = متابعة، Escape = إلغاء العودة للقائمة
+function onFaultLocationNewNameKeydown(event) {
+
+    if (event && event.key === "Enter") {
+        event.preventDefault();
+        proceedWithNewFaultLocation();
+        return;
+    }
+
+    if (event && event.key === "Escape") {
+        event.preventDefault();
+        cancelNewFaultLocation();
+    }
+
+}
+
+// إلغاء إدخال موقع جديد والعودة لحالة القائمة الافتراضية
+function cancelNewFaultLocation() {
+
+    pendingNewFaultLocation = null;
+
+    const select =
+        document.getElementById("faultLocation");
+
+    if (select) {
+        select.value = "";
+    }
+
+    const newRow =
+        document.getElementById("faultLocationNewRow");
+
+    if (newRow) {
+        newRow.style.display = "none";
+    }
+
+    const question =
+        document.getElementById("faultLocationSaveQuestion");
+
+    if (question) {
+        question.style.display = "none";
+    }
+
+    const input =
+        document.getElementById("faultLocationNewName");
+
+    if (input) {
+        input.value = "";
+        input.classList.remove("is-invalid");
+    }
+
+    const nameError =
+        document.getElementById("error-faultLocationNewName");
+
+    if (nameError) {
+        nameError.textContent = "";
+    }
+
+}
+
+// "متابعة": التحقق من الاسم ثم عرض سؤال الحفظ
+function proceedWithNewFaultLocation() {
+
+    const input =
+        document.getElementById("faultLocationNewName");
+
+    const name = input
+        ? input.value.trim().replace(/\s+/g, " ")
+        : "";
+
+    // الحقل فارغ — رسالة مناسبة ولا يُسمح بالحفظ
+    if (!name) {
+        showFaultFieldError(
+            "faultLocationNewName",
+            "يرجى إدخال اسم الموقع الجديد أولاً."
+        );
+        if (input) input.focus();
+        return;
+    }
+
+    // منع التكرار: ضمن الأساسية أو المحفوظة أو القائمة الحالية
+    if (isFaultLocationDuplicate(name)) {
+        showFaultFieldError(
+            "faultLocationNewName",
+            "هذا الموقع موجود مسبقاً في القائمة."
+        );
+        if (input) input.focus();
+        return;
+    }
+
+    pendingNewFaultLocation = name;
+
+    const newRow =
+        document.getElementById("faultLocationNewRow");
+
+    if (newRow) {
+        newRow.style.display = "none";
+    }
+
+    const question =
+        document.getElementById("faultLocationSaveQuestion");
+
+    if (question) {
+        question.style.display = "block";
+    }
+
+}
+
+// "نعم، حفظ": إنشاء مجموعة medical_locations تلقائياً عند أول حفظ
+async function saveNewFaultLocationToList() {
+
+    const name =
+        pendingNewFaultLocation;
+
+    if (!name) {
+        return;
+    }
+
+    // حماية من التكرار (نقرتين متتاليتين أو سباق مصدرين)
+    if (isFaultLocationDuplicate(name)) {
+        applyFaultLocationSelection(name, false);
+        pendingNewFaultLocation = null;
+        return;
+    }
+
+    // الكتابة إلى Firestore تتطلب تسجيل الدخول (نفس نظام الصلاحيات الحالي)
+    if (!requireLoginForWrite(() => saveNewFaultLocationToList())) {
+        return;
+    }
+
+    const db = getFirestoreDB();
+
+    if (!db) {
+        showMessage("تعذر الاتصال بقاعدة البيانات. حاول مرة أخرى.", "error");
+        return;
+    }
+
+    try {
+
+        const { doc, setDoc, serverTimestamp } = await import("https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js");
+
+        // معرّف ثابت مشتق من الاسم => المستند نفسه لا يتكرر أبداً
+        await setDoc(doc(db, MEDICAL_LOCATIONS_COLLECTION, buildFaultLocationDocId(name)), {
+            name: name,
+            createdAt: serverTimestamp()
+        });
+
+        // تحديث الذاكرة والقائمة فوراً — المجموعة أُنشئت تلقائياً بأول مستند
+        if (!isFaultLocationDuplicate(name)) {
+            faultLocationsCache.push(name);
+        }
+
+        applyFaultLocationSelection(name, false);
+
+        pendingNewFaultLocation = null;
+
+        showMessage("تم حفظ الموقع في القائمة المنسدلة.");
+
+    } catch (error) {
+
+        console.error("Error saving new location:", error);
+        showMessage("تعذر حفظ الموقع الجديد. حاول مرة أخرى.", "error");
+
+    }
+
+}
+
+// "لا، استخدام لهذا الجهاز فقط": بدون أي كتابة إلى Firestore
+function useNewFaultLocationOnce() {
+
+    const name =
+        pendingNewFaultLocation;
+
+    if (!name) {
+        return;
+    }
+
+    applyFaultLocationSelection(name, true);
+
+    pendingNewFaultLocation = null;
+
+}
+
+// تطبيق الموقع على القائمة (مع خيار مؤقت عند اختيار "هذا الجهاز فقط")
+function applyFaultLocationSelection(name, temporary) {
+
+    const select =
+        document.getElementById("faultLocation");
+
+    if (!select) {
+        return;
+    }
+
+    const question =
+        document.getElementById("faultLocationSaveQuestion");
+
+    if (question) {
+        question.style.display = "none";
+    }
+
+    const newRow =
+        document.getElementById("faultLocationNewRow");
+
+    if (newRow) {
+        newRow.style.display = "none";
+    }
+
+    const input =
+        document.getElementById("faultLocationNewName");
+
+    if (input) {
+        input.value = "";
+    }
+
+    let option =
+        Array.from(select.options).find(candidate => candidate.value === name);
+
+    if (!option) {
+
+        option =
+            document.createElement("option");
+
+        option.value =
+            name;
+
+        option.textContent = temporary
+            ? name + " (هذا الجهاز فقط)"
+            : name;
+
+        // الإدراج قبل "+ Add New Location" للحفاظ على ترتيب القائمة
+        const addNewOption =
+            Array.from(select.options).find(candidate => candidate.value === NEW_FAULT_LOCATION_VALUE);
+
+        if (addNewOption) {
+            select.insertBefore(option, addNewOption);
+        } else {
+            select.appendChild(option);
+        }
+
+    }
+
+    select.value =
+        name;
+
+}
+
+// القيمة الحالية للموقع (بدون الخيار الخاص "+ Add New Location")
+function getFaultLocationValue() {
+
+    const select =
+        document.getElementById("faultLocation");
+
+    if (!select || !select.value || select.value === NEW_FAULT_LOCATION_VALUE) {
+        return "";
+    }
+
+    return select.value;
+
+}
+
+// إعادة حقل الموقع إلى حالته الافتراضية (عند إغلاق النموذج)
+function resetFaultLocationUI() {
+
+    pendingNewFaultLocation = null;
+
+    const select =
+        document.getElementById("faultLocation");
+
+    if (select) {
+        select.value = "";
+        select.classList.remove("is-invalid");
+    }
+
+    const newRow =
+        document.getElementById("faultLocationNewRow");
+
+    if (newRow) {
+        newRow.style.display = "none";
+    }
+
+    const question =
+        document.getElementById("faultLocationSaveQuestion");
+
+    if (question) {
+        question.style.display = "none";
+    }
+
+    const input =
+        document.getElementById("faultLocationNewName");
+
+    if (input) {
+        input.value = "";
+        input.classList.remove("is-invalid");
+    }
+
+    const nameError =
+        document.getElementById("error-faultLocationNewName");
+
+    if (nameError) {
+        nameError.textContent = "";
+    }
+
+    const locationError =
+        document.getElementById("error-faultLocation");
+
+    if (locationError) {
+        locationError.textContent = "";
+    }
+
+}
+
+// ============================================================
 // نموذج تسجيل عطل جهاز طبي (Medical Device Fault Form)
 // ============================================================
 
@@ -3809,6 +4455,10 @@ function openFaultForm() {
 
     // التأكد من أن قائمة الأجهزة جاهزة من جرد Excel (حالة تحميل/خطأ واضحة)
     populateFaultDeviceSelect();
+
+    // تجهيز قائمة المواقع (الأساسية + المحفوظة في medical_locations)
+    populateFaultLocationSelect();
+    loadFaultLocations();
 
     // استخدام بيانات المُبلِّغ المتوفرة حالياً في التطبيق (إن وُجدت) دون إنشاء مستخدمين وهميين
     const reportedByInput = document.getElementById("faultReportedBy");
@@ -3902,6 +4552,9 @@ function closeFaultForm() {
 
     const statusSelect = document.getElementById("faultStatus");
     if (statusSelect) statusSelect.value = "NEW";
+
+    // ريست حقل الموقع (القائمة + حقل الإدخال + سؤال الحفظ)
+    resetFaultLocationUI();
 
     clearFaultFormErrors();
     setFaultFormBusy(false);
@@ -4046,6 +4699,7 @@ async function addFault() {
     const priority = document.getElementById("faultPriority").value;
     const status = document.getElementById("faultStatus").value;
     const description = document.getElementById("faultDescription").value.trim();
+    const location = getFaultLocationValue();
 
     const db = getFirestoreDB();
     if (!db) {
@@ -4069,11 +4723,22 @@ async function addFault() {
             reportedBy,
             priority,
             status,
+            location,
             description,
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
             completedAt: status === "COMPLETE" ? serverTimestamp() : null
         });
+
+        // إشعار بتسجيل جهاز طبي جديد — يُرسل مرة واحدة فقط بعد نجاح الحفظ
+        // (لا يُرسل عند فشل الحفظ لأن الاستدعاء بعد addDoc مباشرة).
+        await notify(
+            "الأجهزة الطبية",
+            device
+                ? "تم تسجيل جهاز طبي جديد: " + device
+                : "تم تسجيل جهاز طبي جديد",
+            "medical"
+        );
 
         closeFaultForm();
         showMessage("Fault submitted successfully - Ticket: " + ticketID);
@@ -6095,6 +6760,9 @@ async function pullMedicalDevicesFromExcel() {
   const statusEl = document.getElementById("excelPullStatus");
   if (!statusEl) return;
 
+  // إخفاء زر التنزيل السابق عند بدء عملية سحب جديدة
+  resetMedicalExcelExportUI();
+
   statusEl.textContent = "جارٍ التحميل...";
 
   try {
@@ -6153,11 +6821,167 @@ async function pullMedicalDevicesFromExcel() {
 
     await addDoc(collection(db, "medical_device_maintenance"), maintenanceRecord);
 
-    statusEl.textContent = "تم سحب " + parsed.records.length + " جهازًا بنجاح";
     console.log("تم حفظ سجل الصيانة:", title);
+
+    // تجهيز ملف Excel للتنزيل بنفس بنية الملف المرجعي
+    // (Medical_Equipment_Maintenance_Tracker_v2.xlsx / Equipment Inventory)
+    try {
+      prepareMedicalDevicesExcelExport(parsed.records);
+      statusEl.textContent =
+        "تم سحب " + parsed.records.length + " جهازًا بنجاح — الملف جاهز للتنزيل";
+    } catch (exportError) {
+      console.error("خطأ في تجهيز ملف التصدير:", exportError);
+      statusEl.textContent =
+        "تم سحب " + parsed.records.length + " جهازًا بنجاح، لكن تعذر تجهيز ملف التصدير: " +
+        (exportError.message || exportError);
+    }
 
   } catch (error) {
     statusEl.textContent = "فشل: " + (error.message || error);
     console.error("خطأ في سحب بيانات الأجهزة من Excel:", error);
   }
+}
+
+// ============================================================
+// تصدير الأجهزة الطبية إلى Excel بنفس بنية الملف المرجعي
+// "Medical_Equipment_Maintenance_Tracker_v2.xlsx"
+// (الورقة الرئيسية للمرجع: Equipment Inventory)
+// ------------------------------------------------------------
+// - أسماء الأعمدة السبعة الأولى وترتيبها مطابقة للمرجع حرفياً.
+// - البيانات غير المتوفرة في النظام (Serial Number / Department /
+//   Purchase Date / Warranty) تبقى خلايا فارغة بدون أي تخمين.
+// - عمود "Quantity" أُضيف في النهاية فقط للحفاظ على بيانات الكمية
+//   الموجودة فعلياً في النظام (المرجع لا يحتوي عمود كمية أصلاً).
+// - العملية قراءة من الذاكرة فقط ولا تعدل أي بيانات في Firestore.
+// ============================================================
+
+const MEDICAL_EXPORT_SHEET_NAME = "Equipment Inventory";
+const MEDICAL_EXPORT_TITLE = "Medical Equipment Inventory Database";
+const MEDICAL_EXPORT_HEADERS = [
+    "Equipment Code",
+    "Equipment Name",
+    "Serial Number (SN)",
+    "Manufacturer / Brand",
+    "Department / Location",
+    "Purchase Date",
+    "Warranty Status",
+    "Quantity" // عمود إضافي: حفظ كمية النظام (المرجع لا يحتوي عمود كمية)
+];
+const MEDICAL_EXPORT_COL_WIDTHS = [18, 24, 22, 24, 25, 17, 19, 12];
+
+let medicalExportFile = null;
+
+// تحويل القيم الرقمية إلى أرقام حقيقية (نفس أنواع بيانات المصدر)
+function medicalExportNumericOrText(value) {
+    if (value === null || value === undefined) return null;
+
+    const trimmed = String(value).trim();
+    if (trimmed === "") return null;
+
+    const num = Number(trimmed);
+    return isNaN(num) ? trimmed : num;
+}
+
+// بناء مصنف Excel مطابق لبنية ورقة "Equipment Inventory" المرجعية:
+// عنوان مدموج A1:H2 (المرجع A1:G2) ثم العناوين في الصف الرابع
+function buildMedicalDevicesExportWorkbook(records) {
+    const rows = [];
+
+    // الصف 1: العنوان (مدموج عبر صفين مثل المرجع)
+    rows.push([MEDICAL_EXPORT_TITLE]);
+
+    // الصفان 2 و 3: فارغان (مثل المرجع)
+    rows.push([]);
+    rows.push([]);
+
+    // الصف 4: العناوين بنفس أسماء المرجع وترتيبه
+    rows.push(MEDICAL_EXPORT_HEADERS.slice());
+
+    // الصف 5 وما بعده: بيانات الأجهزة من النظام
+    (records || []).forEach(function (record) {
+        rows.push([
+            medicalExportNumericOrText(record.ref),
+            record.name || null,
+            null, // Serial Number (SN) غير متوفر في النظام
+            record.brand || null,
+            null, // Department / Location غير متوفر في بيانات الجرد
+            null, // Purchase Date غير متوفر في النظام
+            null, // Warranty Status غير متوفر في النظام
+            medicalExportNumericOrText(record.qty)
+        ]);
+    });
+
+    const worksheet = XLSX.utils.aoa_to_sheet(rows);
+
+    // دمج العنوان عبر كل الأعمدة (المرجع: A1:G2 — هنا A1:H2 لوجود عمود الكمية)
+    worksheet["!merges"] = [{
+        s: { r: 0, c: 0 },
+        e: { r: 1, c: MEDICAL_EXPORT_HEADERS.length - 1 }
+    }];
+
+    // نفس عروض أعمدة المرجع (A-G) + عرض عمود الكمية
+    worksheet["!cols"] = MEDICAL_EXPORT_COL_WIDTHS.map(function (w) {
+        return { wch: w };
+    });
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, MEDICAL_EXPORT_SHEET_NAME);
+    return workbook;
+}
+
+// توليد ملف xlsx في الذاكرة وإظهار زر التنزيل (بدون تنزيل تلقائي)
+function prepareMedicalDevicesExcelExport(records) {
+    const workbook = buildMedicalDevicesExportWorkbook(records);
+
+    const data = new Uint8Array(
+        XLSX.write(workbook, { bookType: "xlsx", type: "array" })
+    );
+
+    const now = new Date();
+    const ymd = now.getFullYear() + "-" +
+        String(now.getMonth() + 1).padStart(2, "0") + "-" +
+        String(now.getDate()).padStart(2, "0");
+
+    medicalExportFile = {
+        data: data,
+        filename: "Medical_Equipment_Maintenance_Tracker_Export_" + ymd + ".xlsx",
+        count: (records || []).length
+    };
+
+    const btn = document.getElementById("excelDownloadBtn");
+    if (btn) btn.style.display = "";
+}
+
+// إعادة ضبط حالة التصدير (تُستدعى عند بدء عملية سحب جديدة)
+function resetMedicalExcelExportUI() {
+    medicalExportFile = null;
+
+    const btn = document.getElementById("excelDownloadBtn");
+    if (btn) btn.style.display = "none";
+}
+
+// تنزيل الملف الجاهز عند ضغط المستخدم على زر "⬇️ تنزيل ملف Excel"
+function downloadMedicalExportFile() {
+    if (!medicalExportFile || !medicalExportFile.data) {
+        const statusEl = document.getElementById("excelPullStatus");
+        if (statusEl) {
+            statusEl.textContent = "لا يوجد ملف جاهز. اضغط \"سحب ملف Excel\" أولاً.";
+        }
+        return;
+    }
+
+    const blob = new Blob([medicalExportFile.data], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    link.href = url;
+    link.download = medicalExportFile.filename;
+
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+
+    setTimeout(function () { URL.revokeObjectURL(url); }, 5000);
 }

@@ -795,6 +795,93 @@ content="default"
       cursor: wait;
     }
 
+    #medicalDevicesPage .fault-location-new-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    #medicalDevicesPage .fault-location-new-row .medical-input {
+      flex: 1;
+      min-width: 0;
+    }
+
+    #medicalDevicesPage .fault-location-proceed-btn {
+      border: 1px solid #14724e;
+      border-radius: 12px;
+      padding: 11px 16px;
+      background: #ffffff;
+      color: #14724e;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 800;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    #medicalDevicesPage .fault-location-proceed-btn:hover {
+      background: #14724e;
+      color: #ffffff;
+    }
+
+    #medicalDevicesPage .fault-location-question {
+      margin-top: 10px;
+      padding: 12px;
+      background: #f7faf8;
+      border: 1px solid #e2ebe7;
+      border-radius: 12px;
+    }
+
+    #medicalDevicesPage .fault-location-question-text {
+      margin: 0 0 10px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #4c5c55;
+    }
+
+    #medicalDevicesPage .fault-location-question-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    #medicalDevicesPage .fault-location-btn {
+      border-radius: 10px;
+      padding: 9px 14px;
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 800;
+      cursor: pointer;
+      line-height: 1.4;
+    }
+
+    #medicalDevicesPage .fault-location-btn.is-save {
+      border: 0;
+      background: #14724e;
+      color: #ffffff;
+      box-shadow: 0 4px 10px rgba(20, 114, 78, .18);
+    }
+
+    #medicalDevicesPage .fault-location-btn.is-save:hover {
+      background: #0f5c3e;
+    }
+
+    #medicalDevicesPage .fault-location-btn.is-once {
+      border: 1px solid #dde5e1;
+      background: #ffffff;
+      color: #4c5c55;
+    }
+
+    #medicalDevicesPage .fault-location-btn.is-once:hover {
+      border-color: #14724e;
+      color: #14724e;
+    }
+
+    #medicalDevicesPage .fault-location-btn:disabled {
+      opacity: .6;
+      cursor: wait;
+    }
+
     #medicalDevicesPage .fault-form-actions {
       display: flex;
       gap: 10px;
@@ -2678,6 +2765,31 @@ content="default"
             <label for="faultOrigin">Country of Origin</label>
             <input type="text" id="faultOrigin" class="medical-input" readonly placeholder="Filled automatically">
           </div>
+
+          <!-- LOCATION (base list + locations saved in Firestore) -->
+          <div class="fault-field is-wide">
+            <label for="faultLocation">Location</label>
+            <select id="faultLocation" class="medical-input" onchange="onFaultLocationChange(); clearFaultFieldError(this);">
+              <option value="">Select location...</option>
+            </select>
+            <span id="error-faultLocation" class="field-error"></span>
+
+            <!-- إدخال موقع جديد (يظهر عند اختيار "+ Add New Location") -->
+            <div id="faultLocationNewRow" class="fault-location-new-row" style="display:none;">
+              <input type="text" id="faultLocationNewName" class="medical-input" placeholder="Enter the new location name" autocomplete="off" onkeydown="onFaultLocationNewNameKeydown(event)" oninput="clearFaultFieldError(this)">
+              <button type="button" id="faultLocationProceedBtn" class="fault-location-proceed-btn" onclick="proceedWithNewFaultLocation()">متابعة</button>
+            </div>
+            <span id="error-faultLocationNewName" class="field-error"></span>
+
+            <!-- سؤال حفظ الموقع الجديد -->
+            <div id="faultLocationSaveQuestion" class="fault-location-question" style="display:none;">
+              <p class="fault-location-question-text">هل تريد حفظ هذا الموقع إلى القائمة المنسدلة؟</p>
+              <div class="fault-location-question-actions">
+                <button type="button" id="faultLocationSaveBtn" class="fault-location-btn is-save" onclick="saveNewFaultLocationToList()">نعم، حفظ</button>
+                <button type="button" id="faultLocationUseOnceBtn" class="fault-location-btn is-once" onclick="useNewFaultLocationOnce()">لا، استخدام لهذا الجهاز فقط</button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -2796,6 +2908,9 @@ content="default"
           سحب ملف Excel
         </button>
         <span id="excelPullStatus" class="inventory-hint"></span>
+        <button type="button" id="excelDownloadBtn" class="inventory-btn" style="display:none;" onclick="downloadMedicalExportFile()">
+          ⬇️ تنزيل ملف Excel
+        </button>
       </div>
     </section>
 

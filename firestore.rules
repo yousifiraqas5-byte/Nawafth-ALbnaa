@@ -86,5 +86,11 @@ service cloud.firestore {
       allow write: if isSignedIn();
     }
 
+    // مواقع الأجهزة الطبية (Location) — تُنشأ تلقائياً عند أول حفظ
+    match /medical_locations/{documentId} {
+      allow read: if true;
+      allow write: if isSignedIn();
+    }
+
   }
 }
