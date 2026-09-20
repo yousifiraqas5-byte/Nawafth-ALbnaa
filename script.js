@@ -5925,21 +5925,43 @@ async function authSubmit(e) {
     let msg = "حدث خطأ غير متوقع";
 
     if (error && error.code) {
-      if (error.code === "auth/invalid-email") {
+      const code = error.code;
+
+      if (code === "auth/invalid-email") {
         msg = "صيغة البريد الإلكتروني غير صحيحة";
-      } else if (error.code === "auth/email-already-in-use") {
+      } else if (code === "auth/email-already-in-use") {
         msg = "هذا البريد مسجّل بالفعل. جرّب تسجيل الدخول";
-      } else if (error.code === "auth/weak-password") {
+      } else if (code === "auth/weak-password") {
         msg = "كلمة المرور ضعيفة (الحد الأدنى 6 حروف)";
       } else if (
-        error.code === "auth/user-not-found" ||
-        error.code === "auth/wrong-password"
+        code === "auth/user-not-found" ||
+        code === "auth/wrong-password"
       ) {
         msg = "البريد الإلكتروني أو كلمة المرور غير صحيحة";
-      } else if (error.code === "auth/missing-android-cred") {
+      } else if (code === "auth/missing-android-cred") {
         msg = "خطأ في إعداد Firebase Authentication";
+      } else if (code === "auth/requires-recent-login") {
+        msg = "يرجى تسجيل الدخول مرة أخرى";
+      } else if (code === "auth/too-many-requests") {
+        msg = "تم تفعيل الحماية مؤقتًا بسبب محاولات كثيرة. حاول بعد قليل";
+      } else if (code === "auth/network-request-failed") {
+        msg = "فشل الاتصال بالشبكة. تحقق من الإنترنت ثم حاول مرة أخرى";
+      } else if (code === "auth/unauthorized-domain") {
+        msg = "الموقع غير مفعّل في Firebase. اتصل بالمسؤول";
+      } else if (code === "auth/invalid-api-key") {
+        msg = "إعداد غير صحيح في Firebase. اتصل بالمسؤول";
+      } else if (code === "auth/operation-not-allowed") {
+        msg = "تسجيل هذا النوع غير مفعّل. اتصل بالمسؤول";
+      } else if (code === "auth/user-disabled") {
+        msg = "الحساب معطّل. اتصل بالمسؤول";
+      } else if (code === "auth/credential-already-in-use") {
+        msg = "هذا الحساب مرتبط بحساب آخر. استخدم تسجيل الدخول";
+      } else if (code === "auth/invalid-credential") {
+        msg = "بيانات الاعتماد غير صالحة";
+      } else if (code === "auth/internal-error") {
+        msg = "خطأ داخلي في Firebase. حاول مرة أخرى بعد قليل";
       } else {
-        msg = "خطأ في المصادقة: " + error.message;
+        msg = "خطأ في المصادقة: " + (error.message || "حدث خطأ غير معروف");
       }
     } else if (error && error.message) {
       msg = "خطأ في المصادقة: " + error.message;
