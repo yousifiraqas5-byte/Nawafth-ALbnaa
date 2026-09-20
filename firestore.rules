@@ -2,57 +2,88 @@ rules_version = '2';
 
 // ============================================================
 // قواعد Firestore لتطبيق شركة نوافذ البناء
-// ملاحظة: التطبيق حالياً بدون نظام تسجيل دخول (Auth)
-// لذلك القواعد تسمح بالقراءة والكتابة للجميع لمجموعات التطبيق.
-// إذا أضفت نظام Auth في المستقبل، ضيّق القواعد حسب الحاجة.
+// ------------------------------------------------------------
+// السياسة المطبَّقة هنا تطابق منطق التطبيق في script.js:
+//
+// 1) القراءة (read): مفتوحة لكل الزوار.
+//    السبب: التصفح والعرض في التطبيق متاحان بدون تسجيل دخول
+//    (الصفحة الرئيسية / المشتريات / التقارير / المهام / الجرد /
+//    الأعطال). إغلاق القراءة سيُعطّل التطبيق لغير المسجّلين.
+//
+// 2) الكتابة (write): لا تتم إلا لمستخدم مسجّل الدخول.
+//    السبب: كل عمليات الإضافة/التعديل/الحذف في script.js تبدأ
+//    بالحماية requireLoginForWrite(...) قبل الوصول إلى Firestore.
+//
+// لا توجد أي قاعدة من نوع "allow read, write: if true;" —
+// الكتابة مقصورة على request.auth != null فقط.
 // ============================================================
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // هل الطلب صادر عن مستخدم مسجّل الدخول؟
+    function isSignedIn() {
+      return request.auth != null && request.auth.uid != null;
+    }
+
     // المشتريات
     match /purchases/{documentId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if isSignedIn();
     }
 
     // التقارير اليومية
     match /reports/{documentId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if isSignedIn();
     }
 
     // مهام المهندسين
     match /tasks/{documentId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if isSignedIn();
     }
 
     // مواد المخازن والمطبخ (إضافة/سحب)
     match /materials/{documentId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if isSignedIn();
     }
 
     // سجل الإشعارات
     match /notifications/{documentId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if isSignedIn();
     }
 
     // رموز الأجهزة المسجلة للإشعارات
     match /notificationTokens/{documentId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if isSignedIn();
     }
 
     // الأجهزة الطبية (الأعطال)
     match /medical_device_faults/{documentId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if isSignedIn();
     }
 
     // سجلات صيانة الأجهزة الطبية (سحب ملف Excel)
     match /medical_device_maintenance/{documentId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if isSignedIn();
     }
 
     // عداد التذاكر (Ticket ID Counter)
     match /counters/{documentId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if isSignedIn();
+    }
+
+    // كميات خزانات الكاز (Fuel Tanks)
+    match /fuelTanks/{documentId} {
+      allow read: if true;
+      allow write: if isSignedIn();
     }
 
   }

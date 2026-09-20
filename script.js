@@ -6087,6 +6087,11 @@ document.addEventListener("DOMContentLoaded", () => {
 // ============================================================
 
 async function pullMedicalDevicesFromExcel() {
+  // الكتابة إلى Firestore (مجموعة medical_device_maintenance) تتطلب
+  // تسجيل الدخول، نفس سياسة باقي عمليات الكتابة في التطبيق.
+  // عند عدم تسجيل الدخول: تُحفظ العملية وتُعاد تلقائيًا بعد النجاح.
+  if (!requireLoginForWrite(pullMedicalDevicesFromExcel)) return;
+
   const statusEl = document.getElementById("excelPullStatus");
   if (!statusEl) return;
 
