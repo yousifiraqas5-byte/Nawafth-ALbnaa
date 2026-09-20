@@ -1513,6 +1513,110 @@ content="default"
       }
     }
 
+    /* ============================================================
+       خزانات الكاز (Fuel Tanks)
+       ============================================================ */
+
+    #fuelTanksPage .summary-card.is-capacity { border-top-color: #14724e; }
+    #fuelTanksPage .summary-card.is-capacity .summary-value { color: #14724e; }
+    #fuelTanksPage .summary-card.is-current { border-top-color: #2554a6; }
+    #fuelTanksPage .summary-card.is-current .summary-value { color: #2554a6; }
+    #fuelTanksPage .summary-card.is-needed { border-top-color: #b56a05; }
+    #fuelTanksPage .summary-card.is-needed .summary-value { color: #b56a05; }
+
+    #fuelTanksPage .fuel-tanks-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+      padding: 4px;
+    }
+
+    #fuelTanksPage .fuel-tank-card {
+      background: #fff;
+      border-radius: 14px;
+      border: 1px solid #e5e7eb;
+      border-top: 4px solid #14724e;
+      padding: 18px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    #fuelTanksPage .fuel-tank-card-top {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    #fuelTanksPage .fuel-tank-icon {
+      font-size: 26px;
+      line-height: 1;
+    }
+
+    #fuelTanksPage .fuel-tank-name {
+      font-size: 17px;
+      font-weight: 700;
+      color: #1f2937;
+    }
+
+    #fuelTanksPage .fuel-tank-capacity {
+      font-size: 13px;
+      color: #6b7280;
+      margin-top: 2px;
+    }
+
+    #fuelTanksPage .fuel-tank-field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    #fuelTanksPage .fuel-tank-field label {
+      font-size: 13px;
+      font-weight: 600;
+      color: #374151;
+    }
+
+    #fuelTanksPage .fuel-tank-error {
+      display: block;
+      min-height: 16px;
+      font-size: 12px;
+      color: #c0392b;
+    }
+
+    #fuelTanksPage .fuel-tank-required-box {
+      background: #fef3e7;
+      border-radius: 10px;
+      padding: 10px 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    #fuelTanksPage .fuel-tank-required-label {
+      font-size: 13px;
+      color: #b56a05;
+      font-weight: 600;
+    }
+
+    #fuelTanksPage .fuel-tank-required-value {
+      font-size: 16px;
+      font-weight: 700;
+      color: #b56a05;
+    }
+
+    #fuelTanksPage .fuel-tank-date {
+      font-size: 12px;
+      color: #6b7280;
+    }
+
+    @media (max-width: 640px) {
+      #fuelTanksPage .fuel-tanks-grid {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+
   </style>
 
 </head>
@@ -1574,9 +1678,157 @@ content="default"
 
   </button>
 
-</div>
+  </div>
+
+  <div
+    class="header-auth"
+    id="headerAuth"
+  >
+
+    <button
+      type="button"
+      class="auth-header-btn"
+      onclick="openAuth()"
+      aria-label="تسجيل الدخول"
+    >
+      🔓
+    </button>
+
+  </div>
 
   </header>
+
+  <!-- AUTH PAGE (Arabic, RTL) -->
+
+  <section
+    id="authPage"
+    class="page"
+  >
+
+    <div class="navigation">
+
+      <button
+        type="button"
+        id="authBackButton"
+        onclick="closeAuthOverlay()"
+      >
+        → متابعة التصفح بدون تسجيل الدخول
+      </button>
+
+    </div>
+
+    <div class="auth-hero">
+
+      <div class="auth-hero-icon">🔐</div>
+
+      <h2 class="auth-title" id="authTitle">تسجيل الدخول</h2>
+
+      <p class="auth-subtitle" id="authSubtitle">
+        أدخل بريدك وكلمة المرور للمتابعة
+      </p>
+
+    </div>
+
+    <div class="auth-form-box">
+
+      <form
+        id="authForm"
+        autocomplete="off"
+        novalidate
+        onsubmit="authSubmit(event)"
+      >
+
+        <div class="auth-field">
+
+          <label for="authEmail">البريد الإلكتروني</label>
+
+          <input
+            type="email"
+            id="authEmail"
+            class="medical-input auth-input"
+            placeholder="example@email.com"
+            autocomplete="username"
+            dir="ltr"
+          >
+
+          <span class="field-error" id="error-authEmail"></span>
+
+        </div>
+
+        <div class="auth-field">
+
+          <label for="authPassword">كلمة المرور</label>
+
+          <input
+            type="password"
+            id="authPassword"
+            class="medical-input auth-input"
+            placeholder="••••••••"
+            autocomplete="current-password"
+          >
+
+          <span class="field-error" id="error-authPassword"></span>
+
+        </div>
+
+        <!-- Confirm Password (only visible in register mode) -->
+
+        <div
+          class="auth-field"
+          id="authConfirmField"
+          style="display: none;"
+        >
+
+          <label for="authConfirmPassword">تأكيد كلمة المرور</label>
+
+          <input
+            type="password"
+            id="authConfirmPassword"
+            class="medical-input auth-input"
+            placeholder="••••••••"
+            autocomplete="new-password"
+          >
+
+          <span class="field-error" id="error-authConfirmPassword"></span>
+
+        </div>
+
+        <div class="auth-actions">
+
+          <button
+            type="submit"
+            id="authSubmitBtn"
+            class="auth-submit-btn"
+          >
+            تسجيل الدخول
+          </button>
+
+          <button
+            type="button"
+            id="authToggleBtn"
+            class="auth-toggle-btn"
+            onclick="toggleAuthMode()"
+          >
+            إنشاء حساب
+          </button>
+
+        </div>
+
+      </form>
+
+      <div
+        id="authErrorBox"
+        class="auth-error-box"
+        style="display: none;"
+      >
+
+        <span id="authErrorText"></span>
+
+      </div>
+
+    </div>
+
+  </section>
 
   <!-- HOME -->
 
@@ -1749,6 +2001,33 @@ content="default"
       <h3>المهام</h3>
 
       <p>إدارة ومتابعة مهام المهندسين</p>
+
+    </div>
+
+  </button>
+
+
+  <!-- خزانات الكاز -->
+
+  <button
+    type="button"
+    class="main-card"
+    onclick="openFuelTanks()"
+  >
+
+    <div class="card-top">
+
+      <div class="main-icon gray">🛢️</div>
+
+      <div class="card-arrow">←</div>
+
+    </div>
+
+    <div class="card-text">
+
+      <h3>خزانات الكاز</h3>
+
+      <p>متابعة مستوى الكاز والكميات المطلوبة</p>
 
     </div>
 
@@ -3107,7 +3386,7 @@ content="default"
     onclick="openEngineerTasks('م. نور')"
     data-engineer="م. نور"
   >
-    <div class="engineer-icon">👩‍💼</div>
+    <div class="engineer-icon">👨‍💼</div>
     <div class="engineer-name">م. نور</div>
     <div class="engineer-stats">
       <span class="engineer-stat">المضاف: <b class="engineer-added-count">0</b></span>
@@ -3390,6 +3669,76 @@ content="default"
 
   </main>
 
+  <!-- FUEL TANKS (خزانات الكاز) -->
+
+  <main
+    id="fuelTanksPage"
+    class="page"
+  >
+
+<div class="navigation">
+
+  <button
+    type="button"
+    onclick="goHome()"
+  >
+    → الرئيسية
+  </button>
+
+</div>
+
+<section class="intro">
+
+  <div class="intro-icon">🛢️</div>
+
+  <div>
+
+    <h2>خزانات الكاز</h2>
+
+    <p>متابعة مستوى الكاز والكميات المطلوبة في الخزانات</p>
+
+  </div>
+
+</section>
+
+<section class="medical-block">
+
+  <div class="summary-grid">
+
+    <div class="summary-card is-capacity">
+      <div class="summary-card-top">
+        <span class="summary-icon">🛢️</span>
+        <span class="summary-label">إجمالي السعة</span>
+      </div>
+      <span id="fuelTotalCapacity" class="summary-value">0 لتر</span>
+    </div>
+
+    <div class="summary-card is-current">
+      <div class="summary-card-top">
+        <span class="summary-icon">⛽</span>
+        <span class="summary-label">إجمالي الموجود</span>
+      </div>
+      <span id="fuelTotalCurrent" class="summary-value">0 لتر</span>
+    </div>
+
+    <div class="summary-card is-needed">
+      <div class="summary-card-top">
+        <span class="summary-icon">📉</span>
+        <span class="summary-label">إجمالي المطلوب</span>
+      </div>
+      <span id="fuelTotalNeeded" class="summary-value">0 لتر</span>
+    </div>
+
+  </div>
+
+</section>
+
+<section class="fuel-tanks-grid" id="fuelTanksGrid">
+  <!-- تُبنى بطاقات الخزانات الأربعة ديناميكياً من script.js -->
+</section>
+
+  </main>
+
   <!-- FOOTER -->
 
   <footer class="app-footer">
@@ -3408,11 +3757,14 @@ FIREBASE
 
 <script type="module">
 
-  import { initializeApp }
+    import { initializeApp }
     from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
 
   import { getFirestore }
     from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
+
+  import { getAuth, onAuthStateChanged }
+    from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
 
   const firebaseConfig = {
 
@@ -3439,7 +3791,7 @@ FIREBASE
 
   };
 
-  try {
+    try {
 
     const app =
       initializeApp(
@@ -3451,20 +3803,49 @@ FIREBASE
         app
       );
 
+    const auth =
+      getAuth(
+        app
+      );
+
     window.firebaseApp =
       app;
 
     window.firebaseDb =
       db;
 
+    window.firebaseAuth =
+      auth;
+
     console.log(
       "Firebase connected successfully"
     );
 
-    console.log(
+        console.log(
       "Firebase Project:",
       "nawafth-albnaa"
     );
+
+    // مراقبة حالة تسجيل الدخول — يستدعي منطقًا موجودًا في script.js
+    if (typeof onAuthStateChanged === "function") {
+
+      onAuthStateChanged(
+        window.firebaseAuth,
+        function (user) {
+
+          if (typeof handleAuthStateChanged === "function") {
+
+            handleAuthStateChanged(
+              user,
+              window.firebaseAuth
+            );
+
+          }
+
+        }
+      );
+
+    }
 
     const script =
       document.createElement(

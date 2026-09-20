@@ -1,4 +1,4 @@
-// ============================================================
+﻿// ============================================================
 // شركة نوافذ البناء - script.js
 // المشتريات + التقارير اليومية + المهام
 // ============================================================
@@ -11,6 +11,7 @@ const NOTIFICATIONS_COLLECTION = "notifications";
 const TOKENS_COLLECTION = "notificationTokens";
 const MEDICAL_FAULTS_COLLECTION = "medical_device_faults";
 const MEDICAL_COUNTERS_COLLECTION = "counters";
+const FUEL_TANKS_COLLECTION = "fuelTanks";
 
 // مهم: ضع هنا مفتاح VAPID العام من
 // Firebase Console > Project settings > Cloud Messaging > Web push certificates
@@ -375,7 +376,6 @@ function openStorage() {
 function openReports() {
 
     showPage("reportsPage");
-
     getReports();
 
 }
@@ -383,7 +383,6 @@ function openReports() {
 function openPurchases() {
 
     showPage("purchasesPage");
-
     getPurchases();
 
 }
@@ -659,6 +658,8 @@ async function getPurchases() {
 }
 
 async function addPurchase() {
+
+    if (!requireLoginForWrite(addPurchase)) return;
 
     const itemInput =
         document.getElementById(
@@ -1096,6 +1097,8 @@ function createCompletedPurchaseHTML(
 
 async function completePurchase(id) {
 
+    if (!requireLoginForWrite(() => completePurchase(id))) return;
+
     const db =
         getFirestoreDB();
 
@@ -1158,6 +1161,8 @@ async function completePurchase(id) {
 }
 
 async function returnPurchase(id) {
+
+    if (!requireLoginForWrite(() => returnPurchase(id))) return;
 
     const db =
         getFirestoreDB();
@@ -1388,6 +1393,8 @@ async function getMaterials() {
 }
 
 async function saveMaterial() {
+    if (!requireLoginForWrite(saveMaterial)) return;
+
     const itemInput = document.getElementById("materialItem");
     const unitInput = document.getElementById("materialUnit");
     const quantityInput = document.getElementById("materialQuantity");
@@ -1459,6 +1466,8 @@ async function saveMaterial() {
 }
 
 async function deleteMaterial(id) {
+    if (!requireLoginForWrite(() => deleteMaterial(id))) return;
+
     if (!confirm("هل تريد حذف هذه الحركة؟")) {
         return;
     }
@@ -1913,6 +1922,8 @@ function updateDayFromDate() {
 
 async function saveReport() {
 
+    if (!requireLoginForWrite(saveReport)) return;
+
     const dateInput =
         document.getElementById(
             "reportDate"
@@ -2161,6 +2172,8 @@ function formatDate(timestamp) {
 }
 
 async function deleteReport(id) {
+
+    if (!requireLoginForWrite(() => deleteReport(id))) return;
 
     if (
         !confirm(
@@ -2533,6 +2546,8 @@ async function setupMessagingForeground() {
 }
 
 async function enablePushNotifications() {
+    if (!requireLoginForWrite(enablePushNotifications)) return;
+
     if (!("Notification" in window)) {
         showMessage("المتصفح لا يدعم الإشعارات", "error");
         return;
@@ -2923,6 +2938,8 @@ async function getTasks() {
 // ============================================================
 
 async function addTask() {
+
+    if (!requireLoginForWrite(addTask)) return;
 
     const input =
         document.getElementById(
@@ -3359,6 +3376,8 @@ async function completeTask(
     id
 ) {
 
+    if (!requireLoginForWrite(() => completeTask(id))) return;
+
     const db =
         getFirestoreDB();
 
@@ -3433,6 +3452,8 @@ async function completeTask(
 async function returnTask(
     id
 ) {
+
+    if (!requireLoginForWrite(() => returnTask(id))) return;
 
     const db =
         getFirestoreDB();
@@ -3981,6 +4002,8 @@ async function addFault() {
     // منع الإرسال المزدوج من ضغطة واحدة
     if (faultFormSubmitting) return;
 
+    if (!requireLoginForWrite(addFault)) return;
+
     // التحقق من الحقول المطلوبة قبل الإرسال
     if (!validateFaultForm()) {
         showMessage("Please complete the required fields before submitting.", "error");
@@ -4221,6 +4244,8 @@ function createFaultCardHTML(fault, isCompleted = false) {
 }
 
 async function markAsComplete(id) {
+    if (!requireLoginForWrite(() => markAsComplete(id))) return;
+
     const db = getFirestoreDB();
     if (!db) return;
 
@@ -5291,4 +5316,658 @@ function openDeviceInventory() {
 
     }
 
+}
+;
+
+// ============================================================
+// خزانات الكاز (Fuel Tanks)
+// ------------------------------------------------------------
+// قسم مستقل تماماً عن باقي الأقسام. أربعة خزانات ثابتة فقط.
+// الحفظ في Firestore (مشروع Firebase الحالي، لا مشروع جديد).
+// ============================================================
+
+const FUEL_TANKS_DEFINITIONS = [
+    { id: "hospitalGenerator", name: "خزان مولدات المستشفى", capacity: 36000, icon: "🛢️" },
+    { id: "complexGenerator", name: "خزان مولدة المجمع", capacity: 13000, icon: "🛢️" },
+    { id: "boiler1", name: "خزان بويلر رقم 1", capacity: 13500, icon: "🛢️" },
+    { id: "boiler2", name: "خزان بويلر رقم 2", capacity: 13500, icon: "🛢️" }
+];
+
+const FUEL_TANKS_TOTAL_CAPACITY = FUEL_TANKS_DEFINITIONS.reduce(
+    function (sum, tank) { return sum + tank.capacity; },
+    0
+);
+
+// الحالة الحالية لكل خزان بعد التحميل من Firestore
+// { [tankId]: { quantity: number|null, updatedAt: Timestamp|null } }
+let fuelTanksState = {};
+let fuelTanksLoaded = false;
+
+// ============================================================
+// فتح قسم خزانات الكاز
+// ============================================================
+
+async function openFuelTanks() {
+    showPage("fuelTanksPage");
+    renderFuelTanksCards();
+    await getFuelTanks();
+}
+
+// ============================================================
+// تحميل بيانات الخزانات من Firestore
+// ============================================================
+
+async function getFuelTanks() {
+    const db = getFirestoreDB();
+    if (!db) return;
+
+    try {
+        const { collection, getDocs } = await import(
+            "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js"
+        );
+
+        const snapshot = await getDocs(collection(db, FUEL_TANKS_COLLECTION));
+
+        const loadedState = {};
+
+        snapshot.forEach(function (docSnap) {
+            const data = docSnap.data();
+            loadedState[docSnap.id] = {
+                quantity: typeof data.quantity === "number" ? data.quantity : null,
+                updatedAt: data.updatedAt || null
+            };
+        });
+
+        fuelTanksState = loadedState;
+        fuelTanksLoaded = true;
+
+        renderFuelTanksCards();
+
+    } catch (error) {
+        console.error("خطأ تحميل خزانات الكاز:", error);
+        showMessage("حدث خطأ أثناء تحميل بيانات خزانات الكاز", "error");
+    }
+}
+
+// ============================================================
+// تحويل Timestamp من Firestore إلى تاريخ عربي مبسّط
+// مثال: 19 سبتمبر 2026 (بدون اسم اليوم)
+// ============================================================
+
+function formatFuelTankDate(timestamp) {
+    if (!timestamp) return "لا يوجد تاريخ بعد";
+
+    const monthNames = [
+        "يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو",
+        "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"
+    ];
+
+    try {
+        let date;
+
+        if (timestamp.toDate) {
+            date = timestamp.toDate();
+        } else if (timestamp.seconds) {
+            date = new Date(timestamp.seconds * 1000);
+        } else {
+            date = new Date(timestamp);
+        }
+
+        return date.getDate() + " " + monthNames[date.getMonth()] + " " + date.getFullYear();
+
+    } catch (error) {
+        return "لا يوجد تاريخ بعد";
+    }
+}
+
+// ============================================================
+// تنسيق رقم الكمية باللتر (فواصل الآلاف)
+// ============================================================
+
+function formatFuelLiters(value) {
+    const number = Number(value) || 0;
+    return number.toLocaleString("en-US") + " لتر";
+}
+
+// ============================================================
+// بناء بطاقات الخزانات (مرة واحدة عند فتح الصفحة)
+// ============================================================
+
+function renderFuelTanksCards() {
+    const grid = document.getElementById("fuelTanksGrid");
+    if (!grid) return;
+
+    grid.innerHTML = "";
+
+    FUEL_TANKS_DEFINITIONS.forEach(function (tank) {
+        const saved = fuelTanksState[tank.id] || { quantity: null, updatedAt: null };
+
+        const card = document.createElement("div");
+        card.className = "fuel-tank-card";
+        card.id = "fuelTankCard-" + tank.id;
+
+        card.innerHTML =
+            '<div class="fuel-tank-card-top">' +
+                '<div class="fuel-tank-icon">' + tank.icon + '</div>' +
+                '<div>' +
+                    '<div class="fuel-tank-name">' + escapeHTML(tank.name) + '</div>' +
+                    '<div class="fuel-tank-capacity">السعة الكلية: ' + formatFuelLiters(tank.capacity) + '</div>' +
+                '</div>' +
+            '</div>' +
+
+            '<div class="fuel-tank-field">' +
+                '<label for="fuelQty-' + tank.id + '">الكمية الموجودة حالياً (لتر)</label>' +
+                '<input ' +
+                    'type="number" ' +
+                    'id="fuelQty-' + tank.id + '" ' +
+                    'class="medical-input" ' +
+                    'min="0" ' +
+                    'max="' + tank.capacity + '" ' +
+                    'step="1" ' +
+                    'placeholder="أدخل الكمية الحالية" ' +
+                    'value="' + (saved.quantity !== null ? saved.quantity : "") + '" ' +
+                    'oninput="onFuelTankQuantityInput(\'' + tank.id + '\')"' +
+                '>' +
+                '<span class="fuel-tank-error" id="fuelQtyError-' + tank.id + '"></span>' +
+            '</div>' +
+
+            '<div class="fuel-tank-required-box">' +
+                '<span class="fuel-tank-required-label">المطلوب</span>' +
+                '<span class="fuel-tank-required-value" id="fuelRequired-' + tank.id + '">-</span>' +
+            '</div>' +
+
+            '<div class="fuel-tank-date" id="fuelDate-' + tank.id + '">' +
+                'تاريخ إضافة الكمية: ' + formatFuelTankDate(saved.updatedAt) +
+            '</div>' +
+
+            '<button type="button" class="auth-submit-btn" onclick="saveFuelTankQuantity(\'' + tank.id + '\')">' +
+                '💾 حفظ الكمية' +
+            '</button>';
+
+        grid.appendChild(card);
+    });
+
+    updateFuelTankRequiredValue(); // يحسب "المطلوب" لكل خزان + الإجماليات
+}
+
+// ============================================================
+// قراءة الكمية الحالية المُدخلة في الحقل (وليس بالضرورة المحفوظة)
+// ترجع null إذا كان الحقل فارغاً
+// ============================================================
+
+function getFuelTankInputQuantity(tankId) {
+    const input = document.getElementById("fuelQty-" + tankId);
+    if (!input || input.value === "") return null;
+
+    const value = parseFloat(input.value);
+    return isNaN(value) ? null : value;
+}
+
+// ============================================================
+// التحقق من صحة كمية خزان معيّن
+// ============================================================
+
+function validateFuelTankQuantity(tankId, quantity) {
+    const tank = FUEL_TANKS_DEFINITIONS.find(function (t) { return t.id === tankId; });
+    if (!tank) return "خزان غير معروف";
+
+    if (quantity === null) return null; // حقل فارغ ليس خطأ بحد ذاته
+
+    if (quantity < 0) {
+        return "لا يمكن إدخال كمية سالبة";
+    }
+
+    if (quantity > tank.capacity) {
+        return "الكمية أكبر من سعة الخزان (" + formatFuelLiters(tank.capacity) + ")";
+    }
+
+    return null;
+}
+
+// ============================================================
+// عند تغيير قيمة أي حقل كمية: تحديث "المطلوب" لهذا الخزان
+// والإجماليات فوراً، مع إظهار خطأ التحقق إن وجد
+// ============================================================
+
+function onFuelTankQuantityInput(tankId) {
+    updateFuelTankRequiredValue();
+}
+
+function updateFuelTankRequiredValue() {
+    let totalCurrent = 0;
+    let hasError = false;
+
+    FUEL_TANKS_DEFINITIONS.forEach(function (tank) {
+        const quantity = getFuelTankInputQuantity(tank.id);
+        const errorMessage = validateFuelTankQuantity(tank.id, quantity);
+
+        const errorEl = document.getElementById("fuelQtyError-" + tank.id);
+        if (errorEl) {
+            errorEl.textContent = errorMessage || "";
+        }
+
+        const requiredEl = document.getElementById("fuelRequired-" + tank.id);
+
+        if (quantity === null || errorMessage) {
+            if (requiredEl) requiredEl.textContent = "-";
+            if (errorMessage) hasError = true;
+            return;
+        }
+
+        const required = tank.capacity - quantity;
+        if (requiredEl) requiredEl.textContent = formatFuelLiters(required);
+
+        totalCurrent += quantity;
+    });
+
+    const totalCapacityEl = document.getElementById("fuelTotalCapacity");
+    if (totalCapacityEl) totalCapacityEl.textContent = formatFuelLiters(FUEL_TANKS_TOTAL_CAPACITY);
+
+    const totalCurrentEl = document.getElementById("fuelTotalCurrent");
+    if (totalCurrentEl) totalCurrentEl.textContent = formatFuelLiters(totalCurrent);
+
+    const totalNeededEl = document.getElementById("fuelTotalNeeded");
+    if (totalNeededEl) {
+        totalNeededEl.textContent = formatFuelLiters(FUEL_TANKS_TOTAL_CAPACITY - totalCurrent);
+    }
+
+    return !hasError;
+}
+
+// ============================================================
+// حفظ كمية خزان واحد في Firestore (يتطلب تسجيل الدخول)
+// ============================================================
+
+async function saveFuelTankQuantity(tankId) {
+    if (!requireLoginForWrite(function () { saveFuelTankQuantity(tankId); })) return;
+
+    const tank = FUEL_TANKS_DEFINITIONS.find(function (t) { return t.id === tankId; });
+    if (!tank) return;
+
+    const quantity = getFuelTankInputQuantity(tankId);
+
+    if (quantity === null) {
+        showMessage("يرجى إدخال الكمية أولاً", "error");
+        return;
+    }
+
+    const errorMessage = validateFuelTankQuantity(tankId, quantity);
+    if (errorMessage) {
+        showMessage(errorMessage, "error");
+        return;
+    }
+
+    const db = getFirestoreDB();
+    if (!db) return;
+
+    try {
+        const { doc, setDoc, serverTimestamp } = await import(
+            "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js"
+        );
+
+        await setDoc(doc(db, FUEL_TANKS_COLLECTION, tankId), {
+            name: tank.name,
+            capacity: tank.capacity,
+            quantity: quantity,
+            updatedAt: serverTimestamp()
+        });
+
+        showMessage("تم حفظ كمية " + tank.name + " بنجاح");
+
+        await getFuelTanks();
+
+    } catch (error) {
+        console.error("خطأ حفظ خزان الكاز:", error);
+        showMessage("حدث خطأ أثناء حفظ الكمية: " + (error.code || error.message || "خطأ غير معروف"), "error");
+    }
+}
+
+// ============================================================
+// AUTH (Firebase Authentication — Email/Password)
+// Reuses window.firebaseAuth initialized in the inline <script> module.
+// ------------------------------------------------------------
+// State
+// ============================================================
+
+let currentUser = null;
+let authUserUid = null;
+
+// ============================================================
+// Auth gate: open a protected page only when signed in
+// ============================================================
+
+function getAuth() {
+  return window.firebaseAuth || null;
+}
+
+function isAuthed() {
+  return !!currentUser;
+}
+
+// ============================================================
+// Navigation guard — kept for backward compatibility.
+// التصفح أصبح مفتوحًا للجميع؛ هذه الدالة لم تعد تُستخدم لمنع فتح
+// الصفحات، لكن أُبقيت لأنها قد تُستدعى من كود آخر.
+// ============================================================
+
+function ensureAuthed(pageId) {
+  if (isAuthed()) {
+    showPage(pageId);
+    return true;
+  }
+  showPage("authPage");
+  return false;
+}
+
+// Wrap a page opener so it is gated by auth.
+function openAuthPage(pageId) {
+  if (ensureAuthed(pageId)) {
+    // page openers that load data will run normally
+    return true;
+  }
+  return false;
+}
+
+// ============================================================
+// حماية عمليات الكتابة (إضافة / تعديل / حذف) بتسجيل الدخول
+// ------------------------------------------------------------
+// القراءة والتصفح مفتوحان دائمًا لكل الزوار. أي عملية تكتب إلى
+// Firestore يجب أن تبدأ باستدعاء requireLoginForWrite(...):
+// - إذا كان المستخدم مسجّل الدخول: تُنفَّذ العملية مباشرة.
+// - إذا لم يكن مسجّلاً: تظهر رسالة تنبيه، وتُفتح واجهة تسجيل
+//   الدخول الموجودة حالياً، وتُحفظ العملية لإعادة تنفيذها تلقائياً
+//   بعد نجاح تسجيل الدخول (بدون إعادة تحميل الصفحة).
+// ============================================================
+
+let pendingWriteAction = null;
+let pageBeforeAuthPrompt = null;
+
+function getCurrentVisiblePageId() {
+  const pages = document.querySelectorAll(".page");
+  for (const page of pages) {
+    if (page.style.display === "block") {
+      return page.id;
+    }
+  }
+  return null;
+}
+
+function requireLoginForWrite(actionFn) {
+  if (isAuthed()) {
+    return true;
+  }
+
+  pendingWriteAction = typeof actionFn === "function" ? actionFn : null;
+
+  showMessage(
+    "يرجى تسجيل الدخول أولاً لإضافة أو تعديل البيانات.",
+    "error"
+  );
+
+  openAuth();
+
+  return false;
+}
+
+// ============================================================
+// Auth state observer — called by the inline module's onAuthStateChanged
+// ============================================================
+
+function handleAuthStateChanged(user, authInstance) {
+  currentUser = user || null;
+  authUserUid = user ? user.uid : null;
+
+  if (user) {
+    // تسجيل الدخول نجح.
+    // لا نغيّر صفحة المستخدم قسرًا؛ التصفح مفتوح أصلاً.
+    // إن كانت هناك عملية كتابة معلّقة (تمت محاولتها قبل تسجيل الدخول)
+    // نعيد المستخدم إلى صفحته السابقة وننفّذ العملية تلقائياً.
+    if (pendingWriteAction) {
+      const action = pendingWriteAction;
+      const returnPageId = pageBeforeAuthPrompt;
+
+      pendingWriteAction = null;
+      pageBeforeAuthPrompt = null;
+
+      if (returnPageId) {
+        showPage(returnPageId);
+      }
+
+      action();
+    } else if (getCurrentVisiblePageId() === "authPage") {
+      // تم فتح صفحة تسجيل الدخول يدويًا (مثلاً من زر الهيدر)
+      // بدون وجود عملية معلّقة — نعيد المستخدم لصفحته السابقة.
+      showPage(pageBeforeAuthPrompt || "homePage");
+      pageBeforeAuthPrompt = null;
+    }
+  }
+  // عدم تسجيل الدخول (أو تسجيل الخروج) لا يغيّر الصفحة الحالية أبداً —
+  // التصفح يبقى مفتوحًا دائمًا لكل الزوار.
+}
+
+// ============================================================
+// Open / render auth page
+// ============================================================
+
+function openAuth() {
+  if (pageBeforeAuthPrompt === null) {
+    pageBeforeAuthPrompt = getCurrentVisiblePageId();
+  }
+  showPage("authPage");
+  renderAuth();
+}
+
+// إغلاق واجهة تسجيل الدخول والعودة للتصفح بدون تسجيل دخول
+// (يُلغي أي عملية كتابة كانت بانتظار تسجيل الدخول)
+function closeAuthOverlay() {
+  const target = pageBeforeAuthPrompt || "homePage";
+  pendingWriteAction = null;
+  pageBeforeAuthPrompt = null;
+  showPage(target);
+}
+
+function renderAuth() {
+  const title = document.getElementById("authTitle");
+  const subtitle = document.getElementById("authSubtitle");
+  if (title) title.textContent = "تسجيل الدخول";
+  if (subtitle) subtitle.textContent = "أدخل بريدك وكلمة المرور للمتابعة";
+  clearAuthErrors();
+}
+
+// ============================================================
+// Switch between login / register modes
+// ============================================================
+
+function switchAuthMode(isRegister) {
+  const confirmField = document.getElementById("authConfirmField");
+  const submitBtn = document.getElementById("authSubmitBtn");
+  const toggleBtn = document.getElementById("authToggleBtn");
+  const title = document.getElementById("authTitle");
+  const subtitle = document.getElementById("authSubtitle");
+  const form = document.getElementById("authForm");
+
+  const authMode = isRegister ? "register" : "login";
+  if (form) form.dataset.authMode = authMode;
+
+  if (confirmField) {
+    confirmField.style.display = isRegister ? "block" : "none";
+  }
+
+  if (submitBtn) {
+    submitBtn.textContent = isRegister ? "إنشاء حساب" : "تسجيل الدخول";
+  }
+  if (toggleBtn) {
+    toggleBtn.textContent = isRegister ? "لدي حساب؟ سجل الدخول" : "إنشاء حساب جديد";
+  }
+  if (title) title.textContent = isRegister ? "إنشاء حساب" : "تسجيل الدخول";
+  if (subtitle) subtitle.textContent = isRegister
+    ? "أدخل بريدك وكلمة المرور لإنشاء حساب"
+    : "أدخل بريدك وكلمة المرور للمتابعة";
+
+  clearAuthErrors();
+}
+
+// ============================================================
+// تبديل الوضع عند الضغط على زر "إنشاء حساب" / "لدي حساب؟ سجل الدخول"
+// ============================================================
+
+function toggleAuthMode() {
+  const form = document.getElementById("authForm");
+  const isCurrentlyRegister = !!(form && form.dataset.authMode === "register");
+  switchAuthMode(!isCurrentlyRegister);
+}
+
+// ============================================================
+// Validation helpers
+// ============================================================
+
+function clearAuthErrors() {
+  ["authEmail", "authPassword", "authConfirmPassword"].forEach(id => {
+    const err = document.getElementById("error-" + id);
+    if (err) err.textContent = "";
+  });
+  const box = document.getElementById("authErrorBox");
+  if (box) box.style.display = "none";
+  const text = document.getElementById("authErrorText");
+  if (text) text.textContent = "";
+}
+
+function setAuthError(message) {
+  const box = document.getElementById("authErrorBox");
+  const el = document.getElementById("authErrorText");
+  if (box && el) {
+    el.textContent = message;
+    box.style.display = "block";
+  }
+}
+
+function validateAuthField(id, message) {
+  const err = document.getElementById("error-" + id);
+  if (err) err.textContent = message;
+}
+
+// ============================================================
+// Email/Password auth actions
+// ============================================================
+
+async function authSubmit(e) {
+  if (e && e.preventDefault) e.preventDefault();
+
+  clearAuthErrors();
+
+  const email = (document.getElementById("authEmail").value || "").trim();
+  const password = document.getElementById("authPassword").value || "";
+
+  const isRegister =
+    document.getElementById("authForm").dataset.authMode === "register";
+  const confirm = isRegister
+    ? (document.getElementById("authConfirmPassword").value || "")
+    : "";
+
+  let valid = true;
+
+  if (!email) {
+    validateAuthField("authEmail", "مطلوب البريد الإلكتروني");
+    valid = false;
+  }
+  if (!password) {
+    validateAuthField("authPassword", "مطلوبة كلمة المرور");
+    valid = false;
+  }
+  if (isRegister && !confirm) {
+    validateAuthField("authConfirmPassword", "مطلوب تأكيد كلمة المرور");
+    valid = false;
+  }
+  if (isRegister && password && confirm && password !== confirm) {
+    validateAuthField("authConfirmPassword", "كلمةا المرور غير متطابقة");
+    valid = false;
+  }
+
+  if (!valid) return;
+
+  let mode = isRegister ? "التسجيل" : "تسجيل الدخول";
+
+  if (!getAuth()) {
+    setAuthError("تم تهيئة Firebase غير كاملة. حاول مرة أخرى.");
+    return;
+  }
+
+  const btn = document.getElementById("authSubmitBtn");
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = mode + "...";
+  }
+
+  try {
+    const {
+      createUserWithEmailAndPassword,
+      signInWithEmailAndPassword,
+      signOut
+    } = await import(
+      "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js"
+    );
+
+    if (isRegister) {
+      // Create account then auto-login (no email verification).
+      await createUserWithEmailAndPassword(
+        getAuth(),
+        email,
+        password
+      );
+    } else {
+      await signInWithEmailAndPassword(getAuth(), email, password);
+    }
+
+    // onCreate / onLogin — onAuthStateChanged fires automatically.
+    clearAuthErrors();
+  } catch (error) {
+    console.error("Auth error:", error);
+    let msg = "حدث خطأ غير متوقع";
+
+    if (error && error.code) {
+      if (error.code === "auth/invalid-email") {
+        msg = "صيغة البريد الإلكتروني غير صحيحة";
+      } else if (error.code === "auth/email-already-in-use") {
+        msg = "هذا البريد مسجّل بالفعل. جرّب تسجيل الدخول";
+      } else if (error.code === "auth/weak-password") {
+        msg = "كلمة المرور ضعيفة (الحد الأدنى 6 حروف)";
+      } else if (
+        error.code === "auth/user-not-found" ||
+        error.code === "auth/wrong-password"
+      ) {
+        msg = "البريد الإلكتروني أو كلمة المرور غير صحيحة";
+      } else if (error.code === "auth/missing-android-cred") {
+        msg = "خطأ في إعداد Firebase Authentication";
+      } else {
+        msg = "خطأ في المصادقة: " + error.message;
+      }
+    } else if (error && error.message) {
+      msg = "خطأ في المصادقة: " + error.message;
+    }
+
+    setAuthError(msg);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = isRegister ? "إنشاء حساب" : "تسجيل الدخول";
+    }
+  }
+}
+
+async function logoutUser() {
+  const auth = getAuth();
+  if (!auth) return;
+  try {
+    const { signOut } = await import(
+      "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js"
+    );
+    await signOut(auth);
+    currentUser = null;
+    authUserUid = null;
+    showPage("authPage");
+    renderAuth();
+  } catch (error) {
+    console.error("Logout error:", error);
+    showMessage("حدث خطأ أثناء تسجيل الخروج");
+  }
 }

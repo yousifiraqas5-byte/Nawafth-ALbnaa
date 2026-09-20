@@ -3128,3 +3128,204 @@ textarea:focus-visible {
   outline: 3px solid rgba(23, 107, 69, 0.35);
   outline-offset: 2px;
 }
+textarea:focus-visible {
+  outline: 3px solid rgba(23, 107, 69, 0.35);
+  outline-offset: 2px;
+}
+
+/* =========================================================
+   AUTH PAGE (Arabic / RTL) — additive.
+   Uses the existing green palette.
+   ========================================================= */
+
+#authPage {
+  background: #f4f6f5;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px 16px 32px;
+}
+
+.auth-hero {
+  text-align: center;
+  margin: 18px 0 22px;
+}
+
+.auth-hero-icon {
+  font-size: 44px;
+  margin-bottom: 12px;
+}
+
+.auth-title {
+  font-size: 24px;
+  font-weight: 850;
+  letter-spacing: -0.4px;
+  color: #176b45;
+  margin-bottom: 4px;
+}
+
+.auth-subtitle {
+  color: #777;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.auth-form-box {
+  width: 100%;
+  max-width: 360px;
+  background: #ffffff;
+  border-radius: 22px;
+  border: 1px solid #e1e6e3;
+  box-shadow: 0 6px 22px rgba(18, 79, 53, 0.08);
+  padding: 22px 18px 26px;
+}
+
+.auth-field {
+  margin-bottom: 16px;
+}
+
+.auth-field label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #25312b;
+}
+
+.auth-input {
+  width: 100%;
+  font-family: inherit;
+  font-size: 15px;
+  padding: 12px 13px;
+  border: 1px solid #cbd5ce;
+  border-radius: 12px;
+  background: #fafbfc;
+  color: #26312b;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.auth-input:focus-visible {
+  border-color: #176b45;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(23, 107, 69, 0.12);
+  outline: none;
+}
+
+.auth-error-box {
+  margin-top: 14px;
+  padding: 11px 13px;
+  background: #fef7f6;
+  border: 1px solid #f2d0cb;
+  border-radius: 12px;
+  color: #c03a2c;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.auth-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.auth-submit-btn {
+  width: 100%;
+  border: none;
+  border-radius: 14px;
+  padding: 13px 16px;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  background: linear-gradient(145deg, #176b45, #124f35);
+  color: #ffffff;
+  box-shadow: 0 6px 16px rgba(18, 79, 53, 0.22);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.auth-submit-btn:active {
+  transform: scale(0.97);
+  box-shadow: 0 3px 9px rgba(18, 79, 53, 0.2);
+}
+
+.auth-submit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.auth-toggle-btn {
+  width: 100%;
+  border: none;
+  border-radius: 14px;
+  padding: 13px 16px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  background: #f1f4f2;
+  color: #176b45;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.auth-toggle-btn:hover {
+  background: #e9f0ec;
+}
+
+.auth-toggle-btn:active {
+  transform: scale(0.97);
+}
+
+/* --- Header auth button --- */
+
+.header-auth {
+  margin-right: auto;
+  margin-left: 8px;
+}
+
+.auth-header-btn {
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.16);
+  color: #ffffff;
+  font-size: 18px;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.auth-header-btn:active {
+  transform: scale(0.94);
+}
+
+/* --- Logout button (shown when signed in) --- */
+
+.logout-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  width: 100%;
+  border: none;
+  border-radius: 14px;
+  padding: 11px 14px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  background: #f1f4f2;
+  color: #176b45;
+}
+
+.logout-btn:hover {
+  background: #e9f0ec;
+}
+
+
