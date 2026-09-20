@@ -890,11 +890,36 @@ content="default"
     }
 
     #medicalDevicesPage .request-card {
+      position: relative;
       background: #ffffff;
       border: 1px solid #e6ece9;
       border-radius: 16px;
       padding: 14px;
       box-shadow: 0 4px 14px rgba(24, 46, 37, .05);
+    }
+
+    #medicalDevicesPage .request-delete-icon-btn {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      width: 26px;
+      height: 26px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid #f3c9c2;
+      border-radius: 8px;
+      background: #fdeeec;
+      color: #c0392b;
+      font-size: 12px;
+      line-height: 1;
+      padding: 0;
+      cursor: pointer;
+      z-index: 1;
+    }
+
+    #medicalDevicesPage .request-delete-icon-btn:active {
+      transform: scale(.92);
     }
 
     #medicalDevicesPage .request-card-top {
@@ -903,6 +928,8 @@ content="default"
       justify-content: space-between;
       gap: 10px;
       flex-wrap: wrap;
+      /* مساحة تفسح المجال لأيقونة حذف العطل الصغيرة بالزاوية (top-left) */
+      padding-left: 34px;
     }
 
     #medicalDevicesPage .request-id {
@@ -1025,36 +1052,6 @@ content="default"
     }
 
     #medicalDevicesPage .request-complete-btn:active {
-      transform: scale(.99);
-    }
-
-    /* زر حذف العطل + صف الإجراءات على بطاقة الطلب */
-    #medicalDevicesPage .request-actions {
-      display: flex;
-      gap: 10px;
-      margin-top: 14px;
-    }
-
-    #medicalDevicesPage .request-actions .request-complete-btn {
-      width: auto;
-      flex: 1;
-      margin-top: 0;
-    }
-
-    #medicalDevicesPage .request-delete-btn {
-      flex: 1;
-      border: 1px solid #f3c9c2;
-      border-radius: 12px;
-      padding: 12px;
-      background: #fdeeec;
-      color: #c0392b;
-      font-family: inherit;
-      font-size: 14px;
-      font-weight: 800;
-      cursor: pointer;
-    }
-
-    #medicalDevicesPage .request-delete-btn:active {
       transform: scale(.99);
     }
 
@@ -1711,6 +1708,23 @@ content="default"
   <span>لوحة الشركة</span>
 
   <strong>الأقسام الرئيسية</strong>
+
+  <div class="header-user-wrap" id="headerUserWrap" style="display:none;">
+
+    <button
+      type="button"
+      class="header-user-name"
+      id="headerUserName"
+      onclick="toggleUserMenu()"
+    ></button>
+
+    <div class="header-user-menu" id="headerUserMenu">
+      <button type="button" class="header-logout-btn" onclick="logoutUser()">
+        تسجيل خروج
+      </button>
+    </div>
+
+  </div>
 
 </div>
 

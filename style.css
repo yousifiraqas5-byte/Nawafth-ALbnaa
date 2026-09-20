@@ -184,6 +184,61 @@ font-size: 22px;
 font-weight: 800;
 }
 
+.header-user-wrap {
+position: relative;
+margin-top: 2px;
+}
+
+.header-user-name {
+display: inline-flex;
+align-items: center;
+gap: 6px;
+border: 1px solid rgba(255, 255, 255, 0.4);
+border-radius: 999px;
+background: rgba(255, 255, 255, 0.16);
+color: #ffffff;
+font-family: inherit;
+font-size: 12px;
+font-weight: 700;
+padding: 5px 12px;
+cursor: pointer;
+}
+
+.header-user-menu {
+position: absolute;
+top: calc(100% + 6px);
+right: 0;
+min-width: 130px;
+background: #ffffff;
+border-radius: 12px;
+box-shadow: 0 10px 24px rgba(18, 79, 53, 0.22);
+padding: 6px;
+display: none;
+z-index: 20;
+}
+
+.header-user-menu.open {
+display: block;
+}
+
+.header-logout-btn {
+width: 100%;
+border: 0;
+border-radius: 8px;
+background: transparent;
+color: #c0392b;
+font-family: inherit;
+font-size: 13px;
+font-weight: 800;
+padding: 9px 10px;
+text-align: right;
+cursor: pointer;
+}
+
+.header-logout-btn:active {
+background: #fdeeec;
+}
+
 /* =========================================================
 PAGES
 ========================================================= */

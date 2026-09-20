@@ -45,6 +45,11 @@ service cloud.firestore {
       allow read, write: if true;
     }
 
+    // سجلات صيانة الأجهزة الطبية (سحب ملف Excel)
+    match /medical_device_maintenance/{documentId} {
+      allow read, write: if true;
+    }
+
     // عداد التذاكر (Ticket ID Counter)
     match /counters/{documentId} {
       allow read, write: if true;

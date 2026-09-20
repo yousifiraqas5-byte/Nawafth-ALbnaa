@@ -1,0 +1,17 @@
+{
+  "files.encoding": "utf8",
+  "files.autoGuessEncoding": false,
+  "files.eol": "\r\n",
+  "[javascript]": {
+    "files.encoding": "utf8"
+  },
+  "[html]": {
+    "files.encoding": "utf8"
+  },
+  "[css]": {
+    "files.encoding": "utf8"
+  },
+  "[json]": {
+    "files.encoding": "utf8"
+  }
+}
