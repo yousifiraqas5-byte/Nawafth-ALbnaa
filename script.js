@@ -3525,6 +3525,11 @@ async function returnTask(
 let medicalFaultsCache = [];
 let medicalFaultsUnsubscribe = null;
 
+// فلتر الأولوية النشط لقائمة الأعطال (null = عرض جميع الأعطال)
+// القيم: CRITICAL / HIGH / MEDIUM / LOW — يُضبط من بطاقات Priority Overview.
+// يؤثر على العرض فقط ولا يغيّر أي بيانات في Firestore.
+let activeFaultPriorityFilter = null;
+
 // حالة إرسال نموذج العطل (لمنع الإرسال المزدوج من ضغطة واحدة)
 let faultFormSubmitting = false;
 
@@ -4777,6 +4782,80 @@ function normalizeFaultPriority(value) {
     return String(value || "").trim().toUpperCase().replace(/_/g, " ");
 }
 
+// ============================================================
+// فلتر الأولوية من بطاقات Priority Overview
+// (يعمل على نفس بيانات medicalFaultsCache — بلا collection جديد
+//  وبلا بيانات وهمية، ولا يغيّر أي شيء في Firestore)
+// ============================================================
+
+// هل يطابق هذا العطل فلتر الأولوية النشط حالياً؟
+// يقبل الصيغ المختلفة (CRITICAL / Critical / critical) لأنها تُوحَّد بنفس الدالة.
+function matchesFaultPriorityFilter(fault) {
+    if (!activeFaultPriorityFilter) return true;
+    return normalizeFaultPriority(fault.priority) === activeFaultPriorityFilter;
+}
+
+// تسمية عرض ودّية للفلتر: CRITICAL → Critical
+function getFaultPriorityDisplayLabel(priorityKey) {
+    const label = FAULT_PRIORITY_LABELS[priorityKey] || priorityKey || "";
+    return label ? label.charAt(0) + label.slice(1).toLowerCase() : "";
+}
+
+// تفعيل/إلغاء فلتر الأولوية عند الضغط على بطاقة أولوية
+// الضغطة الثانية على نفس الفئة تعيد عرض جميع الأعطال.
+function toggleFaultPriorityFilter(priority) {
+    const normalized = normalizeFaultPriority(priority);
+    if (!normalized) return;
+
+    const wasActive = activeFaultPriorityFilter === normalized;
+    activeFaultPriorityFilter = wasActive ? null : normalized;
+
+    renderMedicalDevicesPage();
+
+    // عند تفعيل الفلتر: مرّر المستخدم إلى قائمة الأعطال لرؤية النتائج مباشرة
+    if (!wasActive) {
+        const section = document.getElementById("maintenanceRequestsSection");
+        if (section && typeof section.scrollIntoView === "function") {
+            section.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+    }
+}
+
+// إزالة فلتر الأولوية والعودة إلى عرض جميع الأعطال
+function clearFaultPriorityFilter() {
+    activeFaultPriorityFilter = null;
+    renderMedicalDevicesPage();
+}
+
+// دعم لوحة المفاتيح لبطاقات الأولوية (Enter / Space)
+function handlePriorityCardKeydown(event, priority) {
+    if (event && (event.key === "Enter" || event.key === " " || event.key === "Spacebar")) {
+        event.preventDefault();
+        toggleFaultPriorityFilter(priority);
+    }
+}
+
+// تحديث شريط الفلتر الحالي فوق قائمة الأعطال
+// يعرض: Priority: <المستوى> + عدد النتائج مثل "Critical Faults (5)"
+function updateFaultPriorityFilterBar(visibleCount) {
+    const bar = document.getElementById("faultPriorityFilterBar");
+    if (!bar) return;
+
+    if (!activeFaultPriorityFilter) {
+        bar.style.display = "none";
+        return;
+    }
+
+    const displayLabel = getFaultPriorityDisplayLabel(activeFaultPriorityFilter);
+    const labelEl = document.getElementById("faultPriorityFilterLabel");
+    const countEl = document.getElementById("faultPriorityFilterCount");
+
+    if (labelEl) labelEl.textContent = displayLabel;
+    if (countEl) countEl.textContent = `${displayLabel} Faults (${visibleCount})`;
+
+    bar.style.display = "flex";
+}
+
 function renderDashboard() {
     // ملخص التذاكر (Ticket Summary) — إجمالي السجلات وسجلات الحالة الجديدة
     const totalTicketsEl = document.getElementById("stat-total-tickets");
@@ -4798,11 +4877,18 @@ function renderDashboard() {
         if (el) el.textContent = count;
     });
 
-    // تحديث الأولويات
+    // تحديث الأولويات + تمييز البطاقة المختارة (فلتر الأولوية النشط)
     FAULT_PRIORITY_ORDER.forEach(priority => {
         const count = medicalFaultsCache.filter(f => normalizeFaultPriority(f.priority) === priority).length;
         const el = document.getElementById(`stat-${priority.toLowerCase()}`);
         if (el) el.textContent = count;
+
+        const card = el && el.closest ? el.closest(".priority-card") : null;
+        if (card) {
+            const isActive = activeFaultPriorityFilter === priority;
+            card.classList.toggle("is-active", isActive);
+            card.setAttribute("aria-pressed", isActive ? "true" : "false");
+        }
     });
 }
 
@@ -4810,29 +4896,52 @@ function renderFaultsLists() {
     const pendingContainer = document.getElementById("pendingFaults");
     const completedContainer = document.getElementById("completedFaults");
 
-    const pending = medicalFaultsCache.filter(f => normalizeFaultStatus(f.status) !== "COMPLETE");
-    const completed = medicalFaultsCache.filter(f => normalizeFaultStatus(f.status) === "COMPLETE");
+    // فلتر الأولوية (إن كان نشطاً) يُطبَّق على نفس مصدر البيانات الحالي
+    const filtered = medicalFaultsCache.filter(matchesFaultPriorityFilter);
+
+    const pending = filtered.filter(f => normalizeFaultStatus(f.status) !== "COMPLETE");
+    const completed = filtered.filter(f => normalizeFaultStatus(f.status) === "COMPLETE");
 
     document.getElementById("pendingFaultCount").textContent = pending.length;
     document.getElementById("completedFaultCount").textContent = completed.length;
 
+    // تحديث شريط الفلتر الحالي (يظهر فقط عند تفعيل فلتر أولوية)
+    updateFaultPriorityFilterBar(filtered.length);
+
+    const filterLabel = activeFaultPriorityFilter ?
+        getFaultPriorityDisplayLabel(activeFaultPriorityFilter) : "";
+
     if (pending.length === 0) {
+        const emptyTitle = activeFaultPriorityFilter ?
+            `No ${filterLabel} maintenance requests found.` :
+            "No maintenance requests found.";
+        const emptyHint = activeFaultPriorityFilter ?
+            "Use the “All Priorities” button above to show all requests." :
+            "Use “+ Add Fault” to register a new maintenance request.";
+
         pendingContainer.innerHTML = `
             <div class="requests-empty">
                 <div class="requests-empty-icon">🛠️</div>
-                <strong>No maintenance requests found.</strong>
-                <p>Use “+ Add Fault” to register a new maintenance request.</p>
+                <strong>${escapeHTML(emptyTitle)}</strong>
+                <p>${escapeHTML(emptyHint)}</p>
             </div>`;
     } else {
         pendingContainer.innerHTML = pending.map(f => createFaultCardHTML(f)).join("");
     }
 
     if (completed.length === 0) {
+        const emptyTitle = activeFaultPriorityFilter ?
+            `No completed ${filterLabel} requests yet.` :
+            "No completed requests yet.";
+        const emptyHint = activeFaultPriorityFilter ?
+            "Use the “All Priorities” button above to show all requests." :
+            "Serviced requests will appear here.";
+
         completedContainer.innerHTML = `
             <div class="requests-empty">
                 <div class="requests-empty-icon">✅</div>
-                <strong>No completed requests yet.</strong>
-                <p>Serviced requests will appear here.</p>
+                <strong>${escapeHTML(emptyTitle)}</strong>
+                <p>${escapeHTML(emptyHint)}</p>
             </div>`;
     } else {
         completedContainer.innerHTML = completed.map(f => createFaultCardHTML(f, true)).join("");

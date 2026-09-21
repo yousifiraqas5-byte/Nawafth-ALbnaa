@@ -517,6 +517,36 @@ content="default"
       border-radius: 16px;
       padding: 14px;
       box-shadow: 0 4px 14px rgba(24, 46, 37, .05);
+      /* بطاقة قابلة للضغط: فلتر الأولوية */
+      position: relative;
+      cursor: pointer;
+      transition: transform .15s ease, box-shadow .15s ease, outline-color .15s ease;
+      outline: 2px solid transparent;
+      outline-offset: 2px;
+    }
+
+    #medicalDevicesPage .priority-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(24, 46, 37, .10);
+    }
+
+    #medicalDevicesPage .priority-card:focus-visible,
+    #medicalDevicesPage .priority-card.is-active {
+      outline-color: #1f6feb;
+    }
+
+    #medicalDevicesPage .priority-card.is-active {
+      box-shadow: 0 8px 20px rgba(31, 111, 235, .16);
+    }
+
+    #medicalDevicesPage .priority-card.is-active::after {
+      content: "✓";
+      position: absolute;
+      top: 6px;
+      right: 10px;
+      font-size: 12px;
+      font-weight: 800;
+      color: #1f6feb;
     }
 
     #medicalDevicesPage .priority-icon {
@@ -551,6 +581,60 @@ content="default"
     #medicalDevicesPage .priority-card.is-medium .priority-value { color: #b56a05; }
     #medicalDevicesPage .priority-card.is-low { border-left-color: #0f7a4e; }
     #medicalDevicesPage .priority-card.is-low .priority-value { color: #0f7a4e; }
+
+    /* شريط فلتر الأولوية فوق قائمة الأعطال */
+    .fault-priority-filter-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+      background: #eef4fb;
+      border: 1px solid #d3e2f7;
+      border-radius: 14px;
+      padding: 10px 14px;
+      margin-bottom: 12px;
+      font-size: 14px;
+      color: #22302a;
+    }
+
+    .fault-priority-filter-bar .fault-priority-filter-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .fault-priority-filter-bar .fault-priority-filter-tag strong {
+      font-weight: 800;
+      color: #1f6feb;
+    }
+
+    .fault-priority-filter-bar .fault-priority-filter-count {
+      background: #ffffff;
+      border: 1px solid #d3e2f7;
+      border-radius: 999px;
+      padding: 3px 10px;
+      font-weight: 700;
+      font-size: 12px;
+      color: #1f6feb;
+    }
+
+    .fault-priority-filter-bar .fault-priority-filter-clear {
+      border: 1px solid #d3e2f7;
+      background: #ffffff;
+      color: #1f6feb;
+      border-radius: 999px;
+      padding: 6px 14px;
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+      transition: background .15s ease;
+    }
+
+    .fault-priority-filter-bar .fault-priority-filter-clear:hover {
+      background: #e3edfd;
+    }
 
     /* قواعد نموذج المهام محفوظة كما كانت لعدم تغيير الأقسام الأخرى */
 
@@ -2659,7 +2743,16 @@ content="default"
       </div>
 
       <div class="priority-grid">
-        <div class="priority-card is-critical">
+        <div
+          class="priority-card is-critical"
+          data-priority="CRITICAL"
+          role="button"
+          tabindex="0"
+          aria-pressed="false"
+          title="Click to show Critical faults only"
+          onclick="toggleFaultPriorityFilter('CRITICAL')"
+          onkeydown="handlePriorityCardKeydown(event, 'CRITICAL')"
+        >
           <span class="priority-icon">🚨</span>
           <div class="priority-info">
             <span class="priority-label">Critical</span>
@@ -2667,7 +2760,16 @@ content="default"
           </div>
         </div>
 
-        <div class="priority-card is-high">
+        <div
+          class="priority-card is-high"
+          data-priority="HIGH"
+          role="button"
+          tabindex="0"
+          aria-pressed="false"
+          title="Click to show High faults only"
+          onclick="toggleFaultPriorityFilter('HIGH')"
+          onkeydown="handlePriorityCardKeydown(event, 'HIGH')"
+        >
           <span class="priority-icon">⚠️</span>
           <div class="priority-info">
             <span class="priority-label">High</span>
@@ -2675,7 +2777,16 @@ content="default"
           </div>
         </div>
 
-        <div class="priority-card is-medium">
+        <div
+          class="priority-card is-medium"
+          data-priority="MEDIUM"
+          role="button"
+          tabindex="0"
+          aria-pressed="false"
+          title="Click to show Medium faults only"
+          onclick="toggleFaultPriorityFilter('MEDIUM')"
+          onkeydown="handlePriorityCardKeydown(event, 'MEDIUM')"
+        >
           <span class="priority-icon">🔔</span>
           <div class="priority-info">
             <span class="priority-label">Medium</span>
@@ -2683,7 +2794,16 @@ content="default"
           </div>
         </div>
 
-        <div class="priority-card is-low">
+        <div
+          class="priority-card is-low"
+          data-priority="LOW"
+          role="button"
+          tabindex="0"
+          aria-pressed="false"
+          title="Click to show Low faults only"
+          onclick="toggleFaultPriorityFilter('LOW')"
+          onkeydown="handlePriorityCardKeydown(event, 'LOW')"
+        >
           <span class="priority-icon">📉</span>
           <div class="priority-info">
             <span class="priority-label">Low</span>
@@ -2860,13 +2980,35 @@ content="default"
     </section>
 
     <!-- MAINTENANCE REQUESTS -->
-    <section class="medical-block">
+    <section class="medical-block" id="maintenanceRequestsSection">
       <div class="medical-block-head is-row">
         <div>
           <h3>Maintenance Requests</h3>
           <p>Open requests currently under maintenance</p>
         </div>
         <span id="pendingFaultCount" class="medical-count">0</span>
+      </div>
+
+      <!-- شريط فلتر الأولوية (يظهر فقط عند الضغط على بطاقة في Priority Overview) -->
+      <div
+        id="faultPriorityFilterBar"
+        class="fault-priority-filter-bar"
+        style="display:none;"
+        role="status"
+        aria-live="polite"
+      >
+        <span class="fault-priority-filter-info">
+          <span class="fault-priority-filter-tag">Priority: <strong id="faultPriorityFilterLabel">All</strong></span>
+          <span id="faultPriorityFilterCount" class="fault-priority-filter-count">0 faults</span>
+        </span>
+        <button
+          type="button"
+          class="fault-priority-filter-clear"
+          onclick="clearFaultPriorityFilter()"
+          title="Remove the priority filter and show all requests"
+        >
+          ✕ All Priorities
+        </button>
       </div>
 
       <div id="pendingFaults" class="requests-grid">
