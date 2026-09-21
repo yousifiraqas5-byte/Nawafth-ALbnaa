@@ -462,6 +462,35 @@ content="default"
       border-radius: 16px;
       padding: 14px;
       box-shadow: 0 4px 14px rgba(24, 46, 37, .05);
+      position: relative;
+      cursor: pointer;
+      transition: transform .15s ease, box-shadow .15s ease, outline-color .15s ease;
+      outline: 2px solid transparent;
+      outline-offset: 2px;
+    }
+
+    #medicalDevicesPage .summary-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(24, 46, 37, .10);
+    }
+
+    #medicalDevicesPage .summary-card:focus-visible,
+    #medicalDevicesPage .summary-card.is-active {
+      outline-color: #1f6feb;
+    }
+
+    #medicalDevicesPage .summary-card.is-active {
+      box-shadow: 0 8px 20px rgba(31, 111, 235, .16);
+    }
+
+    #medicalDevicesPage .summary-card.is-active::after {
+      content: "✓";
+      position: absolute;
+      top: 8px;
+      right: 10px;
+      font-size: 12px;
+      font-weight: 800;
+      color: #1f6feb;
     }
 
     #medicalDevicesPage .summary-card-top {
@@ -498,6 +527,60 @@ content="default"
     #medicalDevicesPage .summary-card.is-parts .summary-value { color: #7a2fb0; }
     #medicalDevicesPage .summary-card.is-complete { border-top-color: #0f7a4e; }
     #medicalDevicesPage .summary-card.is-complete .summary-value { color: #0f7a4e; }
+
+    /* شريط فلتر الحالة (Status filter bar) — يعمل بنفس آلية Priority Overview */
+    .fault-status-filter-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+      background: #eef4fb;
+      border: 1px solid #d3e2f7;
+      border-radius: 14px;
+      padding: 10px 14px;
+      margin-bottom: 12px;
+      font-size: 14px;
+      color: #22302a;
+    }
+
+    .fault-status-filter-bar .fault-status-filter-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .fault-status-filter-bar .fault-status-filter-tag strong {
+      font-weight: 800;
+      color: #1f6feb;
+    }
+
+    .fault-status-filter-bar .fault-status-filter-count {
+      background: #ffffff;
+      border: 1px solid #d3e2f7;
+      border-radius: 999px;
+      padding: 3px 10px;
+      font-weight: 700;
+      font-size: 12px;
+      color: #1f6feb;
+    }
+
+    .fault-status-filter-bar .fault-status-filter-clear {
+      border: 1px solid #d3e2f7;
+      background: #ffffff;
+      color: #1f6feb;
+      border-radius: 999px;
+      padding: 6px 14px;
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+      transition: background .15s ease;
+    }
+
+    .fault-status-filter-bar .fault-status-filter-clear:hover {
+      background: #e3edfd;
+    }
 
     /* PRIORITY OVERVIEW */
 
@@ -2700,16 +2783,34 @@ content="default"
         <p>Status Summary</p>
       </div>
 
-      <div class="summary-grid">
-        <div class="summary-card is-new">
-          <div class="summary-card-top">
-            <span class="summary-icon">📝</span>
-            <span class="summary-label">New</span>
-          </div>
-          <span id="stat-new" class="summary-value">0</span>
-        </div>
+      <div class="summary-grid">         <div
+           class="summary-card is-new"
+           data-status="NEW"
+           role="button"
+           tabindex="0"
+           aria-pressed="false"
+           title="Click to show New faults only"
+           onclick="toggleFaultStatusFilter('NEW')"
+           onkeydown="handleStatusCardKeydown(event, 'NEW')"
+         >
+           <div class="summary-card-top">
+             <span class="summary-icon">📝</span>
+             <span class="summary-label">New</span>
+           </div>
+           <span id="stat-new" class="summary-value">0</span>
+         </div>
 
-        <div class="summary-card is-progress">
+
+        <div
+          class="summary-card is-progress"
+          data-status="IN PROGRESS"
+          role="button"
+          tabindex="0"
+          aria-pressed="false"
+          title="Click to show IN PROGRESS faults only"
+          onclick="toggleFaultStatusFilter('IN PROGRESS')"
+          onkeydown="handleStatusCardKeydown(event, 'IN PROGRESS')"
+        >
           <div class="summary-card-top">
             <span class="summary-icon">🔧</span>
             <span class="summary-label">In Progress</span>
@@ -2717,7 +2818,16 @@ content="default"
           <span id="stat-in_progress" class="summary-value">0</span>
         </div>
 
-        <div class="summary-card is-parts">
+        <div
+          class="summary-card is-parts"
+          data-status="AWAITING PARTS"
+          role="button"
+          tabindex="0"
+          aria-pressed="false"
+          title="Click to show AWAITING PARTS faults only"
+          onclick="toggleFaultStatusFilter('AWAITING PARTS')"
+          onkeydown="handleStatusCardKeydown(event, 'AWAITING PARTS')"
+        >
           <div class="summary-card-top">
             <span class="summary-icon">📦</span>
             <span class="summary-label">Awaiting Parts</span>
@@ -2725,7 +2835,16 @@ content="default"
           <span id="stat-awaiting_parts" class="summary-value">0</span>
         </div>
 
-        <div class="summary-card is-complete">
+        <div
+          class="summary-card is-complete"
+          data-status="COMPLETE"
+          role="button"
+          tabindex="0"
+          aria-pressed="false"
+          title="Click to show COMPLETE faults only"
+          onclick="toggleFaultStatusFilter('COMPLETE')"
+          onkeydown="handleStatusCardKeydown(event, 'COMPLETE')"
+        >
           <div class="summary-card-top">
             <span class="summary-icon">✅</span>
             <span class="summary-label">Completed</span>
@@ -3008,6 +3127,28 @@ content="default"
           title="Remove the priority filter and show all requests"
         >
           ✕ All Priorities
+        </button>
+      </div>
+
+      <!-- شريط فلتر الحالة (يظهر فقط عند الضغط على بطاقة في Status Summary) -->
+      <div
+        id="faultStatusFilterBar"
+        class="fault-status-filter-bar"
+        style="display:none;"
+        role="status"
+        aria-live="polite"
+      >
+        <span class="fault-status-filter-info">
+          <span class="fault-status-filter-tag">Status: <strong id="faultStatusFilterLabel">All</strong></span>
+          <span id="faultStatusFilterCount" class="fault-status-filter-count">0 faults</span>
+        </span>
+        <button
+          type="button"
+          class="fault-status-filter-clear"
+          onclick="clearFaultStatusFilter()"
+          title="Remove the status filter and show all requests"
+        >
+          ✕ All Statuses
         </button>
       </div>
 

@@ -3530,6 +3530,12 @@ let medicalFaultsUnsubscribe = null;
 // يؤثر على العرض فقط ولا يغيّر أي بيانات في Firestore.
 let activeFaultPriorityFilter = null;
 
+// فلتر الحالة النشط لقائمة الأعطال (null = عرض جميع الأعطال)
+// القيم: NEW / IN PROGRESS / AWAITING PARTS / COMPLETE — يُضبط من بطاقات Status Summary.
+// يؤثر على العرض فقط ولا يغيّر أي بيانات في Firestore، ويعمل بنفس آلية
+// فلتر الأولوية الموجود.
+let activeFaultStatusFilter = null;
+
 // حالة إرسال نموذج العطل (لمنع الإرسال المزدوج من ضغطة واحدة)
 let faultFormSubmitting = false;
 
@@ -4856,6 +4862,86 @@ function updateFaultPriorityFilterBar(visibleCount) {
     bar.style.display = "flex";
 }
 
+// ============================================================
+// فلتر الحالة من بطاقات Status Summary
+// (نفس آلية Priority Overview — يعمل على medicalFaultsCache الحالية
+//  بلا collection جديد، بلا بيانات وهمية، وبلا تغيير في Firestore)
+// ============================================================
+
+// هل يطابق هذا العطل فلتر الحالة النشط حالياً؟
+// يقبل الصيغ المختلفة (NEW / New / new) لأنها تُوحَّد بنفس الدالة.
+function matchesFaultStatusFilter(fault) {
+    if (!activeFaultStatusFilter) return true;
+    return normalizeFaultStatus(f.status) === activeFaultStatusFilter;
+}
+
+// تسمية عرض ودّية للفلتر: NEW → New
+function getFaultStatusDisplayLabel(statusKey) {
+    const key = String(statusKey || "").trim().toUpperCase().replace(/_/g, " ");
+    let label = null;
+    // النص العربي حسب أولوية التصميم في صفحة الأجهزة الطبية
+    if (key === "NEW") label = "New";
+    else if (key === "IN PROGRESS") label = "In Progress";
+    else if (key === "AWAITING PARTS") label = "Awaiting Parts";
+    else if (key === "COMPLETE") label = "Completed";
+    return label ? label.charAt(0) + label.slice(1).toLowerCase() : "";
+}
+
+// تفعيل/إلغاء فلتر الحالة عند الضغط على بطاقة Status Summary
+// الضغطة الثانية على نفس الحالة تعيد عرض جميع الأعطال.
+function toggleFaultStatusFilter(status) {
+    const normalized = normalizeFaultStatus(status);
+    if (!normalized) return;
+
+    const wasActive = activeFaultStatusFilter === normalized;
+    activeFaultStatusFilter = wasActive ? null : normalized;
+
+    renderMedicalDevicesPage();
+
+    // عند تفعيل الفلتر: مرّر المستخدم إلى قائمة الأعطال لرؤية النتائج مباشرة
+    if (!wasActive) {
+        const section = document.getElementById("maintenanceRequestsSection");
+        if (section && typeof section.scrollIntoView === "function") {
+            section.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+    }
+}
+
+// إزالة فلتر الحالة والعودة إلى عرض جميع الأعطال
+function clearFaultStatusFilter() {
+    activeFaultStatusFilter = null;
+    renderMedicalDevicesPage();
+}
+
+// دعم لوحة المفاتيح لبطاقات Status Summary (Enter / Space)
+function handleStatusCardKeydown(event, status) {
+    if (event && (event.key === "Enter" || event.key === " " || event.key === "Spacebar")) {
+        event.preventDefault();
+        toggleFaultStatusFilter(status);
+    }
+}
+
+// تحديث شريط الفلتر الحالي فوق قائمة الأعطال (للفلتر Status)
+// يعرض: Status: <المستوى> + عدد النتائج مثل "In Progress Faults (5)"
+function updateFaultStatusFilterBar(visibleCount) {
+    const bar = document.getElementById("faultStatusFilterBar");
+    if (!bar) return;
+
+    if (!activeFaultStatusFilter) {
+        bar.style.display = "none";
+        return;
+    }
+
+    const displayLabel = getFaultStatusDisplayLabel(activeFaultStatusFilter);
+    const labelEl = document.getElementById("faultStatusFilterLabel");
+    const countEl = document.getElementById("faultStatusFilterCount");
+
+    if (labelEl) labelEl.textContent = displayLabel;
+    if (countEl) countEl.textContent = `${displayLabel} Faults (${visibleCount})`;
+
+    bar.style.display = "flex";
+}
+
 function renderDashboard() {
     // ملخص التذاكر (Ticket Summary) — إجمالي السجلات وسجلات الحالة الجديدة
     const totalTicketsEl = document.getElementById("stat-total-tickets");
@@ -4870,11 +4956,18 @@ function renderDashboard() {
         ).length;
     }
 
-    // تحديث حالات الأعطال
+    // تحديث الحالات + تمييز البطاقة المختارة (فلتر الحالة النشط — Status Summary)
     FAULT_STATUS_ORDER.forEach(status => {
         const count = medicalFaultsCache.filter(f => normalizeFaultStatus(f.status) === status).length;
         const el = document.getElementById(`stat-${status.toLowerCase().replace(" ", "_")}`);
         if (el) el.textContent = count;
+
+        const card = el && el.closest ? el.closest(".summary-card") : null;
+        if (card) {
+            const isActive = activeFaultStatusFilter === status;
+            card.classList.toggle("is-active", isActive);
+            card.setAttribute("aria-pressed", isActive ? "true" : "false");
+        }
     });
 
     // تحديث الأولويات + تمييز البطاقة المختارة (فلتر الأولوية النشط)
@@ -4896,8 +4989,10 @@ function renderFaultsLists() {
     const pendingContainer = document.getElementById("pendingFaults");
     const completedContainer = document.getElementById("completedFaults");
 
-    // فلتر الأولوية (إن كان نشطاً) يُطبَّق على نفس مصدر البيانات الحالي
-    const filtered = medicalFaultsCache.filter(matchesFaultPriorityFilter);
+    // فلتر الأولوية والحالة (إن كانا نشطين) يُطبَّقان على نفس مصدر البيانات الحالي
+    const filtered = medicalFaultsCache.filter(f =>
+        matchesFaultPriorityFilter(f) && matchesFaultStatusFilter(f)
+    );
 
     const pending = filtered.filter(f => normalizeFaultStatus(f.status) !== "COMPLETE");
     const completed = filtered.filter(f => normalizeFaultStatus(f.status) === "COMPLETE");
@@ -4905,18 +5000,23 @@ function renderFaultsLists() {
     document.getElementById("pendingFaultCount").textContent = pending.length;
     document.getElementById("completedFaultCount").textContent = completed.length;
 
-    // تحديث شريط الفلتر الحالي (يظهر فقط عند تفعيل فلتر أولوية)
+    // تحديث شريطي الفلتر الحاليين (يظهران فقط عند تفعيل كل فلتر على حدة)
     updateFaultPriorityFilterBar(filtered.length);
+    updateFaultStatusFilterBar(filtered.length);
 
-    const filterLabel = activeFaultPriorityFilter ?
+    const priorityLabel = activeFaultPriorityFilter ?
         getFaultPriorityDisplayLabel(activeFaultPriorityFilter) : "";
+    const statusLabel = activeFaultStatusFilter ?
+        getFaultStatusDisplayLabel(activeFaultStatusFilter) : "";
+
+    const filterSummary = [priorityLabel, statusLabel].filter(Boolean).join(" / ") || "All";
 
     if (pending.length === 0) {
-        const emptyTitle = activeFaultPriorityFilter ?
-            `No ${filterLabel} maintenance requests found.` :
+        const emptyTitle = filterSummary !== "All" ?
+            `No ${filterSummary} maintenance requests found.` :
             "No maintenance requests found.";
-        const emptyHint = activeFaultPriorityFilter ?
-            "Use the “All Priorities” button above to show all requests." :
+        const emptyHint = filterSummary !== "All" ?
+            "Use the clear buttons above to show all requests." :
             "Use “+ Add Fault” to register a new maintenance request.";
 
         pendingContainer.innerHTML = `
@@ -4930,11 +5030,11 @@ function renderFaultsLists() {
     }
 
     if (completed.length === 0) {
-        const emptyTitle = activeFaultPriorityFilter ?
-            `No completed ${filterLabel} requests yet.` :
+        const emptyTitle = filterSummary !== "All" ?
+            `No completed ${filterSummary} requests yet.` :
             "No completed requests yet.";
-        const emptyHint = activeFaultPriorityFilter ?
-            "Use the “All Priorities” button above to show all requests." :
+        const emptyHint = filterSummary !== "All" ?
+            "Use the clear buttons above to show all requests." :
             "Serviced requests will appear here.";
 
         completedContainer.innerHTML = `
@@ -6844,9 +6944,20 @@ document.addEventListener("click", function (e) {
 
 // ============================================================
 // ربط حدث تسجيل الدخول (مسؤولية JS فقط، بدون inline onsubmit)
+// ------------------------------------------------------------
+// ملاحظة مهمة: script.js يُحمَّل ديناميكيًا (عبر
+// document.createElement("script") من الوحدة inline module في
+// index.html)، وبالتالي فهو async بشكل افتراضي. هذا يعني أن حدث
+// DOMContentLoaded يكون قد أُطلق بالفعل قبل أن يبدأ هذا الملف
+// بالتنفيذ أصلاً — تمامًا مثل initializeCompanyApp أعلاه، الذي
+// يتعامل مع هذا الأمر عبر فحص document.readyState.
+// الاستماع المباشر لـ"DOMContentLoaded" هنا كان لا يُنفَّذ أبدًا،
+// وبالتالي لم يكن يتم ربط submit على authForm إطلاقًا، فكان
+// الفورم يُرسَل بالسلوك الافتراضي للمتصفح (لا حدث JS، لا Firebase)
+// بدل استدعاء authSubmit — وهذا هو سبب فشل إنشاء الحساب/الدخول.
 // ============================================================
 
-document.addEventListener("DOMContentLoaded", () => {
+function wireAuthForm() {
   const authForm = document.getElementById("authForm");
   if (!authForm) {
     console.error("AUTH FORM NOT FOUND");
@@ -6854,7 +6965,13 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   authForm.addEventListener("submit", authSubmit);
   console.log("AUTH EVENT WIRED");
-});
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", wireAuthForm);
+} else {
+  wireAuthForm();
+}
 
 // ============================================================
 // سحب بيانات الأجهزة الطبية من ملف Excel
