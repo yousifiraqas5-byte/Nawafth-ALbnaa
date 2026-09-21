@@ -2344,7 +2344,7 @@ function updateNotificationBadge() {
     const count = notificationsCache.length;
     badge.textContent = count > 99 ? "99+" : count;
 }
-async function notify(title, body, type = "general") {
+async function notify(title, body, type = "general", meta = {}) {
     const db = getFirestoreDB();
     if (!db) return;
 
@@ -2352,20 +2352,45 @@ async function notify(title, body, type = "general") {
         const {
             collection,
             addDoc,
+            getDocs,
+            query,
+            where,
+            limit,
             serverTimestamp
         } = await import(
             "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js"
         );
 
+        // منع إرسال نفس الحدث أكثر من مرة — يعمل فقط عندما يُمرَّر eventId
+        // (حاليًا لا يُمرَّر إلا من إشعارات الأجهزة الطبية، لذلك لا يُغيّر أي
+        // سلوك لبقية الأنواع: المهام / المشتريات / التقارير / المواد).
+        if (meta.eventId) {
+            const dupCheck = await getDocs(
+                query(
+                    collection(db, NOTIFICATIONS_COLLECTION),
+                    where("eventId", "==", meta.eventId),
+                    limit(1)
+                )
+            );
+            if (!dupCheck.empty) {
+                console.log("تم تجاهل إشعار مكرر لنفس الحدث:", meta.eventId);
+                return null;
+            }
+        }
+
         // حفظ الإشعار داخل Firestore
+        const notificationDoc = {
+            title: title,
+            body: body,
+            type: type,
+            createdAt: serverTimestamp()
+        };
+        if (meta.eventId) notificationDoc.eventId = meta.eventId;
+        if (meta.faultId) notificationDoc.faultId = meta.faultId;
+
         const ref = await addDoc(
             collection(db, NOTIFICATIONS_COLLECTION),
-            {
-                title: title,
-                body: body,
-                type: type,
-                createdAt: serverTimestamp()
-            }
+            notificationDoc
         );
 
         localNotifiedIds.add(ref.id);
@@ -2384,9 +2409,9 @@ async function notify(title, body, type = "general") {
             updateNotificationBadge();
         }
 
-        // إرسال Push فقط لإشعارات المهام
+        // إرسال Push لإشعارات المهام والمشتريات والأجهزة الطبية
 
-if (type === "task" || type === "purchase") {
+if (type === "task" || type === "purchase" || type === "medical") {
         console.log("🔥 TASK PUSH START:", {
         title: title,
         body: body,
@@ -2396,6 +2421,18 @@ if (type === "task" || type === "purchase") {
     try {
         console.log("📡 CALLING WORKER...");
 
+        // الحمولة الأساسية (title/body) تبقى مطابقة تمامًا لما كانت عليه
+        // من قبل لإشعارات المهام/المشتريات، حتى لا يتأثر سلوكها الحالي.
+        // حقول eventId/data تُضاف فقط عند توفّرها (حاليًا: الأجهزة الطبية)
+        // لتمكين الـ Worker من دعم منع التكرار والانتقال عند الضغط على
+        // الإشعار، بدون كسر التوافق مع الحمولة القديمة.
+        const workerPayload = {
+            title: title,
+            body: body
+        };
+        if (meta.eventId) workerPayload.eventId = meta.eventId;
+        if (meta.faultId) workerPayload.data = { faultId: meta.faultId, type: type };
+
         const response = await fetch(
             "https://nawafth-notifications.yousifiraqas5.workers.dev/",
             {
@@ -2403,10 +2440,7 @@ if (type === "task" || type === "purchase") {
                 headers: {
                     "Content-Type": "application/json"
                 },
-                body: JSON.stringify({
-                    title: title,
-                    body: body
-                })
+                body: JSON.stringify(workerPayload)
             }
         );
 
@@ -4725,7 +4759,7 @@ async function addFault() {
 
         const ticketID = await getNextTicketID(db);
 
-        await addDoc(collection(db, MEDICAL_FAULTS_COLLECTION), {
+        const faultRef = await addDoc(collection(db, MEDICAL_FAULTS_COLLECTION), {
             ticketID,
             device,
             brand,
@@ -4743,12 +4777,18 @@ async function addFault() {
 
         // إشعار بتسجيل جهاز طبي جديد — يُرسل مرة واحدة فقط بعد نجاح الحفظ
         // (لا يُرسل عند فشل الحفظ لأن الاستدعاء بعد addDoc مباشرة).
+        // eventId مبني على معرّف العطل الفعلي في Firestore لضمان عدم تكرار
+        // نفس الحدث حتى لو أُعيد تنفيذ الدالة لأي سبب.
         await notify(
             "الأجهزة الطبية",
             device
                 ? "تم تسجيل جهاز طبي جديد: " + device
                 : "تم تسجيل جهاز طبي جديد",
-            "medical"
+            "medical",
+            {
+                eventId: "medical_fault_created_" + faultRef.id,
+                faultId: faultRef.id
+            }
         );
 
         closeFaultForm();
@@ -4872,7 +4912,7 @@ function updateFaultPriorityFilterBar(visibleCount) {
 // يقبل الصيغ المختلفة (NEW / New / new) لأنها تُوحَّد بنفس الدالة.
 function matchesFaultStatusFilter(fault) {
     if (!activeFaultStatusFilter) return true;
-    return normalizeFaultStatus(f.status) === activeFaultStatusFilter;
+    return normalizeFaultStatus(fault.status) === activeFaultStatusFilter;
 }
 
 // تسمية عرض ودّية للفلتر: NEW → New
@@ -4957,8 +4997,11 @@ function renderDashboard() {
     }
 
     // تحديث الحالات + تمييز البطاقة المختارة (فلتر الحالة النشط — Status Summary)
+    // العدّ هنا يُحسب من السجلات التي تطابق فلتر Priority النشط فقط (إن وُجد)،
+    // بحيث تعكس أرقام Status Summary الفلتر المطبَّق من القسم الآخر (تقاطع تراكمي).
+    const statusCountBase = medicalFaultsCache.filter(f => matchesFaultPriorityFilter(f));
     FAULT_STATUS_ORDER.forEach(status => {
-        const count = medicalFaultsCache.filter(f => normalizeFaultStatus(f.status) === status).length;
+        const count = statusCountBase.filter(f => normalizeFaultStatus(f.status) === status).length;
         const el = document.getElementById(`stat-${status.toLowerCase().replace(" ", "_")}`);
         if (el) el.textContent = count;
 
@@ -4971,8 +5014,10 @@ function renderDashboard() {
     });
 
     // تحديث الأولويات + تمييز البطاقة المختارة (فلتر الأولوية النشط)
+    // بنفس المنطق: العدّ يُحسب من السجلات التي تطابق فلتر Status النشط فقط (إن وُجد).
+    const priorityCountBase = medicalFaultsCache.filter(f => matchesFaultStatusFilter(f));
     FAULT_PRIORITY_ORDER.forEach(priority => {
-        const count = medicalFaultsCache.filter(f => normalizeFaultPriority(f.priority) === priority).length;
+        const count = priorityCountBase.filter(f => normalizeFaultPriority(f.priority) === priority).length;
         const el = document.getElementById(`stat-${priority.toLowerCase()}`);
         if (el) el.textContent = count;
 
@@ -5048,6 +5093,31 @@ function renderFaultsLists() {
     }
 }
 
+// ============================================================
+// طيّ/فتح قسم "Complete Request" — مطوي افتراضيًا، ولا يُفتح إلا
+// عند الضغط على رأس القسم (نفس منطق الفتح/الإغلاق البسيط
+// المستخدم في بقية بطاقات الصفحة، بدون أي مكتبة خارجية).
+// ============================================================
+
+function toggleCompletedRequestsSection() {
+    const section = document.getElementById("completedRequestsSection");
+    const container = document.getElementById("completedFaults");
+    const toggle = document.getElementById("completedRequestsToggle");
+    if (!section || !container) return;
+
+    const isOpen = section.classList.toggle("is-open");
+    container.classList.toggle("is-collapsed", !isOpen);
+    if (toggle) toggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
+}
+
+// دعم لوحة المفاتيح لرأس قسم "Complete Request" (Enter / Space)
+function handleCompletedRequestsToggleKeydown(event) {
+    if (event && (event.key === "Enter" || event.key === " " || event.key === "Spacebar")) {
+        event.preventDefault();
+        toggleCompletedRequestsSection();
+    }
+}
+
 function createFaultCardHTML(fault, isCompleted = false) {
     const createdDate = fault.createdAt ? formatPurchaseDate(fault.createdAt) : "---";
     const completedDate = fault.completedAt ? formatPurchaseDate(fault.completedAt) : "";
@@ -5079,7 +5149,7 @@ function createFaultCardHTML(fault, isCompleted = false) {
     }
 
     return `
-        <article class="request-card">
+        <article class="request-card" id="fault-card-${fault.id}">
             <button type="button" class="request-delete-icon-btn" onclick="deleteFault('${fault.id}')" aria-label="حذف العطل" title="حذف العطل">🗑️</button>
             <div class="request-card-top">
                 <span class="request-id">${escapeHTML(fault.ticketID || "---")}</span>
@@ -5124,6 +5194,10 @@ async function markAsComplete(id) {
     const db = getFirestoreDB();
     if (!db) return;
 
+    // نلتقط بيانات العطل قبل التحديث لاستخدامها في نص الإشعار
+    // (بعد التحديث يُعاد تحميل medicalFaultsCache فتُفقد الحالة القديمة).
+    const faultBeforeUpdate = medicalFaultsCache.find(f => f.id === id);
+
     try {
         const { doc, updateDoc, serverTimestamp } = await import("https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js");
         
@@ -5132,6 +5206,20 @@ async function markAsComplete(id) {
             completedAt: serverTimestamp(),
             updatedAt: serverTimestamp()
         });
+
+        // إشعار بتغيير حالة العطل إلى مكتمل — eventId مبني على معرّف
+        // العطل + نوع الحالة الجديدة، لمنع إرسال نفس الحدث مرتين.
+        await notify(
+            "تحديث حالة عطل جهاز طبي",
+            faultBeforeUpdate
+                ? "تم إنجاز صيانة: " + faultBeforeUpdate.device
+                : "تم تحديث حالة عطل جهاز طبي إلى مكتمل",
+            "medical",
+            {
+                eventId: "medical_fault_status_COMPLETE_" + id,
+                faultId: id
+            }
+        );
 
         showMessage("Maintenance request completed.");
         await getMedicalFaults();
@@ -5215,6 +5303,53 @@ function escapeHTML(
 // تهيئة التطبيق
 // ============================================================
 
+// ============================================================
+// فتح عطل/جهاز طبي محدد مباشرة (Deep Link) — يُستخدم عند الضغط على
+// إشعار Push (من الـ Service Worker) أو عند فتح رابط يحتوي faultId
+// ============================================================
+
+// يمرّر البحث عن البطاقة لأن renderFaultsLists() قد لا يكون انتهى بعد
+function scrollToFaultCard(faultId, attempts = 0) {
+    const card = document.getElementById("fault-card-" + faultId);
+    if (card) {
+        card.scrollIntoView({ behavior: "smooth", block: "center" });
+        card.classList.add("is-highlighted-fault");
+        setTimeout(() => card.classList.remove("is-highlighted-fault"), 3000);
+        return;
+    }
+    if (attempts < 10) {
+        setTimeout(() => scrollToFaultCard(faultId, attempts + 1), 300);
+    }
+}
+
+async function openMedicalFaultById(faultId) {
+    if (!faultId) return;
+    openMedicalDevices();
+    await getMedicalFaults();
+    scrollToFaultCard(faultId);
+}
+
+// عند فتح التطبيق برابط من إشعار Push (index.html?openMedical=1&faultId=...)
+function handleMedicalDeepLinkFromURL() {
+    try {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get("openMedical") !== "1") return;
+
+        const faultId = params.get("faultId");
+        if (faultId) {
+            openMedicalFaultById(faultId);
+        } else {
+            openMedicalDevices();
+        }
+
+        // تنظيف الرابط بعد الفتح حتى لا يتكرر نفس الفتح عند إعادة التحميل
+        const cleanURL = window.location.pathname + window.location.hash;
+        window.history.replaceState({}, document.title, cleanURL);
+    } catch (error) {
+        console.error("Error handling medical deep link:", error);
+    }
+}
+
 function initializeCompanyApp() {
 
     console.log(
@@ -5230,6 +5365,19 @@ function initializeCompanyApp() {
     setupMessagingForeground();
 
     getNotifications();
+
+    // فتح العطل الصحيح مباشرة عند الوصول من رابط إشعار Push
+    handleMedicalDeepLinkFromURL();
+
+    // استقبال رسالة من Service Worker عند الضغط على الإشعار والتبويب
+    // مفتوح أصلاً (بدون فتح تبويب/نافذة جديدة)
+    if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.addEventListener("message", event => {
+            if (event.data && event.data.type === "OPEN_MEDICAL_FAULT" && event.data.faultId) {
+                openMedicalFaultById(event.data.faultId);
+            }
+        });
+    }
 
 }
 

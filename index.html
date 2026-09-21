@@ -444,6 +444,33 @@ content="default"
       margin-top: 3px;
     }
 
+    /* RECENT / COMPLETED REQUESTS — collapsible block */
+
+    #medicalDevicesPage .medical-block-head-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    #medicalDevicesPage #completedRequestsToggle {
+      cursor: pointer;
+    }
+
+    #medicalDevicesPage .medical-block-chevron {
+      font-size: 13px;
+      color: #7b8a83;
+      display: inline-block;
+      transition: transform .2s ease;
+    }
+
+    #medicalDevicesPage #completedRequestsSection.is-open .medical-block-chevron {
+      transform: rotate(90deg);
+    }
+
+    #medicalDevicesPage #completedFaults.is-collapsed {
+      display: none;
+    }
+
     /* SUMMARY CARDS */
 
     #medicalDevicesPage .summary-grid {
@@ -1150,6 +1177,13 @@ content="default"
       border-radius: 16px;
       padding: 14px;
       box-shadow: 0 4px 14px rgba(24, 46, 37, .05);
+      transition: box-shadow .3s ease, border-color .3s ease;
+    }
+
+    /* تمييز مؤقت للبطاقة عند فتحها مباشرة من إشعار Push */
+    #medicalDevicesPage .request-card.is-highlighted-fault {
+      border-color: #2f9e6b;
+      box-shadow: 0 0 0 3px rgba(47, 158, 107, .25), 0 4px 14px rgba(24, 46, 37, .05);
     }
 
     #medicalDevicesPage .request-delete-icon-btn {
@@ -3162,16 +3196,28 @@ content="default"
     </section>
 
     <!-- RECENT (COMPLETED) REQUESTS -->
-    <section class="medical-block">
-      <div class="medical-block-head is-row">
+    <section class="medical-block" id="completedRequestsSection">
+      <div
+        class="medical-block-head is-row"
+        id="completedRequestsToggle"
+        role="button"
+        tabindex="0"
+        aria-expanded="false"
+        aria-controls="completedFaults"
+        onclick="toggleCompletedRequestsSection()"
+        onkeydown="handleCompletedRequestsToggleKeydown(event)"
+      >
         <div>
-          <h3>Recent Requests</h3>
+          <h3>Complete Request</h3>
           <p>Requests that have been fully serviced</p>
         </div>
-        <span id="completedFaultCount" class="medical-count is-complete">0</span>
+        <div class="medical-block-head-right">
+          <span id="completedFaultCount" class="medical-count is-complete">0</span>
+          <span class="medical-block-chevron" id="completedRequestsChevron" aria-hidden="true">▸</span>
+        </div>
       </div>
 
-      <div id="completedFaults" class="requests-grid">
+      <div id="completedFaults" class="requests-grid is-collapsed">
         <div class="requests-empty">
           <div class="requests-empty-icon">✅</div>
           <strong>No completed requests yet.</strong>

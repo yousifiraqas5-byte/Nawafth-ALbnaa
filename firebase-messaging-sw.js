@@ -31,6 +31,8 @@ messaging.onBackgroundMessage(function (payload) {
         ? payload.notification.body
         : "تحديث جديد في تطبيق الشركة";
 
+    // بيانات إضافية (مثل faultId للأجهزة الطبية) تُحفظ مع الإشعار
+    // لاستخدامها عند الضغط عليه لفتح العنصر الصحيح مباشرة.
     const options = {
         body: body,
         icon: "icon.png",
@@ -39,25 +41,38 @@ messaging.onBackgroundMessage(function (payload) {
         dir: "rtl",
         lang: "ar",
         tag: "nawafth-notification",
-        renotify: true
+        renotify: true,
+        data: payload.data || {}
     };
 
     self.registration.showNotification(title, options);
 });
 
-// عند الضغط على الإشعار فتح التطبيق
+// عند الضغط على الإشعار: فتح التطبيق، وإن كان مرتبطًا بعطل جهاز طبي
+// (faultId ضمن data) يُفتح العطل الصحيح مباشرة — إما عبر رسالة إلى
+// تبويب مفتوح أصلاً، أو عبر رابط يحمل faultId عند فتح تبويب جديد.
 self.addEventListener("notificationclick", function (event) {
     event.notification.close();
+
+    const data = event.notification.data || {};
+    const faultId = data.faultId || null;
+
+    const targetPath = faultId
+        ? "index.html?openMedical=1&faultId=" + encodeURIComponent(faultId)
+        : "index.html";
 
     event.waitUntil(
         clients.matchAll({ type: "window", includeUncontrolled: true }).then(function (clientList) {
             for (var i = 0; i < clientList.length; i++) {
                 var client = clientList[i];
                 if ("focus" in client) {
+                    if (faultId && "postMessage" in client) {
+                        client.postMessage({ type: "OPEN_MEDICAL_FAULT", faultId: faultId });
+                    }
                     return client.focus();
                 }
             }
-            return clients.openWindow("index.html");
+            return clients.openWindow(targetPath);
         })
     );
 });
