@@ -6480,6 +6480,24 @@ function formatFuelLiters(value) {
 // بناء بطاقات الخزانات (مرة واحدة عند فتح الصفحة)
 // ============================================================
 
+function getFuelTankStatus(quantity, capacity) {
+    if (quantity === null || quantity === undefined || quantity <= 0) {
+        return { key: "empty", label: "فارغ", className: "empty" };
+    }
+
+    const percentage = (quantity / capacity) * 100;
+
+    if (percentage >= 95 && quantity >= capacity) {
+        return { key: "full", label: "مملوء بالكامل", className: "full" };
+    } else if (percentage >= 70) {
+        return { key: "high", label: "مملوء جيداً", className: "high" };
+    } else if (percentage >= 30) {
+        return { key: "medium", label: "مملوء متوسط", className: "medium" };
+    } else {
+        return { key: "low", label: "قليل", className: "low" };
+    }
+}
+
 function renderFuelTanksCards() {
     const grid = document.getElementById("fuelTanksGrid");
     if (!grid) return;
@@ -6489,52 +6507,73 @@ function renderFuelTanksCards() {
     FUEL_TANKS_DEFINITIONS.forEach(function (tank) {
         const saved = fuelTanksState[tank.id] || { quantity: null, updatedAt: null };
 
+        const quantity = saved.quantity !== null ? saved.quantity : 0;
+        const percentage = tank.capacity > 0 ? Math.round((quantity / tank.capacity) * 100) : 0;
+        const status = getFuelTankStatus(saved.quantity, tank.capacity);
+
+        const displayQuantity = saved.quantity !== null && saved.quantity !== undefined
+            ? formatFuelLiters(saved.quantity)
+            : "0 لتر";
+
+        const fillWidth = Math.max(percentage, 2);
+        const fillText = saved.quantity !== null && saved.quantity !== undefined
+            ? formatFuelLiters(saved.quantity)
+            : "0 لتر";
+
         const card = document.createElement("div");
         card.className = "fuel-tank-card";
         card.id = "fuelTankCard-" + tank.id;
 
         card.innerHTML =
-            '<div class="fuel-tank-card-top">' +
+            '<div class="fuel-tank-card-header">' +
                 '<div class="fuel-tank-icon">' + tank.icon + '</div>' +
-                '<div>' +
+                '<div class="fuel-tank-header-text">' +
                     '<div class="fuel-tank-name">' + escapeHTML(tank.name) + '</div>' +
                     '<div class="fuel-tank-capacity">السعة الكلية: ' + formatFuelLiters(tank.capacity) + '</div>' +
                 '</div>' +
             '</div>' +
 
-            '<div class="fuel-tank-field">' +
-                '<label for="fuelQty-' + tank.id + '">الكمية الموجودة حالياً (لتر)</label>' +
-                '<input ' +
-                    'type="number" ' +
-                    'id="fuelQty-' + tank.id + '" ' +
-                    'class="medical-input" ' +
-                    'min="0" ' +
-                    'max="' + tank.capacity + '" ' +
-                    'step="1" ' +
-                    'placeholder="أدخل الكمية الحالية" ' +
-                    'value="' + (saved.quantity !== null ? saved.quantity : "") + '" ' +
-                    'oninput="onFuelTankQuantityInput(\'' + tank.id + '\')"' +
-                '>' +
-                '<span class="fuel-tank-error" id="fuelQtyError-' + tank.id + '"></span>' +
+            '<div class="fuel-tank-progress-section">' +
+                '<div class="fuel-tank-progress-track">' +
+                    '<div class="fuel-tank-progress-fill ' + status.className + '" style="width: ' + fillWidth + '%">' +
+                        '<span class="fuel-tank-progress-text">' + fillText + '</span>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="fuel-tank-progress-info">' +
+                    '<span class="fuel-tank-percentage">' + percentage + '%</span>' +
+                    '<span class="fuel-tank-status-badge ' + status.className + '">' + status.label + '</span>' +
+                '</div>' +
             '</div>' +
 
-            '<div class="fuel-tank-required-box">' +
-                '<span class="fuel-tank-required-label">المطلوب</span>' +
-                '<span class="fuel-tank-required-value" id="fuelRequired-' + tank.id + '">-</span>' +
-            '</div>' +
+            '<div class="fuel-tank-date">آخر تحديث: ' + formatFuelTankDate(saved.updatedAt) + '</div>' +
 
-            '<div class="fuel-tank-date" id="fuelDate-' + tank.id + '">' +
-                'تاريخ إضافة الكمية: ' + formatFuelTankDate(saved.updatedAt) +
-            '</div>' +
-
-            '<button type="button" class="auth-submit-btn" onclick="saveFuelTankQuantity(\'' + tank.id + '\')">' +
-                '💾 حفظ الكمية' +
-            '</button>';
+            '<div class="fuel-tank-edit-section">' +
+                '<div class="fuel-tank-edit-row">' +
+                    '<div class="fuel-tank-field">' +
+                        '<label for="fuelQty-' + tank.id + '">الكمية الحالية (لتر)</label>' +
+                        '<input ' +
+                            'type="number" ' +
+                            'id="fuelQty-' + tank.id + '" ' +
+                            'class="medical-input" ' +
+                            'min="0" ' +
+                            'max="' + tank.capacity + '" ' +
+                            'step="1" ' +
+                            'placeholder="أدخل الكمية الحالية" ' +
+                            'value="' + (saved.quantity !== null ? saved.quantity : "") + '" ' +
+                            'oninput="onFuelTankQuantityInput(\'' + tank.id + '\')"' +
+                        '>' +
+                        '<span class="fuel-tank-error" id="fuelQtyError-' + tank.id + '"></span>' +
+                    '</div>' +
+                    '<button type="button" class="auth-submit-btn" onclick="saveFuelTankQuantity(\'' + tank.id + '\')">' +
+                        '💾 حفظ الكمية' +
+                    '</button>' +
+                '</div>' +
+            '</div>';
 
         grid.appendChild(card);
     });
 
-    updateFuelTankRequiredValue(); // يحسب "المطلوب" لكل خزان + الإجماليات
+    updateFuelTankRequiredValue();
 }
 
 // ============================================================
