@@ -39,50 +39,51 @@
         rect: "مستطيل"
     };
 
-    // ---------- تعريف الخزانات السبعة (مرتبة حسب الرقم) ----------
+    // ---------- تعريف الخزانات السبعة ----------
+    // الترقيم: 1 مولدات المستشفى (38,000)، 2 المجمع، 3 و4 البويلر، ثم الخزانات الصغيرة الممتلئة دائماً 5 و6 و7.
     // المعرّفات القديمة (hospitalGenerator, complexGenerator, boiler1, boiler2)
     // محفوظة كما هي لأنها مرتبطة بوثائق Firestore الموجودة.
     // legacyQuantityOk: يُسمح باعتبار حقل quantity القديم (لترات) قراءة صالحة.
     //   - خزانات البويلر المستطيلة: نعم (تحويل لتر ← ارتفاع دقيق خطياً).
     //   - الخزان 38,000 والمجمع: لا، تُهمل القيمة القديمة ويُطلب قياس جديد.
     var DEFINITIONS = [
-        // الخزانات 1-3: أبعاد مستطيلة (الطول × العرض × الارتفاع الداخلي، بالمتر).
-        // alwaysFull: بقرار المستخدم تُعتبر ممتلئة دائماً (كمية ثابتة = السعة الاسمية)،
-        // فلا تحتاج قراءات ولا تُنتج تنبيهات. تبقى الأبعاد للعرض والرسم.
         {
-            id: "tank1", no: 1, name: "الخزان 1", note: "", nominalL: 2000,
-            shape: "rect", lengthM: 1, widthM: 1, heightM: 2,
-            method: "level_height", legacyQuantityOk: false, alwaysFull: true
-        },
-        {
-            id: "tank2", no: 2, name: "الخزان 2", note: "", nominalL: 2000,
-            shape: "rect", lengthM: 1, widthM: 1, heightM: 2,
-            method: "level_height", legacyQuantityOk: false, alwaysFull: true
-        },
-        {
-            id: "tank3", no: 3, name: "الخزان 3", note: "", nominalL: 4000,
-            shape: "rect", lengthM: 2, widthM: 1, heightM: 2,
-            method: "level_height", legacyQuantityOk: false, alwaysFull: true
-        },
-        {
-            id: "hospitalGenerator", no: 4, name: "الخزان 4", note: "خزان الكاز الكبير (مولدات المستشفى)",
+            id: "hospitalGenerator", no: 1, name: "الخزان 1", note: "خزان الكاز الكبير (مولدات المستشفى)",
             nominalL: 38000, shape: "hcyl", lengthM: 7.75, diameterM: 2.5,
             method: "top_distance", legacyQuantityOk: false
         },
         {
-            id: "complexGenerator", no: 5, name: "الخزان 5", note: "خزان مولدة المجمع",
+            id: "complexGenerator", no: 2, name: "الخزان 2", note: "خزان مولدة المجمع",
             nominalL: 13000, shape: "hcyl", lengthM: 3.2, diameterM: 2.3,
             method: "top_distance", legacyQuantityOk: false
         },
         {
-            id: "boiler1", no: 6, name: "الخزان 6", note: "خزان بويلر رقم 1",
+            id: "boiler1", no: 3, name: "الخزان 3", note: "خزان بويلر رقم 1",
             nominalL: 13500, shape: "rect", lengthM: 3, widthM: 3, heightM: 1.5,
             method: "level_height", legacyQuantityOk: true
         },
         {
-            id: "boiler2", no: 7, name: "الخزان 7", note: "خزان بويلر رقم 2",
+            id: "boiler2", no: 4, name: "الخزان 4", note: "خزان بويلر رقم 2",
             nominalL: 13500, shape: "rect", lengthM: 3, widthM: 3, heightM: 1.5,
             method: "level_height", legacyQuantityOk: true
+        },
+        // الخزانات 1-3: أبعاد مستطيلة (الطول × العرض × الارتفاع الداخلي، بالمتر).
+        // alwaysFull: بقرار المستخدم تُعتبر ممتلئة دائماً (كمية ثابتة = السعة الاسمية)،
+        // فلا تحتاج قراءات ولا تُنتج تنبيهات. تبقى الأبعاد للعرض والرسم.
+        {
+            id: "tank1", no: 5, name: "الخزان 5", note: "", nominalL: 2000,
+            shape: "rect", lengthM: 1, widthM: 1, heightM: 2,
+            method: "level_height", legacyQuantityOk: false, alwaysFull: true
+        },
+        {
+            id: "tank2", no: 6, name: "الخزان 6", note: "", nominalL: 2000,
+            shape: "rect", lengthM: 1, widthM: 1, heightM: 2,
+            method: "level_height", legacyQuantityOk: false, alwaysFull: true
+        },
+        {
+            id: "tank3", no: 7, name: "الخزان 7", note: "", nominalL: 4000,
+            shape: "rect", lengthM: 2, widthM: 1, heightM: 2,
+            method: "level_height", legacyQuantityOk: false, alwaysFull: true
         }
     ];
 

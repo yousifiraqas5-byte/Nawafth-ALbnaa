@@ -6777,23 +6777,6 @@ function renderFuelTanksCards(statesArg) {
         else if (st.stale) { statusLabel += " · قراءة قديمة"; }
         if (def.alwaysFull) { statusLabel = "ممتلئ دائماً"; }
 
-        let lastReading = "لا توجد قراءة";
-        if (ok && st.source === "reading") {
-            lastReading = (st.method === "top_distance" ? "المسافة من الأعلى: " : "الارتفاع: ") +
-                st.rawValue + " " + fuelUnitLabel(st.unit);
-        } else if (ok && st.source === "always_full") {
-            lastReading = "ثابت — يُعتبر ممتلئاً دائماً (بلا قراءات)";
-        } else if (ok && st.source === "legacy") {
-            lastReading = "قيمة مسجلة سابقاً باللتر مباشرة (قبل نظام القياس)";
-        }
-
-        const geomDiff = st.geomCapacityL
-            ? formatFuelLiters(st.geomCapacityL) +
-              (Math.abs(st.geomCapacityL - st.nominalL) >= 1
-                  ? " (" + (st.geomCapacityL > st.nominalL ? "+" : "−") + formatFuelNumber(Math.abs(st.geomCapacityL - st.nominalL)) + " عن الاسمية)"
-                  : " (تطابق الاسمية)")
-            : "غير متاحة";
-
         const card = document.createElement("div");
         card.className = "fuel-tank-card is-" + cls;
         card.id = "fuelTankCard-" + def.id;
@@ -6821,13 +6804,7 @@ function renderFuelTanksCards(statesArg) {
             '</div>' +
 
             '<dl class="fuel-tank-meta">' +
-                '<div><dt>السعة الاسمية</dt><dd>' + formatFuelLiters(st.nominalL) + '</dd></div>' +
-                '<div><dt>الشكل والأبعاد</dt><dd>' + escapeHTML(fuelGeometryText(st)) + '</dd></div>' +
-                '<div><dt>طريقة القياس</dt><dd>' + escapeHTML(fuelMethodText(st)) + '</dd></div>' +
-                '<div><dt>آخر قراءة</dt><dd>' + escapeHTML(lastReading) + '</dd></div>' +
-                '<div><dt>ارتفاع الكاز الفعلي</dt><dd>' + (ok ? (Math.round(st.levelM * 1000) / 10) + " سم" : "—") + '</dd></div>' +
-                '<div><dt>السعة الهندسية</dt><dd>' + escapeHTML(geomDiff) + '</dd></div>' +
-                '<div><dt>تاريخ ووقت القراءة</dt><dd>' + (st.updatedAt ? escapeHTML(formatFuelDateTime(st.updatedAt)) : "—") + '</dd></div>' +
+                '<div><dt>السعة الكلية</dt><dd>' + formatFuelLiters(st.nominalL) + '</dd></div>' +
             '</dl>' +
 
             (st.overflowL > 0
@@ -7276,7 +7253,7 @@ function renderFuelHistory() {
             : '<span class="fuel-muted">—</span>';
         return '<tr>' +
             '<td data-label="التاريخ والوقت">' + escapeHTML(formatFuelDateTime(h.createdAt)) + '</td>' +
-            '<td data-label="الخزان">' + escapeHTML(h.tankName || h.tankId) + '</td>' +
+            '<td data-label="الخزان">' + escapeHTML((fuelFindDef(h.tankId) || {}).name || h.tankName || h.tankId) + '</td>' +
             '<td data-label="القراءة">' + escapeHTML(h.value) + ' ' + fuelUnitLabel(h.unit) + '</td>' +
             '<td data-label="طريقة القياس">' + escapeHTML(methodLabel) + '</td>' +
             '<td data-label="ارتفاع الكاز">' + (typeof h.levelM === "number" ? (Math.round(h.levelM * 1000) / 10) + " سم" : "—") + '</td>' +

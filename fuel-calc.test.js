@@ -15,7 +15,9 @@ console.log("التعريفات");
 t("الإجمالي الاسمي 86,000 لتر وسبعة خزانات", () => {
   assert.strictEqual(F.TOTAL_NOMINAL_L, 86000);
   assert.strictEqual(F.DEFINITIONS.length, 7);
+  // الكبيرة 1-4 ثم الصغيرة الممتلئة دائماً 5-7
   assert.deepStrictEqual(F.DEFINITIONS.map((d) => d.no), [1, 2, 3, 4, 5, 6, 7]);
+  assert.deepStrictEqual(F.DEFINITIONS.map((d) => d.id), ["hospitalGenerator", "complexGenerator", "boiler1", "boiler2", "tank1", "tank2", "tank3"]);
 });
 t("المعرّفات القديمة محفوظة", () => {
   ["hospitalGenerator", "complexGenerator", "boiler1", "boiler2"].forEach((id) => assert.ok(def(id), id));
@@ -108,10 +110,10 @@ t("بلا وثيقة → no_reading (وليس صفراً)", () => {
   const s = mk("hospitalGenerator", undefined);
   assert.strictEqual(s.status, "no_reading"); assert.strictEqual(s.volumeL, null);
 });
-t("الخزانات 1-3: أبعادها مسجلة والسعة الهندسية = الاسمية", () => ["tank1", "tank2", "tank3"].forEach((id) => {
+t("الخزانات الصغيرة (tank1-3): أبعادها مسجلة والسعة الهندسية = الاسمية", () => ["tank1", "tank2", "tank3"].forEach((id) => {
   assert.strictEqual(mk(id, {}).geomCapacityL, def(id).nominalL, id);
 }));
-t("الخزانات 1-3 ممتلئة دائماً: كمية = الاسمية، فارغ 0، 100%، بلا قراءة", () => ["tank1", "tank2", "tank3"].forEach((id) => {
+t("الخزانات الصغيرة (tank1-3) ممتلئة دائماً: كمية = الاسمية، فارغ 0، 100%، بلا قراءة", () => ["tank1", "tank2", "tank3"].forEach((id) => {
   const s = mk(id, undefined);
   assert.strictEqual(s.status, "ok", id); assert.strictEqual(s.source, "always_full", id);
   assert.strictEqual(s.volumeL, def(id).nominalL, id); assert.strictEqual(s.emptyL, 0, id);
@@ -123,12 +125,12 @@ t("ممتلئ دائماً: تتجاهل أي قراءة محفوظة ولا ت�
   const states = ["tank1", "tank2", "tank3"].map((id) => mk(id, undefined));
   assert.strictEqual(F.buildAlerts(states, S, now).length, 0);
 });
-t("الخزان 1 (1×1×2): 100 سم → 1,000 لتر، 200 سم → 2,000", () => {
+t("tank1 (1×1×2): 100 سم → 1,000 لتر، 200 سم → 2,000", () => {
   assert.strictEqual(F.computeReading(F.getGeometry(def("tank1")), "level_height", "100", "cm").volumeL, 1000);
   assert.strictEqual(F.computeReading(F.getGeometry(def("tank1")), "level_height", "200", "cm").volumeL, 2000);
   assert.ok(!F.computeReading(F.getGeometry(def("tank1")), "level_height", "201", "cm").ok);
 });
-t("الخزان 3 (2×1×2): 100 سم → 2,000 لتر، 200 سم → 4,000", () => {
+t("tank3 (2×1×2): 100 سم → 2,000 لتر، 200 سم → 4,000", () => {
   assert.strictEqual(F.computeReading(F.getGeometry(def("tank3")), "level_height", "100", "cm").volumeL, 2000);
   assert.strictEqual(F.computeReading(F.getGeometry(def("tank3")), "level_height", "200", "cm").volumeL, 4000);
 });
