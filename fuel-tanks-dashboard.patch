@@ -1,0 +1,2265 @@
+From d8b9d9c9d5cea41aec19a1945d16b5b1480fb394 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 10 Oct 2026 09:16:30 +0300
+Subject: [PATCH] Rebuild fuel tanks section as an engineering dashboard (7
+ tanks)
+
+- fuel-calc.js: tested geometry engine (horizontal cylinder / rectangular)
+- 7 tanks, 86,000 L nominal; legacy tank ids kept; old 38k/complex liters ignored
+- reading entry per measurement method, history (fuelTankReadings), alerts, settings
+- firestore.rules: append-only rule for fuelTankReadings
+
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_013dGGq9Dw7dMGkWFuLFBhLC
+---
+ firestore.rules         |    7 +
+ fuel-calc.js            |  415 ++++++++++++++++
+ index.html              |  399 ++++++++-------
+ script.js               | 1038 +++++++++++++++++++++++++++++++--------
+ tests/fuel-calc.test.js |  177 +++++++
+ 5 files changed, 1625 insertions(+), 411 deletions(-)
+ create mode 100644 fuel-calc.js
+ create mode 100644 tests/fuel-calc.test.js
+
+diff --git a/firestore.rules b/firestore.rules
+index a020657..6f89083 100644
+--- a/firestore.rules
++++ b/firestore.rules
+@@ -86,6 +86,13 @@ service cloud.firestore {
+       allow write: if isSignedIn();
+     }
+ 
++    // سجل قراءات خزانات الكاز (إضافة فقط: لا تعديل ولا حذف حتى يبقى السجل التاريخي سليماً)
++    match /fuelTankReadings/{documentId} {
++      allow read: if true;
++      allow create: if isSignedIn();
++      allow update, delete: if false;
++    }
++
+     // مواقع الأجهزة الطبية (Location) — تُنشأ تلقائياً عند أول حفظ
+     match /medical_locations/{documentId} {
+       allow read: if true;
+diff --git a/fuel-calc.js b/fuel-calc.js
+new file mode 100644
+index 0000000..a8c8d4b
+--- /dev/null
++++ b/fuel-calc.js
+@@ -0,0 +1,415 @@
++/* ============================================================
++   fuel-calc.js — المحرك الهندسي لقسم خزانات الكاز
++   ------------------------------------------------------------
++   دوال نقية (بلا DOM ولا Firebase) حتى يمكن اختبارها في Node:
++     node tests/fuel-calc.test.js
++   وتعمل في المتصفح كمتغير عام: window.FuelCalc
++   ============================================================ */
++(function (root, factory) {
++    if (typeof module === "object" && module.exports) {
++        module.exports = factory();
++    } else {
++        root.FuelCalc = factory();
++    }
++})(typeof self !== "undefined" ? self : this, function () {
++    "use strict";
++
++    // ---------- الإعدادات الافتراضية للتنبيهات (قابلة للتعديل من الواجهة) ----------
++    var DEFAULT_SETTINGS = {
++        lowPercent: 20,          // تنبيه "انخفاض" عند نسبة امتلاء أقل من هذه القيمة
++        highPercent: 90,         // تنبيه "قرب الامتلاء" عند نسبة أكبر من أو تساوي هذه القيمة
++        staleDays: 7,            // تنبيه "لم تُحدَّث القراءة" بعد هذا العدد من الأيام
++        geometryDiffPercent: 2   // تنبيه عند اختلاف السعة الهندسية عن الاسمية بأكثر من هذه النسبة
++    };
++
++    // ---------- طرق القياس ----------
++    var METHODS = {
++        top_distance: {
++            label: "المسافة من أعلى الخزان إلى سطح الكاز",
++            short: "مسافة من الأعلى"
++        },
++        level_height: {
++            label: "ارتفاع الكاز من القاع",
++            short: "ارتفاع من القاع"
++        }
++    };
++
++    var SHAPES = {
++        hcyl: "أسطواني أفقي",
++        rect: "مستطيل"
++    };
++
++    // ---------- تعريف الخزانات السبعة (مرتبة حسب الرقم) ----------
++    // المعرّفات القديمة (hospitalGenerator, complexGenerator, boiler1, boiler2)
++    // محفوظة كما هي لأنها مرتبطة بوثائق Firestore الموجودة.
++    // legacyQuantityOk: يُسمح باعتبار حقل quantity القديم (لترات) قراءة صالحة.
++    //   - خزانات البويلر المستطيلة: نعم (تحويل لتر ← ارتفاع دقيق خطياً).
++    //   - الخزان 38,000 والمجمع: لا، تُهمل القيمة القديمة ويُطلب قياس جديد.
++    var DEFINITIONS = [
++        { id: "tank1", no: 1, name: "الخزان 1", note: "", nominalL: 2000, shape: null, method: null, legacyQuantityOk: false },
++        { id: "tank2", no: 2, name: "الخزان 2", note: "", nominalL: 2000, shape: null, method: null, legacyQuantityOk: false },
++        { id: "tank3", no: 3, name: "الخزان 3", note: "", nominalL: 4000, shape: null, method: null, legacyQuantityOk: false },
++        {
++            id: "hospitalGenerator", no: 4, name: "الخزان 4", note: "خزان الكاز الكبير (مولدات المستشفى)",
++            nominalL: 38000, shape: "hcyl", lengthM: 7.75, diameterM: 2.5,
++            method: "top_distance", legacyQuantityOk: false
++        },
++        {
++            id: "complexGenerator", no: 5, name: "الخزان 5", note: "خزان مولدة المجمع",
++            nominalL: 13000, shape: "hcyl", lengthM: 3.2, diameterM: 2.3,
++            method: "top_distance", legacyQuantityOk: false
++        },
++        {
++            id: "boiler1", no: 6, name: "الخزان 6", note: "خزان بويلر رقم 1",
++            nominalL: 13500, shape: "rect", lengthM: 3, widthM: 3, heightM: 1.5,
++            method: "level_height", legacyQuantityOk: true
++        },
++        {
++            id: "boiler2", no: 7, name: "الخزان 7", note: "خزان بويلر رقم 2",
++            nominalL: 13500, shape: "rect", lengthM: 3, widthM: 3, heightM: 1.5,
++            method: "level_height", legacyQuantityOk: true
++        }
++    ];
++
++    var TOTAL_NOMINAL_L = DEFINITIONS.reduce(function (s, d) { return s + d.nominalL; }, 0);
++
++    // ---------- أدوات مساعدة ----------
++    var EPS = 1e-9;
++
++    function isNum(v) {
++        return typeof v === "number" && isFinite(v);
++    }
++
++    function round(value, digits) {
++        var f = Math.pow(10, digits || 0);
++        return Math.round(value * f) / f;
++    }
++
++    // تحويل الأرقام العربية-الهندية والفاصلة العربية إلى صيغة قياسية
++    function normalizeDigits(text) {
++        return String(text)
++            .replace(/[٠-٩]/g, function (c) { return String(c.charCodeAt(0) - 0x0660); })
++            .replace(/[۰-۹]/g, function (c) { return String(c.charCodeAt(0) - 0x06F0); })
++            .replace(/[٫٬,،]/g, ".")
++            .trim();
++    }
++
++    // تحويل نص الإدخال إلى رقم، أو رسالة خطأ واضحة
++    function parseInput(raw) {
++        if (raw === null || raw === undefined || String(raw).trim() === "") {
++            return { ok: false, error: "أدخل القراءة أولاً" };
++        }
++        if (typeof raw === "number") {
++            if (!isFinite(raw)) return { ok: false, error: "القراءة يجب أن تكون رقماً" };
++            if (raw < 0) return { ok: false, error: "لا يمكن إدخال قيمة سالبة" };
++            return { ok: true, value: raw };
++        }
++        var text = normalizeDigits(raw);
++        if (/^-/.test(text)) return { ok: false, error: "لا يمكن إدخال قيمة سالبة" };
++        if (!/^\d+(\.\d+)?$|^\.\d+$/.test(text)) {
++            return { ok: false, error: "القراءة يجب أن تكون رقماً صحيحاً (مثال: 85 أو 85.5)" };
++        }
++        return { ok: true, value: parseFloat(text) };
++    }
++
++    function toMeters(value, unit) {
++        return unit === "m" ? value : value / 100;
++    }
++
++    function fromMeters(valueM, unit) {
++        return unit === "m" ? valueM : valueM * 100;
++    }
++
++    // ---------- الهندسة ----------
++    function validGeometry(g) {
++        if (!g) return false;
++        if (g.shape === "hcyl") return isNum(g.lengthM) && g.lengthM > 0 && isNum(g.diameterM) && g.diameterM > 0;
++        if (g.shape === "rect") {
++            return isNum(g.lengthM) && g.lengthM > 0 && isNum(g.widthM) && g.widthM > 0 &&
++                isNum(g.heightM) && g.heightM > 0;
++        }
++        return false;
++    }
++
++    // الهندسة الفعلية للخزان: المعرّفة في الكود، وإلا المحفوظة (config) إن كانت صالحة، وإلا null
++    function getGeometry(def, config) {
++        if (def.shape) {
++            return validGeometry(def) ? def : null;
++        }
++        if (config && validGeometry(config) && METHODS[config.method]) return config;
++        return null;
++    }
++
++    // أقصى ارتفاع داخلي للسائل (متر)
++    function maxLevelM(geo) {
++        return geo.shape === "hcyl" ? geo.diameterM : geo.heightM;
++    }
++
++    // حجم المقطع الدائري الأفقي (لتر): V = L × [r²·acos((r−h)/r) − (r−h)·√(2rh−h²)]
++    function cylinderVolumeL(lengthM, diameterM, levelM) {
++        var r = diameterM / 2;
++        var h = levelM;
++        if (h < -EPS || h > diameterM + EPS) return NaN;
++        if (h <= 0) return 0;
++        if (h >= diameterM) return Math.PI * r * r * lengthM * 1000;
++        var ratio = Math.max(-1, Math.min(1, (r - h) / r));
++        var inner = Math.max(0, 2 * r * h - h * h);
++        var area = r * r * Math.acos(ratio) - (r - h) * Math.sqrt(inner);
++        return lengthM * area * 1000;
++    }
++
++    function rectVolumeL(lengthM, widthM, levelM) {
++        if (levelM < -EPS) return NaN;
++        return lengthM * widthM * Math.max(0, levelM) * 1000;
++    }
++
++    function geometricCapacityL(geo) {
++        if (!geo) return null;
++        if (geo.shape === "hcyl") return Math.PI * Math.pow(geo.diameterM / 2, 2) * geo.lengthM * 1000;
++        return geo.lengthM * geo.widthM * geo.heightM * 1000;
++    }
++
++    function volumeFromLevelL(geo, levelM) {
++        return geo.shape === "hcyl"
++            ? cylinderVolumeL(geo.lengthM, geo.diameterM, levelM)
++            : rectVolumeL(geo.lengthM, geo.widthM, levelM);
++    }
++
++    // ارتفاع (متر) ← حجم، لتحويل القيم القديمة (لتر) في المستطيل فقط
++    function levelFromVolumeRectM(geo, volumeL) {
++        return volumeL / 1000 / (geo.lengthM * geo.widthM);
++    }
++
++    // ---------- حساب قراءة واحدة ----------
++    // المدخلات: geo (الهندسة)، method، القيمة الخام (نص أو رقم)، الوحدة ("cm" أو "m")
++    function computeReading(geo, method, rawValue, unit) {
++        if (!geo) return { ok: false, error: "أبعاد الخزان غير متوفرة للحساب" };
++        if (!METHODS[method]) return { ok: false, error: "طريقة القياس غير محددة" };
++        if (unit !== "cm" && unit !== "m") unit = "cm";
++
++        var parsed = parseInput(rawValue);
++        if (!parsed.ok) return parsed;
++
++        var valueM = toMeters(parsed.value, unit);
++        var maxM = maxLevelM(geo);
++
++        if (valueM > maxM + EPS) {
++            var maxShown = round(fromMeters(maxM, unit), 2);
++            var what = method === "top_distance" ? "المسافة" : "الارتفاع";
++            return {
++                ok: false,
++                error: what + " خارج الحدود: يجب أن تكون بين 0 و " + maxShown + (unit === "m" ? " م" : " سم") +
++                    " (تأكد من الوحدة المختارة)"
++            };
++        }
++        if (valueM > maxM) valueM = maxM; // فرق تقريب عائم فقط
++
++        var levelM = method === "top_distance" ? maxM - valueM : valueM;
++        if (levelM < 0) levelM = 0;
++
++        var volumeL = volumeFromLevelL(geo, levelM);
++        if (!isNum(volumeL)) return { ok: false, error: "تعذر حساب الحجم من هذه القراءة" };
++
++        return {
++            ok: true,
++            levelM: round(levelM, 6),
++            distanceM: method === "top_distance" ? round(valueM, 6) : null,
++            volumeL: round(volumeL, 1),
++            geomCapacityL: round(geometricCapacityL(geo), 1),
++            maxM: maxM
++        };
++    }
++
++    // ---------- حالة خزان واحد ----------
++    function toDate(ts) {
++        if (!ts) return null;
++        try {
++            if (ts instanceof Date) return ts;
++            if (typeof ts.toDate === "function") return ts.toDate();
++            if (isNum(ts.seconds)) return new Date(ts.seconds * 1000);
++            var d = new Date(ts);
++            return isNaN(d.getTime()) ? null : d;
++        } catch (e) {
++            return null;
++        }
++    }
++
++    function mergeSettings(saved) {
++        var s = {};
++        Object.keys(DEFAULT_SETTINGS).forEach(function (k) {
++            s[k] = saved && isNum(saved[k]) && saved[k] >= 0 ? saved[k] : DEFAULT_SETTINGS[k];
++        });
++        return s;
++    }
++
++    // doc: الوثيقة المحفوظة في Firestore (أو undefined)
++    // الحالة (status):
++    //   ok          قراءة صالحة (بعد إعادة الحساب من القيمة الخام)
++    //   no_reading  لا توجد قراءة صالحة (لا تُعتبر صفراً)
++    //   no_geometry أبعاد/طريقة قياس ناقصة
++    function deriveTankState(def, doc, settings, now) {
++        settings = settings || DEFAULT_SETTINGS;
++        now = now || new Date();
++        doc = doc || {};
++
++        var geo = getGeometry(def, doc.config);
++        var method = def.method || (doc.config && doc.config.method) || null;
++
++        var state = {
++            id: def.id, def: def, geo: geo, method: method,
++            nominalL: def.nominalL,
++            geomCapacityL: geo ? round(geometricCapacityL(geo), 1) : null,
++            status: "no_reading", source: null,
++            volumeL: null, emptyL: null, percent: null, levelM: null,
++            rawValue: null, unit: null,
++            updatedAt: toDate(doc.updatedAt), updatedBy: doc.updatedBy || null,
++            stale: false, overflowL: 0, ageDays: null
++        };
++
++        if (!geo) {
++            state.status = "no_geometry";
++            return state;
++        }
++
++        var volume = null;
++
++        // 1) قراءة حديثة محفوظة بالصيغة الجديدة: نعيد الحساب من القيمة الخام
++        var r = doc.reading;
++        if (r && isNum(r.value) && METHODS[r.method]) {
++            var calc = computeReading(geo, r.method, r.value, r.unit);
++            if (calc.ok) {
++                volume = calc.volumeL;
++                state.levelM = calc.levelM;
++                state.rawValue = r.value;
++                state.unit = r.unit;
++                state.method = r.method;
++                state.source = "reading";
++            }
++        }
++
++        // 2) قيمة قديمة (لتر مباشرة) — فقط للخزانات المسموح لها
++        if (volume === null && def.legacyQuantityOk && isNum(doc.quantity) &&
++            doc.quantity >= 0 && doc.quantity <= def.nominalL + 0.5 && geo.shape === "rect") {
++            volume = doc.quantity;
++            state.levelM = round(levelFromVolumeRectM(geo, doc.quantity), 6);
++            state.source = "legacy";
++        }
++
++        if (volume === null) return state;
++
++        state.status = "ok";
++        state.volumeL = volume;
++        state.overflowL = volume > def.nominalL + 0.5 ? round(volume - def.nominalL, 1) : 0;
++        state.emptyL = Math.max(0, round(def.nominalL - volume, 1));
++        state.percent = (volume / def.nominalL) * 100;
++
++        if (state.updatedAt) {
++            state.ageDays = (now.getTime() - state.updatedAt.getTime()) / 86400000;
++            state.stale = state.ageDays > settings.staleDays;
++        }
++        return state;
++    }
++
++    // ---------- الإجماليات ----------
++    // لا تُعتبر الخزانات بلا قراءة فارغة؛ الإجمالي "غير مكتمل" ما لم تتوفر قراءة للسبعة.
++    function computeTotals(states) {
++        var t = {
++            tankCount: states.length,
++            nominalL: states.reduce(function (s, x) { return s + x.nominalL; }, 0),
++            countedCount: 0, availableL: 0, emptyL: 0, countedNominalL: 0,
++            missingIds: [], staleIds: [], complete: false,
++            percent: null, percentBasis: "all"
++        };
++        states.forEach(function (s) {
++            if (s.status === "ok") {
++                t.countedCount++;
++                t.availableL += s.volumeL;
++                t.emptyL += s.emptyL;
++                t.countedNominalL += s.nominalL;
++                if (s.stale) t.staleIds.push(s.id);
++            } else {
++                t.missingIds.push(s.id);
++            }
++        });
++        t.availableL = round(t.availableL, 1);
++        t.emptyL = round(t.emptyL, 1);
++        t.complete = t.countedCount === t.tankCount;
++        t.needsUpdateCount = t.missingIds.length + t.staleIds.length;
++        if (t.countedCount > 0) {
++            // مكتمل: ÷ 86,000 ؛ غير مكتمل: ÷ سعة الخزانات المحسوبة فقط (حتى لا تنخفض النسبة وهمياً)
++            var basis = t.complete ? t.nominalL : t.countedNominalL;
++            t.percentBasis = t.complete ? "all" : "counted";
++            t.percent = (t.availableL / basis) * 100;
++        }
++        return t;
++    }
++
++    // ---------- التنبيهات ----------
++    // level: error | warn | info
++    function buildAlerts(states, settings, now) {
++        settings = settings || DEFAULT_SETTINGS;
++        var out = [];
++        states.forEach(function (s) {
++            var label = s.def.name;
++            if (s.status === "no_geometry") {
++                out.push({ level: "info", tankId: s.id, code: "no_geometry",
++                    text: label + ": أبعاد الخزان أو طريقة القياس غير مسجلة، لذلك لا يمكن حساب الكمية" });
++                return;
++            }
++            if (s.status === "no_reading") {
++                out.push({ level: "warn", tankId: s.id, code: "no_reading",
++                    text: label + ": لا توجد قراءة صالحة (لا تُحتسب كخزان فارغ)" });
++                return;
++            }
++            if (s.overflowL > 0) {
++                out.push({ level: "error", tankId: s.id, code: "overflow",
++                    text: label + ": الكمية المحسوبة تتجاوز السعة الاسمية بمقدار " + Math.round(s.overflowL) +
++                        " لتر — تحقق من القياس أو المعايرة" });
++            }
++            if (s.percent < settings.lowPercent) {
++                out.push({ level: "warn", tankId: s.id, code: "low",
++                    text: label + ": مستوى الكاز منخفض (" + Math.round(s.percent) + "%)" });
++            } else if (s.percent >= settings.highPercent && s.overflowL === 0) {
++                out.push({ level: "info", tankId: s.id, code: "high",
++                    text: label + ": قريب من الامتلاء (" + Math.round(s.percent) + "%)" });
++            }
++            if (s.stale) {
++                out.push({ level: "warn", tankId: s.id, code: "stale",
++                    text: label + ": لم تُحدَّث القراءة منذ " + Math.floor(s.ageDays) + " يوماً" });
++            }
++            if (s.geomCapacityL) {
++                var diff = Math.abs(s.geomCapacityL - s.nominalL) / s.nominalL * 100;
++                if (diff > settings.geometryDiffPercent) {
++                    out.push({ level: "info", tankId: s.id, code: "geom_diff",
++                        text: label + ": السعة الهندسية (" + Math.round(s.geomCapacityL).toLocaleString("en-US") +
++                            " لتر) تختلف عن الاسمية بنسبة " + diff.toFixed(1) + "%" });
++                }
++            }
++        });
++        return out;
++    }
++
++    return {
++        DEFAULT_SETTINGS: DEFAULT_SETTINGS,
++        METHODS: METHODS,
++        SHAPES: SHAPES,
++        DEFINITIONS: DEFINITIONS,
++        TOTAL_NOMINAL_L: TOTAL_NOMINAL_L,
++        parseInput: parseInput,
++        toMeters: toMeters,
++        fromMeters: fromMeters,
++        validGeometry: validGeometry,
++        getGeometry: getGeometry,
++        maxLevelM: maxLevelM,
++        cylinderVolumeL: cylinderVolumeL,
++        rectVolumeL: rectVolumeL,
++        geometricCapacityL: geometricCapacityL,
++        volumeFromLevelL: volumeFromLevelL,
++        computeReading: computeReading,
++        mergeSettings: mergeSettings,
++        deriveTankState: deriveTankState,
++        computeTotals: computeTotals,
++        buildAlerts: buildAlerts,
++        toDate: toDate
++    };
++});
+diff --git a/index.html b/index.html
+index 1b2de83..77f6c6b 100644
+--- a/index.html
++++ b/index.html
+@@ -1855,184 +1855,161 @@ content="default"
+     }
+ 
+     /* ============================================================
+-       خزانات الكاز (Fuel Tanks) — Dashboard Cards
++       خزانات الكاز (Fuel Tanks) — لوحة التحكم
++       كل القواعد محصورة داخل #fuelTanksPage حتى لا تؤثر على بقية الأقسام
+        ============================================================ */
+ 
+-    #fuelTanksPage .fuel-tanks-grid {
+-      display: grid;
+-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+-      gap: 16px;
+-      padding: 16px 4px;
+-    }
+-
+-    #fuelTanksPage .fuel-tank-card {
+-      background: #fff;
+-      border-radius: 18px;
+-      border: 1px solid #e5e7eb;
+-      border-top: 4px solid #14724e;
+-      padding: 20px;
+-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+-      display: flex;
+-      flex-direction: column;
+-      gap: 14px;
+-      transition: transform .15s ease, box-shadow .15s ease;
+-    }
+-
+-    #fuelTanksPage .fuel-tank-card:hover {
+-      transform: translateY(-2px);
+-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+-    }
+-
+-    /* HEADER (icon + name + capacity) */
+-    #fuelTanksPage .fuel-tank-card-header {
+-      display: flex;
+-      align-items: center;
+-      gap: 12px;
+-    }
+-
+-    #fuelTanksPage .fuel-tank-icon {
+-      font-size: 28px;
+-      line-height: 1;
+-      flex-shrink: 0;
+-    }
+-
+-    #fuelTanksPage .fuel-tank-header-text {
+-      flex: 1;
+-      min-width: 0;
+-    }
+-
+-    #fuelTanksPage .fuel-tank-name {
+-      font-size: 18px;
+-      font-weight: 700;
+-      color: #1f2937;
+-    }
+-
+-    #fuelTanksPage .fuel-tank-capacity {
+-      font-size: 13px;
+-      color: #6b7280;
+-      margin-top: 2px;
+-    }
+-
+-    /* PROGRESS BAR */
+-    #fuelTanksPage .fuel-tank-progress-section {
+-      margin: 2px 0;
+-    }
+-
+-    #fuelTanksPage .fuel-tank-progress-track {
+-      height: 24px;
+-      background: #f3f4f6;
+-      border-radius: 12px;
+-      overflow: hidden;
+-      position: relative;
+-      box-shadow: inset 0 1px 2px rgba(0,0,0,.04);
+-    }
+-
+-    #fuelTanksPage .fuel-tank-progress-fill {
+-      height: 100%;
+-      border-radius: 12px;
+-      transition: width .4s ease;
+-      display: flex;
+-      align-items: center;
+-      justify-content: center;
+-      font-size: 11px;
+-      font-weight: 700;
+-      color: #fff;
+-      min-width: 2px;
+-      padding-left: 6px;
+-      padding-right: 6px;
+-      text-shadow: 0 0 3px rgba(0,0,0,.2);
+-      overflow: hidden;
+-      white-space: nowrap;
+-    }
+-
+-    #fuelTanksPage .fuel-tank-progress-fill.empty { background: #9ca3af; }
+-    #fuelTanksPage .fuel-tank-progress-fill.low { background: linear-gradient(90deg,#ef4444,#dc2626); }
+-    #fuelTanksPage .fuel-tank-progress-fill.medium { background: linear-gradient(90deg,#f59e0b,#d97706); }
+-    #fuelTanksPage .fuel-tank-progress-fill.high { background: linear-gradient(90deg,#10b981,#059669); }
+-    #fuelTanksPage .fuel-tank-progress-fill.full { background: linear-gradient(90deg,#0d9488,#0f766e); }
+-
+-    #fuelTanksPage .fuel-tank-progress-text {
+-      font-size: 11px;
+-      font-weight: 700;
+-      color: #fff;
+-      white-space: nowrap;
+-      text-shadow: 0 0 3px rgba(0,0,0,.3);
+-    }
+-
+-    #fuelTanksPage .fuel-tank-progress-info {
+-      display: flex;
+-      align-items: center;
+-      justify-content: space-between;
+-      margin-top: 8px;
+-      gap: 8px;
+-    }
+-
+-    #fuelTanksPage .fuel-tank-percentage {
+-      font-size: 16px;
+-      font-weight: 700;
+-      color: #374151;
+-      flex-shrink: 0;
+-    }
+-
+-    /* STATUS BADGE */
+-    #fuelTanksPage .fuel-tank-status-badge {
+-      display: inline-block;
+-      padding: 4px 12px;
+-      border-radius: 999px;
+-      font-size: 12px;
+-      font-weight: 700;
+-      text-align: center;
+-      flex-shrink: 0;
+-      white-space: nowrap;
+-    }
+-
+-    #fuelTanksPage .fuel-tank-status-badge.empty { background: #f3f4f6; color: #374151; }
+-    #fuelTanksPage .fuel-tank-status-badge.low { background: #fee2e2; color: #991b1b; }
+-    #fuelTanksPage .fuel-tank-status-badge.medium { background: #fef3c7; color: #92400e; }
+-    #fuelTanksPage .fuel-tank-status-badge.high { background: #dcfce7; color: #166534; }
+-    #fuelTanksPage .fuel-tank-status-badge.full { background: #d1fae5; color: #065f46; }
+-
+-    /* DATE */
+-    #fuelTanksPage .fuel-tank-date {
+-      font-size: 12px;
+-      color: #6b7280;
+-    }
+-
+-    /* EDIT SECTION (quantity input + save) */
+-    #fuelTanksPage .fuel-tank-edit-section {
+-      display: flex;
+-      flex-direction: column;
+-      gap: 8px;
+-    }
+-
+-    #fuelTanksPage .fuel-tank-edit-row {
+-      display: flex;
+-      gap: 8px;
+-      align-items: flex-end;
+-    }
+-
+-    #fuelTanksPage .fuel-tank-edit-row .fuel-tank-field {
+-      flex: 1;
+-      min-width: 0;
+-    }
+-
+-     #fuelTanksPage .fuel-tank-edit-row .auth-submit-btn {
+-      flex-shrink: 0;
+-      width: auto;
+-    }
+-
+-    @media (max-width: 640px) {
+-      #fuelTanksPage .fuel-tanks-grid {
+-        grid-template-columns: minmax(0, 1fr);
+-      }
++    #fuelTanksPage { container-type: inline-size; --fuel-green: #14724e; --fuel-text: #1f2937; --fuel-muted: #6b7280; --fuel-border: #e5e7eb; }
+ 
+-      #fuelTanksPage .fuel-tank-edit-row {
+-        flex-direction: column;
+-      }
++    #fuelTanksPage .fuel-muted { color: var(--fuel-muted); font-size: 13px; }
++    #fuelTanksPage .fuel-section { margin: 18px 4px 0; }
++    #fuelTanksPage .fuel-section-title { font-size: 17px; font-weight: 800; color: var(--fuel-text); margin: 0 0 10px; }
+ 
+-      #fuelTanksPage .fuel-tank-edit-row .auth-submit-btn {
+-        width: 100%;
+-      }
++    /* ---- بطاقات الملخص ---- */
++    #fuelTanksPage .fuel-summary-grid {
++      display: grid;
++      grid-template-columns: repeat(2, minmax(0, 1fr));
++      gap: 10px;
++      margin: 14px 4px 0;
++    }
++    @container (min-width: 640px) { #fuelTanksPage .fuel-summary-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
++    @container (min-width: 1000px) { #fuelTanksPage .fuel-summary-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
++
++    #fuelTanksPage .fuel-sum-card {
++      background: #fff; border: 1px solid var(--fuel-border); border-top: 4px solid var(--fuel-green);
++      border-radius: 14px; padding: 12px 12px 10px; display: flex; flex-direction: column; gap: 6px;
++      box-shadow: 0 2px 10px rgba(0,0,0,.05); min-width: 0;
++    }
++    #fuelTanksPage .fuel-sum-card.is-available { border-top-color: #0d9488; }
++    #fuelTanksPage .fuel-sum-card.is-empty { border-top-color: #b56a05; }
++    #fuelTanksPage .fuel-sum-card.is-capacity { border-top-color: #475569; }
++    #fuelTanksPage .fuel-sum-card.is-percent { border-top-color: #2554a6; }
++    #fuelTanksPage .fuel-sum-card.is-count { border-top-color: #7c3aed; }
++    #fuelTanksPage .fuel-sum-card.is-status.has-issue { border-top-color: #dc2626; }
++    #fuelTanksPage .fuel-sum-label { font-size: 12.5px; color: var(--fuel-muted); font-weight: 600; }
++    #fuelTanksPage .fuel-sum-value { font-size: 24px; font-weight: 800; color: var(--fuel-text); line-height: 1.15; overflow-wrap: anywhere; }
++    #fuelTanksPage .fuel-sum-value small { font-size: 12px; font-weight: 600; color: var(--fuel-muted); margin-inline-start: 4px; }
++    #fuelTanksPage .fuel-sum-value-sm { font-size: 16px; }
++    #fuelTanksPage .fuel-sum-sub { font-size: 12px; color: var(--fuel-muted); }
++    #fuelTanksPage .fuel-sum-card.has-issue .fuel-sum-sub { color: #b91c1c; font-weight: 700; }
++    #fuelTanksPage .fuel-sum-card.all-ok .fuel-sum-sub { color: #166534; font-weight: 700; }
++    #fuelTanksPage .fuel-prov { color: #b56a05; margin-inline-start: 2px; }
++    #fuelTanksPage .fuel-sum-bar { display: block; height: 8px; background: #eef2f7; border-radius: 6px; overflow: hidden; }
++    #fuelTanksPage .fuel-sum-bar > span { display: block; height: 100%; background: linear-gradient(90deg,#2554a6,#3b82f6); border-radius: 6px; transition: width .4s ease; }
++
++    /* ---- شريط التنبيه العام والتنبيهات ---- */
++    #fuelTanksPage .fuel-banner { margin: 12px 4px 0; padding: 10px 14px; border-radius: 12px; font-size: 13.5px; line-height: 1.6; }
++    #fuelTanksPage .fuel-banner[hidden] { display: none; }
++    #fuelTanksPage .fuel-banner.is-warn { background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
++    #fuelTanksPage .fuel-alerts[hidden] { display: none; }
++    #fuelTanksPage .fuel-alerts { margin: 16px 4px 0; }
++    #fuelTanksPage .fuel-alert-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
++    #fuelTanksPage .fuel-alert { display: flex; gap: 8px; align-items: flex-start; padding: 8px 12px; border-radius: 10px; font-size: 13.5px; line-height: 1.55; }
++    #fuelTanksPage .fuel-alert.is-error { background: #fee2e2; color: #991b1b; }
++    #fuelTanksPage .fuel-alert.is-warn { background: #fef3c7; color: #92400e; }
++    #fuelTanksPage .fuel-alert.is-info { background: #e0f2fe; color: #075985; }
++
++    /* ---- بطاقات الخزانات ---- */
++    #fuelTanksPage .fuel-tanks-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
++    #fuelTanksPage .fuel-tank-card {
++      background: #fff; border-radius: 18px; border: 1px solid var(--fuel-border); border-top: 4px solid #cbd5e1;
++      padding: 16px; box-shadow: 0 4px 16px rgba(0,0,0,.06); display: flex; flex-direction: column; gap: 12px; min-width: 0;
++    }
++    #fuelTanksPage .fuel-tank-card.is-low { border-top-color: #ef4444; }
++    #fuelTanksPage .fuel-tank-card.is-medium { border-top-color: #f59e0b; }
++    #fuelTanksPage .fuel-tank-card.is-good { border-top-color: #10b981; }
++    #fuelTanksPage .fuel-tank-card.is-full { border-top-color: #0d9488; }
++    #fuelTanksPage .fuel-tank-card.is-over { border-top-color: #dc2626; }
++    #fuelTanksPage .fuel-tank-card-header { display: flex; align-items: center; gap: 10px; }
++    #fuelTanksPage .fuel-tank-no {
++      width: 34px; height: 34px; border-radius: 50%; background: #e8f5ef; color: var(--fuel-green);
++      font-weight: 800; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
++    }
++    #fuelTanksPage .fuel-tank-header-text { flex: 1; min-width: 0; }
++    #fuelTanksPage .fuel-tank-name { font-size: 17px; font-weight: 800; color: var(--fuel-text); }
++    #fuelTanksPage .fuel-tank-note { font-size: 12.5px; color: var(--fuel-muted); margin-top: 1px; }
++
++    #fuelTanksPage .fuel-badge { font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; white-space: nowrap; background: #f3f4f6; color: #374151; }
++    #fuelTanksPage .fuel-badge.is-low { background: #fee2e2; color: #991b1b; }
++    #fuelTanksPage .fuel-badge.is-medium { background: #fef3c7; color: #92400e; }
++    #fuelTanksPage .fuel-badge.is-good { background: #dcfce7; color: #166534; }
++    #fuelTanksPage .fuel-badge.is-full { background: #ccfbf1; color: #115e59; }
++    #fuelTanksPage .fuel-badge.is-over { background: #dc2626; color: #fff; }
++
++    #fuelTanksPage .fuel-tank-body { display: flex; align-items: center; gap: 14px; }
++    #fuelTanksPage .fuel-tank-visual { position: relative; width: 112px; flex-shrink: 0; text-align: center; }
++    #fuelTanksPage .fuel-svg { width: 112px; height: 112px; display: block; }
++    #fuelTanksPage .fuel-tank-percent { font-size: 15px; font-weight: 800; color: var(--fuel-text); margin-top: 2px; }
++    #fuelTanksPage .fuel-tank-figures { flex: 1; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
++    #fuelTanksPage .fuel-figure { display: flex; flex-direction: column; }
++    #fuelTanksPage .fuel-figure-label { font-size: 12.5px; color: var(--fuel-muted); font-weight: 600; }
++    #fuelTanksPage .fuel-figure-value { font-size: 28px; font-weight: 800; color: #0f766e; line-height: 1.15; overflow-wrap: anywhere; }
++    #fuelTanksPage .fuel-figure-value.is-empty { color: #b56a05; }
++    #fuelTanksPage .fuel-figure-value small { font-size: 13px; font-weight: 600; color: var(--fuel-muted); }
++
++    #fuelTanksPage .fuel-tank-meta { margin: 0; display: flex; flex-direction: column; gap: 5px; border-top: 1px dashed var(--fuel-border); padding-top: 10px; }
++    #fuelTanksPage .fuel-tank-meta > div { display: flex; justify-content: space-between; gap: 10px; font-size: 12.5px; }
++    #fuelTanksPage .fuel-tank-meta dt { color: var(--fuel-muted); flex-shrink: 0; }
++    #fuelTanksPage .fuel-tank-meta dd { margin: 0; color: var(--fuel-text); font-weight: 600; text-align: end; min-width: 0; overflow-wrap: anywhere; }
++    #fuelTanksPage .fuel-card-warn { background: #fee2e2; color: #991b1b; padding: 8px 10px; border-radius: 10px; font-size: 12.5px; line-height: 1.5; margin: 6px 0 0; }
++
++    /* ---- أزرار ونماذج ---- */
++    #fuelTanksPage .fuel-btn {
++      border: 0; border-radius: 12px; padding: 11px 16px; background: var(--fuel-green); color: #fff;
++      font: inherit; font-weight: 700; cursor: pointer; width: 100%;
++    }
++    #fuelTanksPage .fuel-btn:disabled { opacity: .45; cursor: not-allowed; }
++    #fuelTanksPage .fuel-btn.is-secondary { background: #475569; width: auto; margin-top: 10px; }
++    #fuelTanksPage .fuel-panel { background: #fff; border: 1px solid var(--fuel-border); border-radius: 16px; padding: 16px; box-shadow: 0 2px 10px rgba(0,0,0,.04); display: flex; flex-direction: column; gap: 12px; }
++    #fuelTanksPage .fuel-panel label { display: flex; flex-direction: column; gap: 5px; font-size: 13px; font-weight: 700; color: var(--fuel-text); }
++    #fuelTanksPage .fuel-panel select,
++    #fuelTanksPage .fuel-input {
++      font: inherit; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 10px; background: #fff; min-width: 0; width: 100%; box-sizing: border-box;
++    }
++    #fuelTanksPage .fuel-panel input[type="number"] { font: inherit; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 10px; width: 100%; box-sizing: border-box; }
++    #fuelTanksPage .fuel-reading-label { font-size: 14px; font-weight: 800; color: var(--fuel-text); }
++    #fuelTanksPage .fuel-reading-row { display: flex; gap: 8px; }
++    #fuelTanksPage .fuel-reading-row .fuel-input { flex: 1; font-size: 20px; font-weight: 700; }
++    #fuelTanksPage .fuel-unit { width: 84px !important; flex-shrink: 0; font-weight: 700; }
++    #fuelTanksPage .fuel-hint { font-size: 12.5px; color: #92400e; background: #fffbeb; border-radius: 10px; padding: 8px 10px; margin: 0; line-height: 1.6; }
++    #fuelTanksPage .fuel-info-box { background: #f8fafc; border-radius: 12px; padding: 10px 12px; font-size: 13px; line-height: 1.8; color: var(--fuel-text); }
++    #fuelTanksPage .fuel-config-box { background: #fffbeb; border: 1px solid #fde68a; border-radius: 12px; padding: 12px; }
++    #fuelTanksPage .fuel-config-box[hidden] { display: none; }
++    #fuelTanksPage .fuel-config-box h4 { margin: 0 0 10px; font-size: 14px; color: #92400e; }
++    #fuelTanksPage .fuel-form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
++    #fuelTanksPage .fuel-preview { border-radius: 12px; padding: 10px 12px; background: #f8fafc; font-size: 13px; }
++    #fuelTanksPage .fuel-preview.is-ok { background: #ecfdf5; border: 1px solid #a7f3d0; }
++    #fuelTanksPage .fuel-preview.is-warn { background: #fef2f2; border: 1px solid #fecaca; }
++    #fuelTanksPage .fuel-preview.is-error { background: #fee2e2; color: #991b1b; font-weight: 700; }
++    #fuelTanksPage .fuel-preview-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 8px; }
++    #fuelTanksPage .fuel-preview-grid > div { display: flex; flex-direction: column; }
++    #fuelTanksPage .fuel-preview-grid span { font-size: 12px; color: var(--fuel-muted); }
++    #fuelTanksPage .fuel-preview-grid b { font-size: 16px; color: var(--fuel-text); }
++    #fuelTanksPage .fuel-settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
++
++    /* ---- الجداول ---- */
++    #fuelTanksPage .fuel-table-wrap { overflow-x: auto; background: #fff; border: 1px solid var(--fuel-border); border-radius: 14px; }
++    #fuelTanksPage .fuel-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
++    #fuelTanksPage .fuel-table th { background: #f1f5f9; color: #334155; font-weight: 800; text-align: start; padding: 10px 12px; white-space: nowrap; }
++    #fuelTanksPage .fuel-table td { padding: 9px 12px; border-top: 1px solid #eef2f7; color: var(--fuel-text); }
++    #fuelTanksPage .fuel-table tfoot td { background: #f0fdf4; font-weight: 800; border-top: 2px solid #86efac; }
++    #fuelTanksPage .fuel-up { color: #166534; font-weight: 700; }
++    #fuelTanksPage .fuel-down { color: #b91c1c; font-weight: 700; }
++    #fuelTanksPage .fuel-history-filter { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
++    #fuelTanksPage .fuel-history-filter select { font: inherit; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 10px; background: #fff; }
++
++    #fuelTanksPage details.fuel-section > summary { cursor: pointer; font-size: 17px; font-weight: 800; color: var(--fuel-text); margin-bottom: 10px; }
++
++    /* ---- الهاتف: الجداول كبطاقات مكدّسة ---- */
++    @container (max-width: 640px) {
++      #fuelTanksPage .fuel-tanks-grid { grid-template-columns: minmax(0, 1fr); }
++      #fuelTanksPage .fuel-table thead { display: none; }
++      #fuelTanksPage .fuel-table, #fuelTanksPage .fuel-table tbody, #fuelTanksPage .fuel-table tfoot,
++      #fuelTanksPage .fuel-table tr, #fuelTanksPage .fuel-table td { display: block; width: 100%; box-sizing: border-box; }
++      #fuelTanksPage .fuel-table tr { border-top: 1px solid var(--fuel-border); padding: 6px 0; }
++      #fuelTanksPage .fuel-table td { border: 0; display: flex; justify-content: space-between; gap: 10px; padding: 4px 12px; }
++      #fuelTanksPage .fuel-table td::before { content: attr(data-label); color: var(--fuel-muted); font-weight: 600; flex-shrink: 0; }
++      #fuelTanksPage .fuel-figure-value { font-size: 24px; }
+     }
+ 
+   </style>
+@@ -4302,48 +4279,66 @@ content="default"
+ 
+     <h2>خزانات الكاز</h2>
+ 
+-    <p>متابعة مستوى الكاز والكميات المطلوبة في الخزانات</p>
++    <p>الكاز المتوفر والفارغ في الخزانات السبعة، محسوبان هندسياً من آخر قراءة صحيحة</p>
+ 
+   </div>
+ 
+ </section>
+ 
+-<section class="medical-block">
++<div id="fuelIncompleteBanner" class="fuel-banner is-warn" hidden></div>
+ 
+-  <div class="summary-grid">
++<section class="fuel-summary-grid" id="fuelSummary">
++  <!-- تُبنى بطاقات الملخص من script.js -->
++</section>
+ 
+-    <div class="summary-card is-capacity">
+-      <div class="summary-card-top">
+-        <span class="summary-icon">🛢️</span>
+-        <span class="summary-label">إجمالي السعة</span>
+-      </div>
+-      <span id="fuelTotalCapacity" class="summary-value">0 لتر</span>
+-    </div>
++<section class="fuel-alerts" id="fuelAlerts" hidden></section>
+ 
+-    <div class="summary-card is-current">
+-      <div class="summary-card-top">
+-        <span class="summary-icon">⛽</span>
+-        <span class="summary-label">إجمالي الموجود</span>
+-      </div>
+-      <span id="fuelTotalCurrent" class="summary-value">0 لتر</span>
+-    </div>
++<section class="fuel-section">
++  <h3 class="fuel-section-title">الخزانات</h3>
++  <div class="fuel-tanks-grid" id="fuelTanksGrid">
++    <!-- تُبنى بطاقات الخزانات السبعة ديناميكياً من script.js -->
++  </div>
++</section>
+ 
+-    <div class="summary-card is-needed">
+-      <div class="summary-card-top">
+-        <span class="summary-icon">📉</span>
+-        <span class="summary-label">إجمالي المطلوب</span>
+-      </div>
+-      <span id="fuelTotalNeeded" class="summary-value">0 لتر</span>
+-    </div>
++<section class="fuel-section">
++  <h3 class="fuel-section-title">جدول المخزون الإجمالي</h3>
++  <div id="fuelInventory"></div>
++</section>
+ 
++<section class="fuel-section" id="fuelReadingPanel">
++  <h3 class="fuel-section-title">تحديث قراءة</h3>
++  <div class="fuel-panel">
++    <label for="fuelReadingTank">الخزان
++      <select id="fuelReadingTank" onchange="onFuelReadingTankChange()"></select>
++    </label>
++    <div id="fuelReadingInfo" class="fuel-info-box"></div>
++    <div id="fuelConfigBox" class="fuel-config-box" hidden></div>
++    <div id="fuelReadingEntry"></div>
+   </div>
+-
+ </section>
+ 
+-<section class="fuel-tanks-grid" id="fuelTanksGrid">
+-  <!-- تُبنى بطاقات الخزانات الأربعة ديناميكياً من script.js -->
++<section class="fuel-section">
++  <h3 class="fuel-section-title">سجل القراءات السابقة</h3>
++  <div class="fuel-history-filter">
++    <label for="fuelHistoryFilter" class="fuel-muted">الخزان:</label>
++    <select id="fuelHistoryFilter" onchange="renderFuelHistory()"></select>
++  </div>
++  <div id="fuelHistory"></div>
+ </section>
+ 
++<details class="fuel-section">
++  <summary>إعدادات التنبيهات</summary>
++  <div class="fuel-panel">
++    <div class="fuel-settings-grid">
++      <label>تنبيه الانخفاض عند أقل من (%)<input type="number" id="fuelSetLow" min="0" max="100" step="1"></label>
++      <label>تنبيه قرب الامتلاء عند (%)<input type="number" id="fuelSetHigh" min="0" max="100" step="1"></label>
++      <label>تنبيه عدم التحديث بعد (يوم)<input type="number" id="fuelSetStale" min="0" step="1"></label>
++      <label>تنبيه اختلاف السعة الهندسية عن الاسمية (%)<input type="number" id="fuelSetGeom" min="0" step="0.5"></label>
++    </div>
++    <button type="button" class="fuel-btn" onclick="saveFuelSettings()">💾 حفظ الإعدادات</button>
++  </div>
++</details>
++
+   </main>
+ 
+   <!-- FOOTER -->
+@@ -4362,6 +4357,8 @@ content="default"
+ FIREBASE
+ ====================================================== -->
+ 
++<script src="fuel-calc.js"></script>
++
+ <script type="module">
+ 
+     import { initializeApp }
+diff --git a/script.js b/script.js
+index 8dc0b90..2d7c429 100644
+--- a/script.js
++++ b/script.js
+@@ -6369,26 +6369,139 @@ function openDeviceInventory() {
+ // ============================================================
+ // خزانات الكاز (Fuel Tanks)
+ // ------------------------------------------------------------
+-// قسم مستقل تماماً عن باقي الأقسام. أربعة خزانات ثابتة فقط.
+-// الحفظ في Firestore (مشروع Firebase الحالي، لا مشروع جديد).
+-// ============================================================
++// قسم مستقل تماماً عن باقي الأقسام. سبعة خزانات ثابتة.
++// الحسابات الهندسية في fuel-calc.js (دوال نقية مختبرة).
++// الحفظ في Firestore (مشروع Firebase الحالي، لا مشروع جديد):
++//   fuelTanks/{tankId}        آخر قراءة صالحة + (config للخزانات بلا أبعاد)
++//   fuelTanks/_settings       حدود التنبيهات (قابلة للتعديل)
++//   fuelTankReadings/{auto}   سجل القراءات التاريخي (لا يُحذف ولا يُستبدل)
++// المعرّفات القديمة (hospitalGenerator, complexGenerator, boiler1, boiler2)
++// محفوظة كما هي لأن وثائقها موجودة في Firestore.
++// ============================================================
++
++const FUEL_READINGS_COLLECTION = "fuelTankReadings";
++const FUEL_SETTINGS_DOC_ID = "_settings";
++const FUEL_FIRESTORE_URL = "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
++const FUEL_SAVE_TIMEOUT_MS = 15000;
++const FUEL_RELOAD_MIN_MS = 30000;
++const FUEL_HISTORY_LIMIT = 100;
++const FUEL_HISTORY_SHOWN = 50;
++
++const FUEL_TANKS_DEFINITIONS = window.FuelCalc ? FuelCalc.DEFINITIONS : [];
++const FUEL_TANKS_TOTAL_CAPACITY = window.FuelCalc ? FuelCalc.TOTAL_NOMINAL_L : 0;
++
++// الحالة بعد التحميل من Firestore
++let fuelDocs = {};            // { [tankId]: بيانات الوثيقة }
++let fuelSettings = window.FuelCalc ? FuelCalc.mergeSettings(null) : {};
++let fuelHistory = [];         // الأحدث أولاً
++let fuelHistoryFailed = false;
++let fuelTanksLoaded = false;
++let fuelLastLoadAt = 0;
++let fuelSelectedTankId = null;
++let fuelSaving = false;
++
++// ---------- مساعدات عامة ----------
++
++function fuelEngineReady() {
++    if (window.FuelCalc) return true;
++    showMessage("تعذر تحميل ملف الحسابات fuel-calc.js", "error");
++    return false;
++}
++
++function formatFuelLiters(value) {
++    const number = Math.round(Number(value) || 0);
++    return number.toLocaleString("en-US") + " لتر";
++}
++
++function formatFuelNumber(value) {
++    return Math.round(Number(value) || 0).toLocaleString("en-US");
++}
+ 
+-const FUEL_TANKS_DEFINITIONS = [
+-    { id: "hospitalGenerator", name: "خزان مولدات المستشفى", capacity: 36000, icon: "🛢️" },
+-    { id: "complexGenerator", name: "خزان مولدة المجمع", capacity: 13000, icon: "🛢️" },
+-    { id: "boiler1", name: "خزان بويلر رقم 1", capacity: 13500, icon: "🛢️" },
+-    { id: "boiler2", name: "خزان بويلر رقم 2", capacity: 13500, icon: "🛢️" }
++function formatFuelPercent(value) {
++    if (value === null || value === undefined || !isFinite(value)) return "—";
++    const rounded = Math.round(value * 10) / 10;
++    return (Number.isInteger(rounded) ? rounded : rounded.toFixed(1)) + "%";
++}
++
++const FUEL_MONTHS = [
++    "يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو",
++    "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"
+ ];
+ 
+-const FUEL_TANKS_TOTAL_CAPACITY = FUEL_TANKS_DEFINITIONS.reduce(
+-    function (sum, tank) { return sum + tank.capacity; },
+-    0
+-);
++function formatFuelTankDate(timestamp) {
++    const date = window.FuelCalc ? FuelCalc.toDate(timestamp) : null;
++    if (!date) return "لا يوجد تاريخ بعد";
++    return date.getDate() + " " + FUEL_MONTHS[date.getMonth()] + " " + date.getFullYear();
++}
+ 
+-// الحالة الحالية لكل خزان بعد التحميل من Firestore
+-// { [tankId]: { quantity: number|null, updatedAt: Timestamp|null } }
+-let fuelTanksState = {};
+-let fuelTanksLoaded = false;
++function formatFuelDateTime(timestamp) {
++    const date = window.FuelCalc ? FuelCalc.toDate(timestamp) : null;
++    if (!date) return "—";
++    const h = date.getHours();
++    const m = String(date.getMinutes()).padStart(2, "0");
++    const h12 = h % 12 === 0 ? 12 : h % 12;
++    return date.getDate() + " " + FUEL_MONTHS[date.getMonth()] + " " + date.getFullYear() +
++        " — " + h12 + ":" + m + (h < 12 ? " ص" : " م");
++}
++
++function fuelUnitLabel(unit) {
++    return unit === "m" ? "م" : "سم";
++}
++
++function fuelTankFullName(def) {
++    return def.name + (def.note ? " — " + def.note : "");
++}
++
++function fuelFindDef(tankId) {
++    return FUEL_TANKS_DEFINITIONS.find(function (d) { return d.id === tankId; });
++}
++
++function withFuelTimeout(promise, ms) {
++    return new Promise(function (resolve, reject) {
++        const timer = setTimeout(function () {
++            const err = new Error("timeout");
++            err.code = "timeout";
++            reject(err);
++        }, ms);
++        promise.then(
++            function (v) { clearTimeout(timer); resolve(v); },
++            function (e) { clearTimeout(timer); reject(e); }
++        );
++    });
++}
++
++function fuelWho() {
++    if (typeof currentUser !== "undefined" && currentUser) {
++        return currentUser.displayName || currentUser.email || currentUser.uid || null;
++    }
++    return null;
++}
++
++// حالات جميع الخزانات (تُحسب من البيانات المحفوظة عند كل رسم)
++function getFuelStates() {
++    const now = new Date();
++    return FUEL_TANKS_DEFINITIONS.map(function (def) {
++        return FuelCalc.deriveTankState(def, fuelDocs[def.id], fuelSettings, now);
++    });
++}
++
++// تصنيف اللون/الوصف حسب نسبة الامتلاء والإعدادات
++function fuelFillClass(state) {
++    if (state.status !== "ok") return "none";
++    if (state.overflowL > 0) return "over";
++    if (state.percent < fuelSettings.lowPercent) return "low";
++    if (state.percent >= fuelSettings.highPercent) return "full";
++    return state.percent < 50 ? "medium" : "good";
++}
++
++const FUEL_CLASS_LABELS = {
++    none: "بلا قراءة", over: "تجاوز السعة", low: "منخفض",
++    medium: "متوسط", good: "جيد", full: "شبه ممتلئ"
++};
++const FUEL_CLASS_COLORS = {
++    none: "#cbd5e1", over: "#dc2626", low: "#ef4444",
++    medium: "#f59e0b", good: "#10b981", full: "#0d9488"
++};
+ 
+ // ============================================================
+ // فتح قسم خزانات الكاز
+@@ -6396,39 +6509,61 @@ let fuelTanksLoaded = false;
+ 
+ async function openFuelTanks() {
+     showPage("fuelTanksPage");
+-    renderFuelTanksCards();
++    if (!fuelEngineReady()) return;
++    renderFuelDashboard();
+     await getFuelTanks();
+ }
+ 
+ // ============================================================
+-// تحميل بيانات الخزانات من Firestore
++// تحميل البيانات من Firestore
++// (قراءتان فقط: الخزانات + السجل، ولا تتكرران خلال 30 ثانية)
+ // ============================================================
+ 
+-async function getFuelTanks() {
++async function getFuelTanks(force) {
++    if (!fuelEngineReady()) return;
++    if (!force && fuelTanksLoaded && Date.now() - fuelLastLoadAt < FUEL_RELOAD_MIN_MS) return;
++
+     const db = getFirestoreDB();
+     if (!db) return;
+ 
+     try {
+-        const { collection, getDocs } = await import(
+-            "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js"
+-        );
++        const fs = await import(FUEL_FIRESTORE_URL);
+ 
+-        const snapshot = await getDocs(collection(db, FUEL_TANKS_COLLECTION));
+-
+-        const loadedState = {};
++        const snapshot = await fs.getDocs(fs.collection(db, FUEL_TANKS_COLLECTION));
++        const docs = {};
++        let settingsDoc = null;
+ 
+         snapshot.forEach(function (docSnap) {
+-            const data = docSnap.data();
+-            loadedState[docSnap.id] = {
+-                quantity: typeof data.quantity === "number" ? data.quantity : null,
+-                updatedAt: data.updatedAt || null
+-            };
++            if (docSnap.id === FUEL_SETTINGS_DOC_ID) {
++                settingsDoc = docSnap.data();
++            } else {
++                docs[docSnap.id] = docSnap.data();
++            }
+         });
+ 
+-        fuelTanksState = loadedState;
++        fuelDocs = docs;
++        fuelSettings = FuelCalc.mergeSettings(settingsDoc);
+         fuelTanksLoaded = true;
++        fuelLastLoadAt = Date.now();
++
++        // السجل: فشله لا يمنع عرض الخزانات
++        try {
++            const q = fs.query(
++                fs.collection(db, FUEL_READINGS_COLLECTION),
++                fs.orderBy("createdAt", "desc"),
++                fs.limit(FUEL_HISTORY_LIMIT)
++            );
++            const hs = await fs.getDocs(q);
++            const rows = [];
++            hs.forEach(function (d) { rows.push(Object.assign({ id: d.id }, d.data())); });
++            fuelHistory = rows;
++            fuelHistoryFailed = false;
++        } catch (historyError) {
++            console.error("تعذر تحميل سجل قراءات الخزانات:", historyError);
++            fuelHistoryFailed = true;
++        }
+ 
+-        renderFuelTanksCards();
++        renderFuelDashboard();
+ 
+     } catch (error) {
+         console.error("خطأ تحميل خزانات الكاز:", error);
+@@ -6437,249 +6572,743 @@ async function getFuelTanks() {
+ }
+ 
+ // ============================================================
+-// تحويل Timestamp من Firestore إلى تاريخ عربي مبسّط
+-// مثال: 19 سبتمبر 2026 (بدون اسم اليوم)
++// رسم لوحة التحكم كاملة (تُستدعى بعد أي تحميل أو حفظ ناجح)
+ // ============================================================
+ 
+-function formatFuelTankDate(timestamp) {
+-    if (!timestamp) return "لا يوجد تاريخ بعد";
++function renderFuelDashboard() {
++    if (!window.FuelCalc) return;
++    const states = getFuelStates();
++    const totals = FuelCalc.computeTotals(states);
+ 
+-    const monthNames = [
+-        "يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو",
+-        "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"
+-    ];
++    renderFuelSummary(totals);
++    renderFuelAlerts(states);
++    renderFuelTanksCards(states);
++    renderFuelInventoryTable(states, totals);
++    renderFuelReadingPanel(states);
++    renderFuelHistory();
++    fillFuelSettingsForm();
++}
+ 
+-    try {
+-        let date;
++// ---------- بطاقات الملخص ----------
+ 
+-        if (timestamp.toDate) {
+-            date = timestamp.toDate();
+-        } else if (timestamp.seconds) {
+-            date = new Date(timestamp.seconds * 1000);
++function renderFuelSummary(totals) {
++    const grid = document.getElementById("fuelSummary");
++    const banner = document.getElementById("fuelIncompleteBanner");
++    if (!grid) return;
++
++    const hasAny = totals.countedCount > 0;
++    const provisional = hasAny && !totals.complete;
++
++    const availableText = hasAny ? formatFuelNumber(totals.availableL) : "—";
++    const emptyText = hasAny ? formatFuelNumber(totals.emptyL) : "—";
++    const percentText = hasAny ? formatFuelPercent(totals.percent) : "—";
++    const mark = provisional ? '<span class="fuel-prov" title="مجموع مؤقت">*</span>' : "";
++    const pct = hasAny ? Math.max(0, Math.min(100, totals.percent)) : 0;
++
++    const missing = totals.missingIds.length;
++    const stale = totals.staleIds.length;
++    const needs = missing + stale;
++
++    grid.innerHTML =
++        '<div class="fuel-sum-card is-available">' +
++            '<span class="fuel-sum-label">⛽ الكاز المتوفر حالياً</span>' +
++            '<span class="fuel-sum-value">' + availableText + mark + '<small>لتر</small></span>' +
++        '</div>' +
++        '<div class="fuel-sum-card is-empty">' +
++            '<span class="fuel-sum-label">📉 الكاز الفارغ</span>' +
++            '<span class="fuel-sum-value">' + emptyText + mark + '<small>لتر</small></span>' +
++        '</div>' +
++        '<div class="fuel-sum-card is-capacity">' +
++            '<span class="fuel-sum-label">🛢️ السعة الكلية (اسمية)</span>' +
++            '<span class="fuel-sum-value">' + formatFuelNumber(totals.nominalL) + '<small>لتر</small></span>' +
++        '</div>' +
++        '<div class="fuel-sum-card is-percent">' +
++            '<span class="fuel-sum-label">📊 نسبة الامتلاء</span>' +
++            '<span class="fuel-sum-value">' + percentText + mark + '</span>' +
++            '<span class="fuel-sum-bar"><span style="width:' + pct + '%"></span></span>' +
++        '</div>' +
++        '<div class="fuel-sum-card is-count">' +
++            '<span class="fuel-sum-label">🔢 عدد الخزانات</span>' +
++            '<span class="fuel-sum-value">' + totals.tankCount + '</span>' +
++        '</div>' +
++        '<div class="fuel-sum-card is-status ' + (needs ? "has-issue" : "all-ok") + '">' +
++            '<span class="fuel-sum-label">🕒 حالة القراءات</span>' +
++            '<span class="fuel-sum-value fuel-sum-value-sm">' +
++                totals.countedCount + ' من ' + totals.tankCount + ' لها قراءة' +
++            '</span>' +
++            '<span class="fuel-sum-sub">' +
++                (needs ? needs + ' تحتاج تحديثاً' + (missing ? ' (' + missing + ' بلا قراءة' + (stale ? "، " + stale + ' قديمة' : '') + ')' : ' (قديمة)') : 'كلها محدّثة') +
++            '</span>' +
++        '</div>';
++
++    if (banner) {
++        if (!hasAny) {
++            banner.hidden = false;
++            banner.className = "fuel-banner is-warn";
++            banner.textContent = "لا توجد أي قراءة صالحة بعد. أدخل قراءة لكل خزان ليظهر الإجمالي؛ الخزانات بلا قراءة لا تُحتسب فارغة.";
++        } else if (provisional) {
++            banner.hidden = false;
++            banner.className = "fuel-banner is-warn";
++            banner.textContent = "* الإجمالي مؤقت وغير مكتمل: محسوب من " + totals.countedCount + " خزانات من أصل " +
++                totals.tankCount + ". نسبة الامتلاء محسوبة من سعة الخزانات التي لها قراءة (" +
++                formatFuelLiters(totals.countedNominalL) + ").";
+         } else {
+-            date = new Date(timestamp);
++            banner.hidden = true;
+         }
+-
+-        return date.getDate() + " " + monthNames[date.getMonth()] + " " + date.getFullYear();
+-
+-    } catch (error) {
+-        return "لا يوجد تاريخ بعد";
+     }
+ }
+ 
+-// ============================================================
+-// تنسيق رقم الكمية باللتر (فواصل الآلاف)
+-// ============================================================
+-
+-function formatFuelLiters(value) {
+-    const number = Number(value) || 0;
+-    return number.toLocaleString("en-US") + " لتر";
+-}
+-
+-// ============================================================
+-// بناء بطاقات الخزانات (مرة واحدة عند فتح الصفحة)
+-// ============================================================
+-
+-function getFuelTankStatus(quantity, capacity) {
+-    if (quantity === null || quantity === undefined || quantity <= 0) {
+-        return { key: "empty", label: "فارغ", className: "empty" };
+-    }
++// ---------- التنبيهات ----------
+ 
+-    const percentage = (quantity / capacity) * 100;
++function renderFuelAlerts(states) {
++    const box = document.getElementById("fuelAlerts");
++    if (!box) return;
+ 
+-    if (percentage >= 95 && quantity >= capacity) {
+-        return { key: "full", label: "مملوء بالكامل", className: "full" };
+-    } else if (percentage >= 70) {
+-        return { key: "high", label: "مملوء جيداً", className: "high" };
+-    } else if (percentage >= 30) {
+-        return { key: "medium", label: "مملوء متوسط", className: "medium" };
+-    } else {
+-        return { key: "low", label: "قليل", className: "low" };
++    const alerts = FuelCalc.buildAlerts(states, fuelSettings, new Date());
++    if (!alerts.length) {
++        box.hidden = true;
++        box.innerHTML = "";
++        return;
+     }
+-}
+ 
+-function renderFuelTanksCards() {
++    const order = { error: 0, warn: 1, info: 2 };
++    alerts.sort(function (a, b) { return order[a.level] - order[b.level]; });
++    const icons = { error: "⛔", warn: "⚠️", info: "ℹ️" };
++
++    box.hidden = false;
++    box.innerHTML =
++        '<h3 class="fuel-section-title">التنبيهات (' + alerts.length + ')</h3>' +
++        '<ul class="fuel-alert-list">' +
++        alerts.map(function (a) {
++            return '<li class="fuel-alert is-' + a.level + '"><span>' + icons[a.level] + '</span><span>' +
++                escapeHTML(a.text) + '</span></li>';
++        }).join("") +
++        '</ul>';
++}
++
++// ---------- الرسم المرئي للخزان (SVG بلا مكتبات) ----------
++
++function fuelTankSVG(state) {
++    const cls = fuelFillClass(state);
++    const color = FUEL_CLASS_COLORS[cls];
++    const geo = state.geo;
++    const uid = "fuelsvg-" + state.id;
++
++    if (!geo) {
++        return '<svg class="fuel-svg" viewBox="0 0 120 120" role="img" aria-label="أبعاد الخزان غير مسجلة">' +
++            '<rect x="14" y="26" width="92" height="68" rx="14" fill="#f8fafc" stroke="#94a3b8" stroke-width="3" stroke-dasharray="7 5"/>' +
++            '<text x="60" y="72" text-anchor="middle" font-size="34" fill="#94a3b8">؟</text></svg>';
++    }
++
++    const frac = state.status === "ok"
++        ? Math.max(0, Math.min(1, state.levelM / FuelCalc.maxLevelM(geo)))
++        : 0;
++    const aria = state.status === "ok"
++        ? "مستوى الكاز " + formatFuelPercent(state.percent)
++        : "لا توجد قراءة";
++
++    if (geo.shape === "hcyl") {
++        // مقطع دائري: السائل يُقصّ بدائرة الخزان فيتوافق مع الهندسة الحقيقية
++        const top = 8, bottom = 112;
++        const y = bottom - frac * (bottom - top);
++        return '<svg class="fuel-svg" viewBox="0 0 120 120" role="img" aria-label="' + aria + '">' +
++            '<defs><clipPath id="' + uid + '"><circle cx="60" cy="60" r="52"/></clipPath></defs>' +
++            '<circle cx="60" cy="60" r="52" fill="#f1f5f9"/>' +
++            (frac > 0
++                ? '<g clip-path="url(#' + uid + ')"><rect x="0" y="' + y.toFixed(2) + '" width="120" height="120" fill="' + color + '" opacity="0.88"/>' +
++                  '<line x1="0" x2="120" y1="' + y.toFixed(2) + '" y2="' + y.toFixed(2) + '" stroke="#ffffff" stroke-width="2" opacity="0.7"/></g>'
++                : '') +
++            '<circle cx="60" cy="60" r="52" fill="none" stroke="#475569" stroke-width="3.5"/>' +
++            '</svg>';
++    }
++
++    // مستطيل: منظر جانبي بنسبة الطول إلى الارتفاع
++    const maxW = 108, maxH = 76;
++    let w = maxW, h = (maxW * geo.heightM) / geo.lengthM;
++    if (h > maxH) { h = maxH; w = (maxH * geo.lengthM) / geo.heightM; }
++    const x = (120 - w) / 2, yTop = (120 - h) / 2;
++    const liquidH = frac * h;
++    return '<svg class="fuel-svg" viewBox="0 0 120 120" role="img" aria-label="' + aria + '">' +
++        '<defs><clipPath id="' + uid + '"><rect x="' + x.toFixed(2) + '" y="' + yTop.toFixed(2) + '" width="' + w.toFixed(2) + '" height="' + h.toFixed(2) + '" rx="4"/></clipPath></defs>' +
++        '<rect x="' + x.toFixed(2) + '" y="' + yTop.toFixed(2) + '" width="' + w.toFixed(2) + '" height="' + h.toFixed(2) + '" rx="4" fill="#f1f5f9"/>' +
++        (frac > 0
++            ? '<g clip-path="url(#' + uid + ')"><rect x="' + x.toFixed(2) + '" y="' + (yTop + h - liquidH).toFixed(2) + '" width="' + w.toFixed(2) + '" height="' + liquidH.toFixed(2) + '" fill="' + color + '" opacity="0.88"/>' +
++              '<line x1="' + x.toFixed(2) + '" x2="' + (x + w).toFixed(2) + '" y1="' + (yTop + h - liquidH).toFixed(2) + '" y2="' + (yTop + h - liquidH).toFixed(2) + '" stroke="#ffffff" stroke-width="2" opacity="0.7"/></g>'
++            : '') +
++        '<rect x="' + x.toFixed(2) + '" y="' + yTop.toFixed(2) + '" width="' + w.toFixed(2) + '" height="' + h.toFixed(2) + '" rx="4" fill="none" stroke="#475569" stroke-width="3.5"/>' +
++        '</svg>';
++}
++
++// وصف الشكل والأبعاد (إن توفرت)
++function fuelGeometryText(state) {
++    const g = state.geo;
++    if (!g) return "الأبعاد غير مسجلة";
++    if (g.shape === "hcyl") {
++        return "أسطواني أفقي — الطول " + g.lengthM + " م، القطر " + g.diameterM + " م";
++    }
++    return "مستطيل — " + g.lengthM + " × " + g.widthM + " × " + g.heightM + " م";
++}
++
++function fuelMethodText(state) {
++    return state.method && FuelCalc.METHODS[state.method]
++        ? FuelCalc.METHODS[state.method].label
++        : "غير محددة";
++}
++
++// ---------- بطاقات الخزانات ----------
++
++function renderFuelTanksCards(statesArg) {
+     const grid = document.getElementById("fuelTanksGrid");
+-    if (!grid) return;
++    if (!grid || !window.FuelCalc) return;
+ 
++    const states = statesArg || getFuelStates();
+     grid.innerHTML = "";
+ 
+-    FUEL_TANKS_DEFINITIONS.forEach(function (tank) {
+-        const saved = fuelTanksState[tank.id] || { quantity: null, updatedAt: null };
+-
+-        const quantity = saved.quantity !== null ? saved.quantity : 0;
+-        const percentage = tank.capacity > 0 ? Math.round((quantity / tank.capacity) * 100) : 0;
+-        const status = getFuelTankStatus(saved.quantity, tank.capacity);
+-
+-        const displayQuantity = saved.quantity !== null && saved.quantity !== undefined
+-            ? formatFuelLiters(saved.quantity)
+-            : "0 لتر";
++    states.forEach(function (st) {
++        const def = st.def;
++        const cls = fuelFillClass(st);
++        const ok = st.status === "ok";
++
++        let statusLabel = FUEL_CLASS_LABELS[cls];
++        let statusClass = cls;
++        if (st.status === "no_geometry") { statusLabel = "بيانات ناقصة"; statusClass = "none"; }
++        else if (st.status === "no_reading") { statusLabel = "بلا قراءة"; statusClass = "none"; }
++        else if (st.stale) { statusLabel += " · قراءة قديمة"; }
++
++        let lastReading = "لا توجد قراءة";
++        if (ok && st.source === "reading") {
++            lastReading = (st.method === "top_distance" ? "المسافة من الأعلى: " : "الارتفاع: ") +
++                st.rawValue + " " + fuelUnitLabel(st.unit);
++        } else if (ok && st.source === "legacy") {
++            lastReading = "قيمة مسجلة سابقاً باللتر مباشرة (قبل نظام القياس)";
++        }
+ 
+-        const fillWidth = Math.max(percentage, 2);
+-        const fillText = saved.quantity !== null && saved.quantity !== undefined
+-            ? formatFuelLiters(saved.quantity)
+-            : "0 لتر";
++        const geomDiff = st.geomCapacityL
++            ? formatFuelLiters(st.geomCapacityL) +
++              (Math.abs(st.geomCapacityL - st.nominalL) >= 1
++                  ? " (" + (st.geomCapacityL > st.nominalL ? "+" : "−") + formatFuelNumber(Math.abs(st.geomCapacityL - st.nominalL)) + " عن الاسمية)"
++                  : " (تطابق الاسمية)")
++            : "غير متاحة";
+ 
+         const card = document.createElement("div");
+-        card.className = "fuel-tank-card";
+-        card.id = "fuelTankCard-" + tank.id;
++        card.className = "fuel-tank-card is-" + cls;
++        card.id = "fuelTankCard-" + def.id;
+ 
+         card.innerHTML =
+             '<div class="fuel-tank-card-header">' +
+-                '<div class="fuel-tank-icon">' + tank.icon + '</div>' +
++                '<span class="fuel-tank-no">' + def.no + '</span>' +
+                 '<div class="fuel-tank-header-text">' +
+-                    '<div class="fuel-tank-name">' + escapeHTML(tank.name) + '</div>' +
+-                    '<div class="fuel-tank-capacity">السعة الكلية: ' + formatFuelLiters(tank.capacity) + '</div>' +
++                    '<div class="fuel-tank-name">' + escapeHTML(def.name) + '</div>' +
++                    (def.note ? '<div class="fuel-tank-note">' + escapeHTML(def.note) + '</div>' : '') +
+                 '</div>' +
++                '<span class="fuel-badge is-' + statusClass + '">' + escapeHTML(statusLabel) + '</span>' +
+             '</div>' +
+ 
+-            '<div class="fuel-tank-progress-section">' +
+-                '<div class="fuel-tank-progress-track">' +
+-                    '<div class="fuel-tank-progress-fill ' + status.className + '" style="width: ' + fillWidth + '%">' +
+-                        '<span class="fuel-tank-progress-text">' + fillText + '</span>' +
+-                    '</div>' +
++            '<div class="fuel-tank-body">' +
++                '<div class="fuel-tank-visual">' + fuelTankSVG(st) +
++                    '<div class="fuel-tank-percent">' + (ok ? formatFuelPercent(st.percent) : "—") + '</div>' +
+                 '</div>' +
+-                '<div class="fuel-tank-progress-info">' +
+-                    '<span class="fuel-tank-percentage">' + percentage + '%</span>' +
+-                    '<span class="fuel-tank-status-badge ' + status.className + '">' + status.label + '</span>' +
++                '<div class="fuel-tank-figures">' +
++                    '<div class="fuel-figure"><span class="fuel-figure-label">الكاز المتوفر</span>' +
++                        '<span class="fuel-figure-value">' + (ok ? formatFuelNumber(st.volumeL) + '<small> لتر</small>' : "—") + '</span></div>' +
++                    '<div class="fuel-figure"><span class="fuel-figure-label">الكمية الفارغة</span>' +
++                        '<span class="fuel-figure-value is-empty">' + (ok ? formatFuelNumber(st.emptyL) + '<small> لتر</small>' : "—") + '</span></div>' +
+                 '</div>' +
+             '</div>' +
+ 
+-            '<div class="fuel-tank-date">آخر تحديث: ' + formatFuelTankDate(saved.updatedAt) + '</div>' +
+-
+-            '<div class="fuel-tank-edit-section">' +
+-                '<div class="fuel-tank-edit-row">' +
+-                    '<div class="fuel-tank-field">' +
+-                        '<label for="fuelQty-' + tank.id + '">الكمية الحالية (لتر)</label>' +
+-                        '<input ' +
+-                            'type="number" ' +
+-                            'id="fuelQty-' + tank.id + '" ' +
+-                            'class="medical-input" ' +
+-                            'min="0" ' +
+-                            'max="' + tank.capacity + '" ' +
+-                            'step="1" ' +
+-                            'placeholder="أدخل الكمية الحالية" ' +
+-                            'value="' + (saved.quantity !== null ? saved.quantity : "") + '" ' +
+-                            'oninput="onFuelTankQuantityInput(\'' + tank.id + '\')"' +
+-                        '>' +
+-                        '<span class="fuel-tank-error" id="fuelQtyError-' + tank.id + '"></span>' +
+-                    '</div>' +
+-                    '<button type="button" class="auth-submit-btn" onclick="saveFuelTankQuantity(\'' + tank.id + '\')">' +
+-                        '💾 حفظ الكمية' +
+-                    '</button>' +
+-                '</div>' +
+-            '</div>';
++            '<dl class="fuel-tank-meta">' +
++                '<div><dt>السعة الاسمية</dt><dd>' + formatFuelLiters(st.nominalL) + '</dd></div>' +
++                '<div><dt>الشكل والأبعاد</dt><dd>' + escapeHTML(fuelGeometryText(st)) + '</dd></div>' +
++                '<div><dt>طريقة القياس</dt><dd>' + escapeHTML(fuelMethodText(st)) + '</dd></div>' +
++                '<div><dt>آخر قراءة</dt><dd>' + escapeHTML(lastReading) + '</dd></div>' +
++                '<div><dt>ارتفاع الكاز الفعلي</dt><dd>' + (ok ? (Math.round(st.levelM * 1000) / 10) + " سم" : "—") + '</dd></div>' +
++                '<div><dt>السعة الهندسية</dt><dd>' + escapeHTML(geomDiff) + '</dd></div>' +
++                '<div><dt>تاريخ ووقت القراءة</dt><dd>' + (st.updatedAt ? escapeHTML(formatFuelDateTime(st.updatedAt)) : "—") + '</dd></div>' +
++            '</dl>' +
++
++            (st.overflowL > 0
++                ? '<div class="fuel-card-warn">⛔ الكمية المحسوبة تتجاوز السعة الاسمية بمقدار ' + formatFuelNumber(st.overflowL) + ' لتر — تحقق من القياس أو المعايرة</div>'
++                : '') +
++
++            '<button type="button" class="fuel-btn" onclick="selectFuelTankForReading(\'' + def.id + '\')">' +
++                (st.status === "no_geometry" ? "⚙️ إعداد الأبعاد وإدخال قراءة" : "📝 تحديث القراءة") +
++            '</button>';
+ 
+         grid.appendChild(card);
+     });
++}
++
++// ---------- جدول المخزون الإجمالي ----------
++
++function renderFuelInventoryTable(states, totals) {
++    const box = document.getElementById("fuelInventory");
++    if (!box) return;
++
++    const rows = states.map(function (st) {
++        const ok = st.status === "ok";
++        const reason = st.status === "no_geometry" ? "بيانات ناقصة" : "لا توجد قراءة";
++        return '<tr>' +
++            '<td data-label="الخزان">' + escapeHTML(st.def.name) + '</td>' +
++            '<td data-label="السعة الاسمية">' + formatFuelLiters(st.nominalL) + '</td>' +
++            '<td data-label="الكاز المتوفر">' + (ok ? formatFuelLiters(st.volumeL) : '<span class="fuel-muted">' + reason + '</span>') + '</td>' +
++            '<td data-label="الكمية الفارغة">' + (ok ? formatFuelLiters(st.emptyL) : '<span class="fuel-muted">—</span>') + '</td>' +
++            '<td data-label="نسبة الامتلاء">' + (ok ? formatFuelPercent(st.percent) : '<span class="fuel-muted">—</span>') + '</td>' +
++        '</tr>';
++    }).join("");
++
++    const hasAny = totals.countedCount > 0;
++    const prov = hasAny && !totals.complete ? " <span class=\"fuel-muted\">(مؤقت: " + totals.countedCount + " من " + totals.tankCount + ")</span>" : "";
+ 
+-    updateFuelTankRequiredValue();
++    box.innerHTML =
++        '<div class="fuel-table-wrap"><table class="fuel-table">' +
++        '<thead><tr><th>الخزان</th><th>السعة الاسمية</th><th>الكاز المتوفر</th><th>الكمية الفارغة</th><th>نسبة الامتلاء</th></tr></thead>' +
++        '<tbody>' + rows + '</tbody>' +
++        '<tfoot><tr>' +
++            '<td data-label="الخزان">الإجمالي' + prov + '</td>' +
++            '<td data-label="السعة الاسمية">' + formatFuelLiters(totals.nominalL) + '</td>' +
++            '<td data-label="الكاز المتوفر">' + (hasAny ? formatFuelLiters(totals.availableL) : "—") + '</td>' +
++            '<td data-label="الكمية الفارغة">' + (hasAny ? formatFuelLiters(totals.emptyL) : "—") + '</td>' +
++            '<td data-label="نسبة الامتلاء">' + (hasAny ? formatFuelPercent(totals.percent) : "—") + '</td>' +
++        '</tr></tfoot></table></div>';
+ }
+ 
+ // ============================================================
+-// قراءة الكمية الحالية المُدخلة في الحقل (وليس بالضرورة المحفوظة)
+-// ترجع null إذا كان الحقل فارغاً
++// شاشة إدخال القراءة
+ // ============================================================
+ 
+-function getFuelTankInputQuantity(tankId) {
+-    const input = document.getElementById("fuelQty-" + tankId);
+-    if (!input || input.value === "") return null;
++function renderFuelReadingPanel(statesArg) {
++    const select = document.getElementById("fuelReadingTank");
++    if (!select || !window.FuelCalc) return;
++
++    const states = statesArg || getFuelStates();
++    if (!fuelSelectedTankId || !fuelFindDef(fuelSelectedTankId)) {
++        fuelSelectedTankId = FUEL_TANKS_DEFINITIONS[0] ? FUEL_TANKS_DEFINITIONS[0].id : null;
++    }
++
++    select.innerHTML = states.map(function (st) {
++        return '<option value="' + st.id + '"' + (st.id === fuelSelectedTankId ? " selected" : "") + '>' +
++            escapeHTML(fuelTankFullName(st.def)) + ' — ' + formatFuelNumber(st.nominalL) + ' لتر</option>';
++    }).join("");
++
++    renderFuelReadingForm();
++}
+ 
+-    const value = parseFloat(input.value);
+-    return isNaN(value) ? null : value;
++function selectFuelTankForReading(tankId) {
++    fuelSelectedTankId = tankId;
++    const select = document.getElementById("fuelReadingTank");
++    if (select) select.value = tankId;
++    const input = document.getElementById("fuelReadingValue");
++    if (input) input.value = "";
++    renderFuelReadingForm();
++    const panel = document.getElementById("fuelReadingPanel");
++    if (panel && panel.scrollIntoView) panel.scrollIntoView({ behavior: "smooth", block: "start" });
++}
++
++function onFuelReadingTankChange() {
++    const select = document.getElementById("fuelReadingTank");
++    if (!select) return;
++    fuelSelectedTankId = select.value;
++    const input = document.getElementById("fuelReadingValue");
++    if (input) input.value = "";
++    renderFuelReadingForm();
++}
++
++function getSelectedFuelState() {
++    const def = fuelFindDef(fuelSelectedTankId);
++    if (!def) return null;
++    return FuelCalc.deriveTankState(def, fuelDocs[def.id], fuelSettings, new Date());
++}
++
++// يعيد بناء النموذج حسب الخزان المحدد (الشكل والأبعاد وطريقة القياس)
++function renderFuelReadingForm() {
++    const st = getSelectedFuelState();
++    const info = document.getElementById("fuelReadingInfo");
++    const cfgBox = document.getElementById("fuelConfigBox");
++    const entry = document.getElementById("fuelReadingEntry");
++    if (!st || !info || !cfgBox || !entry) return;
++
++    const def = st.def;
++    const needsConfig = !def.shape;
++
++    info.innerHTML =
++        '<div><b>' + escapeHTML(fuelTankFullName(def)) + '</b></div>' +
++        '<div>السعة الاسمية: ' + formatFuelLiters(def.nominalL) + '</div>' +
++        '<div>الشكل والأبعاد: ' + escapeHTML(fuelGeometryText(st)) + '</div>' +
++        '<div>طريقة القياس: ' + escapeHTML(fuelMethodText(st)) + '</div>';
++
++    // إعداد الأبعاد: فقط للخزانات التي لا أبعاد لها في الكود
++    if (needsConfig) {
++        const cfg = (fuelDocs[def.id] && fuelDocs[def.id].config) || {};
++        cfgBox.hidden = false;
++        cfgBox.innerHTML =
++            '<h4>أبعاد الخزان (غير مسجلة — أدخلها من قياس فعلي)</h4>' +
++            '<div class="fuel-form-grid">' +
++                '<label>الشكل<select id="fuelCfgShape" onchange="onFuelConfigShapeChange()">' +
++                    '<option value="rect"' + (cfg.shape !== "hcyl" ? " selected" : "") + '>مستطيل</option>' +
++                    '<option value="hcyl"' + (cfg.shape === "hcyl" ? " selected" : "") + '>أسطواني أفقي</option>' +
++                '</select></label>' +
++                '<label>طريقة القياس<select id="fuelCfgMethod">' +
++                    '<option value="level_height"' + (cfg.method !== "top_distance" ? " selected" : "") + '>ارتفاع الكاز من القاع</option>' +
++                    '<option value="top_distance"' + (cfg.method === "top_distance" ? " selected" : "") + '>المسافة من أعلى الخزان إلى سطح الكاز</option>' +
++                '</select></label>' +
++                '<label>الطول (م)<input type="number" step="any" min="0" id="fuelCfgLength" value="' + (cfg.lengthM || "") + '"></label>' +
++                '<label id="fuelCfgWidthWrap">العرض (م)<input type="number" step="any" min="0" id="fuelCfgWidth" value="' + (cfg.widthM || "") + '"></label>' +
++                '<label id="fuelCfgHeightWrap">الارتفاع الداخلي (م)<input type="number" step="any" min="0" id="fuelCfgHeight" value="' + (cfg.heightM || "") + '"></label>' +
++                '<label id="fuelCfgDiameterWrap">القطر (م)<input type="number" step="any" min="0" id="fuelCfgDiameter" value="' + (cfg.diameterM || "") + '"></label>' +
++            '</div>' +
++            '<button type="button" class="fuel-btn is-secondary" onclick="saveFuelTankConfig()">💾 حفظ الأبعاد</button>';
++        onFuelConfigShapeChange();
++    } else {
++        cfgBox.hidden = true;
++        cfgBox.innerHTML = "";
++    }
++
++    // حقل القراءة حسب طريقة القياس
++    if (!st.geo) {
++        entry.hidden = true;
++        entry.innerHTML = '<p class="fuel-muted">احفظ أبعاد الخزان أولاً حتى يمكن حساب الكمية. لا تُعرض كمية تقديرية.</p>';
++        entry.hidden = false;
++        return;
++    }
++
++    const isTop = st.method === "top_distance";
++    const prevUnit = (document.getElementById("fuelReadingUnit") || {}).value || "cm";
++
++    entry.hidden = false;
++    entry.innerHTML =
++        '<label class="fuel-reading-label" for="fuelReadingValue">' +
++            (isTop ? "المسافة من أعلى الخزان إلى سطح الكاز" : "ارتفاع الكاز من القاع") +
++        '</label>' +
++        '<div class="fuel-reading-row">' +
++            '<input type="text" inputmode="decimal" autocomplete="off" id="fuelReadingValue" class="fuel-input" ' +
++                'placeholder="' + (isTop ? "مثال: 85" : "مثال: 75") + '" oninput="updateFuelReadingPreview()">' +
++            '<select id="fuelReadingUnit" class="fuel-unit" onchange="updateFuelReadingPreview()">' +
++                '<option value="cm"' + (prevUnit === "cm" ? " selected" : "") + '>سم</option>' +
++                '<option value="m"' + (prevUnit === "m" ? " selected" : "") + '>م</option>' +
++            '</select>' +
++        '</div>' +
++        '<p class="fuel-hint">' +
++            (isTop
++                ? '⚠ هذه المسافة تُقاس من <b>أعلى</b> الخزان نزولاً إلى سطح الكاز، وليست ارتفاع الكاز من القاع. الحد المسموح: 0 – ' +
++                  (Math.round(FuelCalc.maxLevelM(st.geo) * 1000) / 10) + ' سم.'
++                : '⚠ هذا ارتفاع الكاز من <b>القاع</b> مباشرة (لا يُطرح من ارتفاع الخزان). الحد المسموح: 0 – ' +
++                  (Math.round(FuelCalc.maxLevelM(st.geo) * 1000) / 10) + ' سم.') +
++        '</p>' +
++        '<div id="fuelReadingPreview" class="fuel-preview"></div>' +
++        '<button type="button" id="fuelReadingSave" class="fuel-btn" onclick="saveFuelReading()">💾 حفظ القراءة</button>';
++
++    updateFuelReadingPreview();
++}
++
++function onFuelConfigShapeChange() {
++    const shapeEl = document.getElementById("fuelCfgShape");
++    if (!shapeEl) return;
++    const isCyl = shapeEl.value === "hcyl";
++    const set = function (id, show) { const el = document.getElementById(id); if (el) el.style.display = show ? "" : "none"; };
++    set("fuelCfgWidthWrap", !isCyl);
++    set("fuelCfgHeightWrap", !isCyl);
++    set("fuelCfgDiameterWrap", isCyl);
++}
++
++// معاينة فورية قبل الحفظ: الكمية، الفارغ، النسبة
++function updateFuelReadingPreview() {
++    const st = getSelectedFuelState();
++    const box = document.getElementById("fuelReadingPreview");
++    const input = document.getElementById("fuelReadingValue");
++    const unitEl = document.getElementById("fuelReadingUnit");
++    const saveBtn = document.getElementById("fuelReadingSave");
++    if (!st || !box || !input || !unitEl) return null;
++
++    if (input.value.trim() === "") {
++        box.className = "fuel-preview";
++        box.innerHTML = '<span class="fuel-muted">أدخل القراءة لعرض الكمية المحسوبة قبل الحفظ.</span>';
++        if (saveBtn) saveBtn.disabled = true;
++        return null;
++    }
++
++    const calc = FuelCalc.computeReading(st.geo, st.method, input.value, unitEl.value);
++    if (!calc.ok) {
++        box.className = "fuel-preview is-error";
++        box.textContent = "⛔ " + calc.error;
++        if (saveBtn) saveBtn.disabled = true;
++        return null;
++    }
++
++    const nominal = st.nominalL;
++    const empty = Math.max(0, nominal - calc.volumeL);
++    const percent = (calc.volumeL / nominal) * 100;
++    const over = calc.volumeL > nominal + 0.5;
++
++    box.className = "fuel-preview" + (over ? " is-warn" : " is-ok");
++    box.innerHTML =
++        '<div class="fuel-preview-grid">' +
++            '<div><span>ارتفاع الكاز من القاع</span><b>' + (Math.round(calc.levelM * 1000) / 10) + ' سم</b></div>' +
++            '<div><span>الكاز المتوفر</span><b>' + formatFuelLiters(calc.volumeL) + '</b></div>' +
++            '<div><span>الكمية الفارغة</span><b>' + formatFuelLiters(empty) + '</b></div>' +
++            '<div><span>نسبة الامتلاء</span><b>' + formatFuelPercent(percent) + '</b></div>' +
++        '</div>' +
++        (over ? '<p class="fuel-card-warn">⛔ الكمية المحسوبة تتجاوز السعة الاسمية بمقدار ' + formatFuelNumber(calc.volumeL - nominal) + ' لتر — تحقق من القياس أو المعايرة قبل الحفظ.</p>' : '');
++
++    if (saveBtn) saveBtn.disabled = false;
++    return calc;
+ }
+ 
+ // ============================================================
+-// التحقق من صحة كمية خزان معيّن
++// حفظ الأبعاد (للخزانات بلا أبعاد فقط) — يتطلب تسجيل الدخول
+ // ============================================================
+ 
+-function validateFuelTankQuantity(tankId, quantity) {
+-    const tank = FUEL_TANKS_DEFINITIONS.find(function (t) { return t.id === tankId; });
+-    if (!tank) return "خزان غير معروف";
++async function saveFuelTankConfig() {
++    if (!requireLoginForWrite(function () { saveFuelTankConfig(); })) return;
++    if (!fuelEngineReady()) return;
++
++    const def = fuelFindDef(fuelSelectedTankId);
++    if (!def || def.shape) return;
++
++    const num = function (id) {
++        const el = document.getElementById(id);
++        const p = el ? FuelCalc.parseInput(el.value) : { ok: false };
++        return p.ok ? p.value : NaN;
++    };
+ 
+-    if (quantity === null) return null; // حقل فارغ ليس خطأ بحد ذاته
++    const shape = document.getElementById("fuelCfgShape").value;
++    const method = document.getElementById("fuelCfgMethod").value;
++    const config = shape === "hcyl"
++        ? { shape: "hcyl", lengthM: num("fuelCfgLength"), diameterM: num("fuelCfgDiameter"), method: method }
++        : { shape: "rect", lengthM: num("fuelCfgLength"), widthM: num("fuelCfgWidth"), heightM: num("fuelCfgHeight"), method: method };
+ 
+-    if (quantity < 0) {
+-        return "لا يمكن إدخال كمية سالبة";
++    if (!FuelCalc.validGeometry(config)) {
++        showMessage("أدخل أبعاداً صحيحة أكبر من صفر لكل الحقول الظاهرة", "error");
++        return;
+     }
+ 
+-    if (quantity > tank.capacity) {
+-        return "الكمية أكبر من سعة الخزان (" + formatFuelLiters(tank.capacity) + ")";
++    const geomCap = FuelCalc.geometricCapacityL(config);
++    const diffPct = Math.abs(geomCap - def.nominalL) / def.nominalL * 100;
++    if (diffPct > 25 && !window.confirm(
++        "السعة الهندسية من هذه الأبعاد (" + formatFuelNumber(geomCap) + " لتر) تختلف كثيراً عن السعة الاسمية (" +
++        formatFuelNumber(def.nominalL) + " لتر). هل الأبعاد صحيحة؟")) {
++        return;
+     }
+ 
+-    return null;
++    const db = getFirestoreDB();
++    if (!db) return;
++
++    try {
++        const fs = await import(FUEL_FIRESTORE_URL);
++        await withFuelTimeout(fs.setDoc(fs.doc(db, FUEL_TANKS_COLLECTION, def.id), {
++            name: fuelTankFullName(def),
++            capacity: def.nominalL,
++            config: config
++        }, { merge: true }), FUEL_SAVE_TIMEOUT_MS);
++
++        fuelDocs[def.id] = Object.assign({}, fuelDocs[def.id], { config: config });
++        showMessage("تم حفظ أبعاد " + def.name);
++        renderFuelDashboard();
++    } catch (error) {
++        handleFuelSaveError(error, "حفظ الأبعاد");
++    }
+ }
+ 
+ // ============================================================
+-// عند تغيير قيمة أي حقل كمية: تحديث "المطلوب" لهذا الخزان
+-// والإجماليات فوراً، مع إظهار خطأ التحقق إن وجد
++// حفظ قراءة جديدة (آخر قراءة + سجل تاريخي) — يتطلب تسجيل الدخول
+ // ============================================================
+ 
+-function onFuelTankQuantityInput(tankId) {
+-    updateFuelTankRequiredValue();
++function handleFuelSaveError(error, what) {
++    console.error("خطأ " + what + " (خزانات الكاز):", error);
++    if (error && error.code === "timeout") {
++        showMessage("تعذر إتمام " + what + ": الاتصال بطيء أو منقطع. تحقق من الإنترنت وأعد المحاولة (قد تُحفظ لاحقاً تلقائياً عند عودة الاتصال).", "error");
++    } else {
++        showMessage("حدث خطأ أثناء " + what + ": " + ((error && (error.code || error.message)) || "خطأ غير معروف"), "error");
++    }
+ }
+ 
+-function updateFuelTankRequiredValue() {
+-    let totalCurrent = 0;
+-    let hasError = false;
++async function saveFuelReading() {
++    if (fuelSaving) return;
++    if (!requireLoginForWrite(function () { saveFuelReading(); })) return;
++    if (!fuelEngineReady()) return;
+ 
+-    FUEL_TANKS_DEFINITIONS.forEach(function (tank) {
+-        const quantity = getFuelTankInputQuantity(tank.id);
+-        const errorMessage = validateFuelTankQuantity(tank.id, quantity);
++    const st = getSelectedFuelState();
++    const input = document.getElementById("fuelReadingValue");
++    const unitEl = document.getElementById("fuelReadingUnit");
++    if (!st || !input || !unitEl) return;
+ 
+-        const errorEl = document.getElementById("fuelQtyError-" + tank.id);
+-        if (errorEl) {
+-            errorEl.textContent = errorMessage || "";
+-        }
++    const calc = FuelCalc.computeReading(st.geo, st.method, input.value, unitEl.value);
++    if (!calc.ok) {
++        showMessage(calc.error, "error");
++        return;
++    }
+ 
+-        const requiredEl = document.getElementById("fuelRequired-" + tank.id);
++    if (calc.volumeL > st.nominalL + 0.5 &&
++        !window.confirm("الكمية المحسوبة (" + formatFuelNumber(calc.volumeL) + " لتر) تتجاوز السعة الاسمية (" +
++            formatFuelNumber(st.nominalL) + " لتر). هل أنت متأكد من القياس؟")) {
++        return;
++    }
+ 
+-        if (quantity === null || errorMessage) {
+-            if (requiredEl) requiredEl.textContent = "-";
+-            if (errorMessage) hasError = true;
+-            return;
++    const db = getFirestoreDB();
++    if (!db) return;
++
++    const def = st.def;
++    const parsed = FuelCalc.parseInput(input.value);
++    const who = fuelWho();
++    const reading = {
++        value: parsed.value,
++        unit: unitEl.value,
++        method: st.method,
++        levelM: calc.levelM,
++        volumeL: calc.volumeL,
++        geomCapacityL: calc.geomCapacityL
++    };
++    const prevVolume = st.status === "ok" ? st.volumeL : null;
++
++    fuelSaving = true;
++    const saveBtn = document.getElementById("fuelReadingSave");
++    if (saveBtn) saveBtn.disabled = true;
++
++    try {
++        const fs = await import(FUEL_FIRESTORE_URL);
++
++        // 1) آخر قراءة (merge: يحافظ على الحقول القديمة وعلى config)
++        await withFuelTimeout(fs.setDoc(fs.doc(db, FUEL_TANKS_COLLECTION, def.id), {
++            name: fuelTankFullName(def),
++            capacity: def.nominalL,
++            quantity: calc.volumeL,
++            reading: reading,
++            updatedAt: fs.serverTimestamp(),
++            updatedBy: who
++        }, { merge: true }), FUEL_SAVE_TIMEOUT_MS);
++
++        // حدّث الحالة المحلية فوراً (دون إعادة قراءة كل شيء)
++        const now = new Date();
++        fuelDocs[def.id] = Object.assign({}, fuelDocs[def.id], {
++            name: fuelTankFullName(def), capacity: def.nominalL, quantity: calc.volumeL,
++            reading: reading, updatedAt: now, updatedBy: who
++        });
++
++        // 2) سجل القراءات (إضافة فقط، لا حذف ولا استبدال)
++        const histEntry = {
++            tankId: def.id, tankNo: def.no, tankName: def.name,
++            value: reading.value, unit: reading.unit, method: reading.method,
++            levelM: reading.levelM, volumeL: reading.volumeL,
++            prevVolumeL: prevVolume,
++            deltaL: prevVolume === null ? null : Math.round((calc.volumeL - prevVolume) * 10) / 10,
++            createdBy: who
++        };
++        let historyOk = true;
++        try {
++            const ref = await withFuelTimeout(fs.addDoc(fs.collection(db, FUEL_READINGS_COLLECTION),
++                Object.assign({}, histEntry, { createdAt: fs.serverTimestamp() })), FUEL_SAVE_TIMEOUT_MS);
++            fuelHistory.unshift(Object.assign({ id: ref.id, createdAt: now }, histEntry));
++        } catch (historyError) {
++            historyOk = false;
++            console.error("تعذر تسجيل القراءة في السجل:", historyError);
+         }
+ 
+-        const required = tank.capacity - quantity;
+-        if (requiredEl) requiredEl.textContent = formatFuelLiters(required);
++        input.value = "";
++        showMessage(historyOk
++            ? "تم حفظ قراءة " + def.name + " بنجاح"
++            : "تم حفظ القراءة لكن تعذر تسجيلها في سجل القراءات (تحقق من نشر قواعد Firestore)",
++            historyOk ? "success" : "error");
+ 
+-        totalCurrent += quantity;
+-    });
++        fuelLastLoadAt = Date.now();
++        renderFuelDashboard();
++
++    } catch (error) {
++        handleFuelSaveError(error, "حفظ القراءة");
++        const b = document.getElementById("fuelReadingSave");
++        if (b) b.disabled = false;
++    } finally {
++        fuelSaving = false;
++    }
++}
+ 
+-    const totalCapacityEl = document.getElementById("fuelTotalCapacity");
+-    if (totalCapacityEl) totalCapacityEl.textContent = formatFuelLiters(FUEL_TANKS_TOTAL_CAPACITY);
++// ============================================================
++// سجل القراءات السابقة
++// ============================================================
++
++function renderFuelHistory() {
++    const box = document.getElementById("fuelHistory");
++    const filterEl = document.getElementById("fuelHistoryFilter");
++    if (!box) return;
++
++    if (filterEl && !filterEl.options.length) {
++        filterEl.innerHTML = '<option value="">كل الخزانات</option>' +
++            FUEL_TANKS_DEFINITIONS.map(function (d) {
++                return '<option value="' + d.id + '">' + escapeHTML(d.name) + '</option>';
++            }).join("");
++    }
++    const filter = filterEl ? filterEl.value : "";
+ 
+-    const totalCurrentEl = document.getElementById("fuelTotalCurrent");
+-    if (totalCurrentEl) totalCurrentEl.textContent = formatFuelLiters(totalCurrent);
++    if (fuelHistoryFailed) {
++        box.innerHTML = '<p class="fuel-muted">تعذر تحميل سجل القراءات. إن كان هذا أول استخدام، تأكد من نشر قواعد Firestore المحدّثة (firestore.rules).</p>';
++        return;
++    }
+ 
+-    const totalNeededEl = document.getElementById("fuelTotalNeeded");
+-    if (totalNeededEl) {
+-        totalNeededEl.textContent = formatFuelLiters(FUEL_TANKS_TOTAL_CAPACITY - totalCurrent);
++    const rows = fuelHistory.filter(function (h) { return !filter || h.tankId === filter; }).slice(0, FUEL_HISTORY_SHOWN);
++    if (!rows.length) {
++        box.innerHTML = '<p class="fuel-muted">لا توجد قراءات مسجلة في السجل بعد.</p>';
++        return;
+     }
+ 
+-    return !hasError;
++    const body = rows.map(function (h) {
++        const methodLabel = FuelCalc.METHODS[h.method] ? FuelCalc.METHODS[h.method].short : "—";
++        const delta = typeof h.deltaL === "number"
++            ? '<span class="' + (h.deltaL > 0 ? "fuel-up" : h.deltaL < 0 ? "fuel-down" : "") + '">' +
++              (h.deltaL > 0 ? "+" : h.deltaL < 0 ? "−" : "") + formatFuelNumber(Math.abs(h.deltaL)) + ' لتر</span>'
++            : '<span class="fuel-muted">—</span>';
++        return '<tr>' +
++            '<td data-label="التاريخ والوقت">' + escapeHTML(formatFuelDateTime(h.createdAt)) + '</td>' +
++            '<td data-label="الخزان">' + escapeHTML(h.tankName || h.tankId) + '</td>' +
++            '<td data-label="القراءة">' + escapeHTML(h.value) + ' ' + fuelUnitLabel(h.unit) + '</td>' +
++            '<td data-label="طريقة القياس">' + escapeHTML(methodLabel) + '</td>' +
++            '<td data-label="ارتفاع الكاز">' + (typeof h.levelM === "number" ? (Math.round(h.levelM * 1000) / 10) + " سم" : "—") + '</td>' +
++            '<td data-label="الكمية">' + (typeof h.volumeL === "number" ? formatFuelLiters(h.volumeL) : "—") + '</td>' +
++            '<td data-label="الفرق عن السابقة">' + delta + '</td>' +
++            '<td data-label="أدخلها">' + escapeHTML(h.createdBy || "—") + '</td>' +
++        '</tr>';
++    }).join("");
++
++    box.innerHTML =
++        '<div class="fuel-table-wrap"><table class="fuel-table">' +
++        '<thead><tr><th>التاريخ والوقت</th><th>الخزان</th><th>القراءة</th><th>طريقة القياس</th><th>ارتفاع الكاز</th><th>الكمية</th><th>الفرق عن السابقة</th><th>أدخلها</th></tr></thead>' +
++        '<tbody>' + body + '</tbody></table></div>' +
++        (fuelHistory.length >= FUEL_HISTORY_LIMIT || rows.length >= FUEL_HISTORY_SHOWN
++            ? '<p class="fuel-muted">يعرض آخر ' + FUEL_HISTORY_SHOWN + ' قراءة (السجل الكامل محفوظ في قاعدة البيانات).</p>' : '');
+ }
+ 
+ // ============================================================
+-// حفظ كمية خزان واحد في Firestore (يتطلب تسجيل الدخول)
++// إعدادات التنبيهات (حدود قابلة للتعديل)
+ // ============================================================
+ 
+-async function saveFuelTankQuantity(tankId) {
+-    if (!requireLoginForWrite(function () { saveFuelTankQuantity(tankId); })) return;
++function fillFuelSettingsForm() {
++    const map = {
++        fuelSetLow: "lowPercent", fuelSetHigh: "highPercent",
++        fuelSetStale: "staleDays", fuelSetGeom: "geometryDiffPercent"
++    };
++    Object.keys(map).forEach(function (id) {
++        const el = document.getElementById(id);
++        if (el && document.activeElement !== el) el.value = fuelSettings[map[id]];
++    });
++}
+ 
+-    const tank = FUEL_TANKS_DEFINITIONS.find(function (t) { return t.id === tankId; });
+-    if (!tank) return;
++async function saveFuelSettings() {
++    if (!requireLoginForWrite(function () { saveFuelSettings(); })) return;
++    if (!fuelEngineReady()) return;
+ 
+-    const quantity = getFuelTankInputQuantity(tankId);
++    const read = function (id) {
++        const el = document.getElementById(id);
++        const p = el ? FuelCalc.parseInput(el.value) : { ok: false };
++        return p.ok ? p.value : NaN;
++    };
++    const next = {
++        lowPercent: read("fuelSetLow"), highPercent: read("fuelSetHigh"),
++        staleDays: read("fuelSetStale"), geometryDiffPercent: read("fuelSetGeom")
++    };
+ 
+-    if (quantity === null) {
+-        showMessage("يرجى إدخال الكمية أولاً", "error");
++    if (Object.keys(next).some(function (k) { return !isFinite(next[k]); })) {
++        showMessage("أدخل قيماً رقمية صحيحة في كل حقول الإعدادات", "error");
+         return;
+     }
+-
+-    const errorMessage = validateFuelTankQuantity(tankId, quantity);
+-    if (errorMessage) {
+-        showMessage(errorMessage, "error");
++    if (next.lowPercent > 100 || next.highPercent > 100 || next.lowPercent >= next.highPercent) {
++        showMessage("حد الانخفاض يجب أن يكون أقل من حد قرب الامتلاء، وكلاهما بين 0 و100", "error");
+         return;
+     }
+ 
+@@ -6687,24 +7316,13 @@ async function saveFuelTankQuantity(tankId) {
+     if (!db) return;
+ 
+     try {
+-        const { doc, setDoc, serverTimestamp } = await import(
+-            "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js"
+-        );
+-
+-        await setDoc(doc(db, FUEL_TANKS_COLLECTION, tankId), {
+-            name: tank.name,
+-            capacity: tank.capacity,
+-            quantity: quantity,
+-            updatedAt: serverTimestamp()
+-        });
+-
+-        showMessage("تم حفظ كمية " + tank.name + " بنجاح");
+-
+-        await getFuelTanks();
+-
++        const fs = await import(FUEL_FIRESTORE_URL);
++        await withFuelTimeout(fs.setDoc(fs.doc(db, FUEL_TANKS_COLLECTION, FUEL_SETTINGS_DOC_ID), next, { merge: true }), FUEL_SAVE_TIMEOUT_MS);
++        fuelSettings = FuelCalc.mergeSettings(next);
++        showMessage("تم حفظ إعدادات التنبيهات");
++        renderFuelDashboard();
+     } catch (error) {
+-        console.error("خطأ حفظ خزان الكاز:", error);
+-        showMessage("حدث خطأ أثناء حفظ الكمية: " + (error.code || error.message || "خطأ غير معروف"), "error");
++        handleFuelSaveError(error, "حفظ الإعدادات");
+     }
+ }
+ 
+diff --git a/tests/fuel-calc.test.js b/tests/fuel-calc.test.js
+new file mode 100644
+index 0000000..ead6785
+--- /dev/null
++++ b/tests/fuel-calc.test.js
+@@ -0,0 +1,177 @@
++// تشغيل: node tests/fuel-calc.test.js
++const assert = require("assert");
++const F = require("../fuel-calc.js");
++
++let passed = 0;
++function t(name, fn) {
++  try { fn(); passed++; console.log("  ✓", name); }
++  catch (e) { console.error("  ✗", name, "\n   ", e.message); process.exitCode = 1; }
++}
++const near = (a, b, tol, msg) => assert.ok(Math.abs(a - b) <= tol, (msg || "") + ` expected ${b}±${tol}, got ${a}`);
++const def = (id) => F.DEFINITIONS.find((d) => d.id === id);
++const geo38 = def("hospitalGenerator"), geoComplex = def("complexGenerator"), geoRect = def("boiler1");
++
++console.log("التعريفات");
++t("الإجمالي الاسمي 86,000 لتر وسبعة خزانات", () => {
++  assert.strictEqual(F.TOTAL_NOMINAL_L, 86000);
++  assert.strictEqual(F.DEFINITIONS.length, 7);
++  assert.deepStrictEqual(F.DEFINITIONS.map((d) => d.no), [1, 2, 3, 4, 5, 6, 7]);
++});
++t("المعرّفات القديمة محفوظة", () => {
++  ["hospitalGenerator", "complexGenerator", "boiler1", "boiler2"].forEach((id) => assert.ok(def(id), id));
++});
++
++console.log("أسطواني أفقي — خزان 38,000 (L=7.75, D=2.5)");
++t("السعة الهندسية ≈ 38,043 لتر", () => near(F.geometricCapacityL(geo38), 38043, 1));
++t("h=0 → 0", () => assert.strictEqual(F.cylinderVolumeL(7.75, 2.5, 0), 0));
++t("h=r → نصف الحجم", () => near(F.cylinderVolumeL(7.75, 2.5, 1.25), F.geometricCapacityL(geo38) / 2, 0.01));
++t("h=D → الحجم الكامل", () => near(F.cylinderVolumeL(7.75, 2.5, 2.5), F.geometricCapacityL(geo38), 0.01));
++t("المسافة = القطر → فارغ", () => {
++  const r = F.computeReading(geo38, "top_distance", "250", "cm");
++  assert.ok(r.ok); assert.strictEqual(r.volumeL, 0); assert.strictEqual(r.levelM, 0);
++});
++t("المسافة = 0 → ممتلئ هندسياً", () => {
++  const r = F.computeReading(geo38, "top_distance", "0", "cm");
++  assert.ok(r.ok); near(r.volumeL, 38043, 1); near(r.levelM, 2.5, 1e-9);
++});
++t("المسافة 125 سم → h = 1.25 م ونصف الحجم", () => {
++  const r = F.computeReading(geo38, "top_distance", "125", "cm");
++  near(r.levelM, 1.25, 1e-9); near(r.volumeL, 19021.5, 1);
++});
++t("اللاخطية: ربع الارتفاع ≠ ربع الحجم", () => {
++  const r = F.computeReading(geo38, "top_distance", "187.5", "cm"); // h = 0.625
++  assert.ok(Math.abs(r.volumeL / 38043 - 0.25) > 0.02);
++  // قيمة مرجعية محسوبة بتكامل عددي مستقل (انظر اختبار التكامل أدناه)
++  let area = 0; const n = 400000, rr = 1.25, h = 0.625;
++  for (let i = 0; i < n; i++) { const y = (i + 0.5) / n * h; area += 2 * Math.sqrt(Math.max(0, rr * rr - (rr - y) ** 2)) * (h / n); }
++  near(r.volumeL, 7.75 * area * 1000, 0.5);
++});
++t("التطابق مع تكامل عددي", () => {
++  const L = 7.75, r = 1.25, h = 0.9; let area = 0; const n = 200000;
++  for (let i = 0; i < n; i++) { const y = (i + 0.5) / n * h; area += 2 * Math.sqrt(Math.max(0, r * r - (r - y) ** 2)) * (h / n); }
++  near(F.cylinderVolumeL(L, 2.5, h), L * area * 1000, 0.5);
++});
++t("الحجم متزايد رتيباً مع الارتفاع", () => {
++  let prev = -1; for (let h = 0; h <= 2.5; h += 0.05) { const v = F.cylinderVolumeL(7.75, 2.5, h); assert.ok(v >= prev); prev = v; }
++});
++
++console.log("أسطواني أفقي — المجمع (L=3.2, D=2.3)");
++t("السعة الهندسية ≈ 13,295 لتر (π·1.15²·3.2؛ الرقم المذكور 13,294 تقريبي)", () => near(F.geometricCapacityL(geoComplex), 13295.2, 0.5));
++t("المسافة من الأعلى: h = 2.3 − d", () => {
++  const r = F.computeReading(geoComplex, "top_distance", "115", "cm");
++  near(r.levelM, 1.15, 1e-9); near(r.volumeL, F.geometricCapacityL(geoComplex) / 2, 1);
++});
++t("إذا كانت القراءة ارتفاعاً مباشراً لا تُطرح من القطر", () => {
++  const r = F.computeReading(geoComplex, "level_height", "115", "cm");
++  near(r.levelM, 1.15, 1e-9);
++});
++
++console.log("مستطيل — 3×3×1.5");
++t("السعة 13,500", () => assert.strictEqual(F.geometricCapacityL(geoRect), 13500));
++t("h=0 → 0", () => assert.strictEqual(F.computeReading(geoRect, "level_height", "0", "cm").volumeL, 0));
++t("h=1.5 م → 13,500", () => assert.strictEqual(F.computeReading(geoRect, "level_height", "150", "cm").volumeL, 13500));
++t("خطي: 75 سم → 6,750", () => assert.strictEqual(F.computeReading(geoRect, "level_height", "75", "cm").volumeL, 6750));
++t("خطي: 30 سم = ٢× 15 سم", () => {
++  const a = F.computeReading(geoRect, "level_height", "15", "cm").volumeL;
++  const b = F.computeReading(geoRect, "level_height", "30", "cm").volumeL;
++  assert.strictEqual(b, 2 * a);
++});
++
++console.log("الإدخال والتحقق");
++t("سنتيمتر ومتر يعطيان النتيجة نفسها", () => {
++  const a = F.computeReading(geoRect, "level_height", "75", "cm");
++  const b = F.computeReading(geoRect, "level_height", "0.75", "m");
++  assert.strictEqual(a.volumeL, b.volumeL);
++});
++t("قيمة سالبة مرفوضة", () => assert.ok(!F.computeReading(geoRect, "level_height", "-5", "cm").ok));
++t("أكبر من الحد مرفوضة (رتفاع)", () => assert.ok(!F.computeReading(geoRect, "level_height", "151", "cm").ok));
++t("أكبر من القطر مرفوضة (مسافة)", () => assert.ok(!F.computeReading(geo38, "top_distance", "251", "cm").ok));
++t("خطأ الوحدة (150 متر) مرفوض برسالة", () => {
++  const r = F.computeReading(geoRect, "level_height", "150", "m");
++  assert.ok(!r.ok); assert.ok(/خارج الحدود/.test(r.error));
++});
++t("حقل فارغ", () => { assert.ok(!F.computeReading(geoRect, "level_height", "", "cm").ok); assert.ok(!F.computeReading(geoRect, "level_height", null, "cm").ok); });
++t("قيم غير رقمية", () => ["abc", "12x", "1e3", "NaN", "Infinity", "--5"].forEach((v) => assert.ok(!F.computeReading(geoRect, "level_height", v, "cm").ok, v)));
++t("أرقام عربية وفاصلة عربية", () => {
++  assert.strictEqual(F.parseInput("٧٥").value, 75);
++  assert.strictEqual(F.parseInput("٧٥٫٥").value, 75.5);
++  assert.strictEqual(F.parseInput("75,5").value, 75.5);
++});
++t("هندسة ناقصة ← خطأ وليس رقماً", () => assert.ok(!F.computeReading(null, "top_distance", "10", "cm").ok));
++t("طريقة قياس غير معروفة", () => assert.ok(!F.computeReading(geoRect, "x", "10", "cm").ok));
++
++console.log("حالة الخزان والإجماليات");
++const now = new Date("2026-10-10T10:00:00Z");
++const S = F.DEFAULT_SETTINGS;
++const mk = (id, doc) => F.deriveTankState(def(id), doc, S, now);
++t("بلا وثيقة → no_reading (وليس صفراً)", () => {
++  const s = mk("hospitalGenerator", undefined);
++  assert.strictEqual(s.status, "no_reading"); assert.strictEqual(s.volumeL, null);
++});
++t("الخزانات 1-3 بلا أبعاد → no_geometry", () => ["tank1", "tank2", "tank3"].forEach((id) => assert.strictEqual(mk(id, {}).status, "no_geometry")));
++t("القيمة القديمة (لتر) للخزان 38,000 تُهمل", () => assert.strictEqual(mk("hospitalGenerator", { quantity: 20000 }).status, "no_reading"));
++t("القيمة القديمة للمجمع تُهمل", () => assert.strictEqual(mk("complexGenerator", { quantity: 9000 }).status, "no_reading"));
++t("القيمة القديمة للبويلر تُقبل كقراءة قديمة", () => {
++  const s = mk("boiler1", { quantity: 6750 });
++  assert.strictEqual(s.status, "ok"); assert.strictEqual(s.source, "legacy"); assert.strictEqual(s.volumeL, 6750); near(s.levelM, 0.75, 1e-9);
++});
++t("قيمة قديمة أكبر من السعة تُرفض", () => assert.strictEqual(mk("boiler1", { quantity: 20000 }).status, "no_reading"));
++t("قراءة جديدة تُعاد من القيمة الخام", () => {
++  const s = mk("hospitalGenerator", { reading: { value: 125, unit: "cm", method: "top_distance" }, updatedAt: new Date("2026-10-09T10:00:00Z") });
++  assert.strictEqual(s.status, "ok"); assert.strictEqual(s.source, "reading"); near(s.volumeL, 19021.5, 1);
++  near(s.emptyL, 38000 - 19021.5, 1); near(s.percent, 50.06, 0.01); assert.strictEqual(s.stale, false);
++});
++t("قراءة قديمة (> 7 أيام) = stale", () => {
++  const s = mk("boiler1", { reading: { value: 75, unit: "cm", method: "level_height" }, updatedAt: new Date("2026-10-01T00:00:00Z") });
++  assert.strictEqual(s.stale, true);
++});
++t("تجاوز السعة الاسمية يُظهر تنبيه error", () => {
++  const s = mk("hospitalGenerator", { reading: { value: 0, unit: "cm", method: "top_distance" } });
++  near(s.overflowL, 43, 1); assert.strictEqual(s.emptyL, 0);
++  assert.ok(F.buildAlerts([s], S, now).some((a) => a.code === "overflow" && a.level === "error"));
++});
++t("خزان بإعداد محفوظ (config) يعمل", () => {
++  const cfg = { shape: "rect", lengthM: 1, widthM: 1, heightM: 2, method: "level_height" };
++  const s = mk("tank3", { config: cfg, reading: { value: 100, unit: "cm", method: "level_height" } });
++  assert.strictEqual(s.status, "ok"); assert.strictEqual(s.volumeL, 1000);
++  assert.strictEqual(mk("tank3", { config: { shape: "rect", lengthM: 0, widthM: 1, heightM: 1, method: "level_height" } }).status, "no_geometry");
++});
++t("الإجمالي غير مكتمل لا يعتبر الناقص صفراً", () => {
++  const states = F.DEFINITIONS.map((d) => mk(d.id, d.id === "boiler1" ? { quantity: 6750 } : undefined));
++  const tot = F.computeTotals(states);
++  assert.strictEqual(tot.complete, false); assert.strictEqual(tot.countedCount, 1);
++  assert.strictEqual(tot.availableL, 6750); assert.strictEqual(tot.emptyL, 6750);
++  assert.strictEqual(tot.nominalL, 86000); assert.strictEqual(tot.missingIds.length, 6);
++  near(tot.percent, 50, 1e-9); assert.strictEqual(tot.percentBasis, "counted");
++});
++t("الإجمالي المكتمل: ÷ 86,000 والمتوفر + الفارغ = 86,000", () => {
++  const cfg = { shape: "rect", lengthM: 1, widthM: 1, heightM: 2, method: "level_height" };
++  const docs = {
++    tank1: { config: cfg, reading: { value: 100, unit: "cm", method: "level_height" } }, // نظرياً 1000 من 2000
++    tank2: { config: cfg, reading: { value: 100, unit: "cm", method: "level_height" } },
++    tank3: { config: { shape: "rect", lengthM: 2, widthM: 1, heightM: 2, method: "level_height" }, reading: { value: 100, unit: "cm", method: "level_height" } },
++    hospitalGenerator: { reading: { value: 125, unit: "cm", method: "top_distance" } },
++    complexGenerator: { reading: { value: 115, unit: "cm", method: "top_distance" } },
++    boiler1: { reading: { value: 75, unit: "cm", method: "level_height" } },
++    boiler2: { reading: { value: 75, unit: "cm", method: "level_height" } }
++  };
++  const states = F.DEFINITIONS.map((d) => mk(d.id, docs[d.id]));
++  states.forEach((s) => assert.strictEqual(s.status, "ok", s.id));
++  const tot = F.computeTotals(states);
++  assert.strictEqual(tot.complete, true);
++  near(tot.availableL + tot.emptyL, 86000, 0.5);
++  near(tot.percent, tot.availableL / 86000 * 100, 1e-9); assert.strictEqual(tot.percentBasis, "all");
++});
++t("تنبيهات: منخفض/مرتفع/اختلاف هندسي", () => {
++  const low = mk("boiler1", { reading: { value: 15, unit: "cm", method: "level_height" }, updatedAt: now });
++  const high = mk("boiler2", { reading: { value: 145, unit: "cm", method: "level_height" }, updatedAt: now });
++  const cx = mk("complexGenerator", { reading: { value: 115, unit: "cm", method: "top_distance" }, updatedAt: now });
++  const codes = F.buildAlerts([low, high, cx], S, now).map((a) => a.code);
++  assert.ok(codes.includes("low")); assert.ok(codes.includes("high")); assert.ok(codes.includes("geom_diff"));
++});
++t("الإعدادات: قيم غير صالحة ترجع للافتراضي", () => {
++  const m = F.mergeSettings({ lowPercent: "x", highPercent: 80, staleDays: -1 });
++  assert.strictEqual(m.lowPercent, 20); assert.strictEqual(m.highPercent, 80); assert.strictEqual(m.staleDays, 7);
++});
++
++console.log(`\n${passed} اختباراً نجح` + (process.exitCode ? " — مع إخفاقات" : ""));
+-- 
+2.43.0
+
