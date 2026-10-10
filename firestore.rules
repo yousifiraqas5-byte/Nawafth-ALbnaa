@@ -86,6 +86,13 @@ service cloud.firestore {
       allow write: if isSignedIn();
     }
 
+    // سجل قراءات خزانات الكاز (إضافة فقط: لا تعديل ولا حذف حتى يبقى السجل التاريخي سليماً)
+    match /fuelTankReadings/{documentId} {
+      allow read: if true;
+      allow create: if isSignedIn();
+      allow update, delete: if false;
+    }
+
     // مواقع الأجهزة الطبية (Location) — تُنشأ تلقائياً عند أول حفظ
     match /medical_locations/{documentId} {
       allow read: if true;
