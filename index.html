@@ -1928,6 +1928,8 @@ content="default"
     #fuelTanksPage .fuel-tank-header-text { flex: 1; min-width: 0; }
     #fuelTanksPage .fuel-tank-name { font-size: 17px; font-weight: 800; color: var(--fuel-text); }
     #fuelTanksPage .fuel-tank-note { font-size: 12.5px; color: var(--fuel-muted); margin-top: 1px; }
+    #fuelTanksPage .fuel-tank-capline { font-size: 13px; color: var(--fuel-muted); margin-top: 3px; }
+    #fuelTanksPage .fuel-tank-capline b { color: var(--fuel-text); font-weight: 800; }
 
     #fuelTanksPage .fuel-badge { font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; white-space: nowrap; background: #f3f4f6; color: #374151; }
     #fuelTanksPage .fuel-badge.is-low { background: #fee2e2; color: #991b1b; }
@@ -1993,6 +1995,10 @@ content="default"
     #fuelTanksPage .fuel-table th { background: #f1f5f9; color: #334155; font-weight: 800; text-align: start; padding: 10px 12px; white-space: nowrap; }
     #fuelTanksPage .fuel-table td { padding: 9px 12px; border-top: 1px solid #eef2f7; color: var(--fuel-text); }
     #fuelTanksPage .fuel-table tfoot td { background: #f0fdf4; font-weight: 800; border-top: 2px solid #86efac; }
+    #fuelTanksPage .fuel-move { font-weight: 700; white-space: nowrap; color: var(--fuel-muted); }
+    #fuelTanksPage .fuel-move.is-up { color: #166534; }
+    #fuelTanksPage .fuel-move.is-down { color: #b91c1c; }
+    #fuelTanksPage .fuel-move.is-first { color: #2554a6; }
     #fuelTanksPage .fuel-up { color: #166534; font-weight: 700; }
     #fuelTanksPage .fuel-down { color: #b91c1c; font-weight: 700; }
     #fuelTanksPage .fuel-history-filter { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
@@ -4318,7 +4324,7 @@ content="default"
 </section>
 
 <section class="fuel-section">
-  <h3 class="fuel-section-title">سجل القراءات السابقة</h3>
+  <h3 class="fuel-section-title">سجل الحركات</h3>
   <div class="fuel-history-filter">
     <label for="fuelHistoryFilter" class="fuel-muted">الخزان:</label>
     <select id="fuelHistoryFilter" onchange="renderFuelHistory()"></select>

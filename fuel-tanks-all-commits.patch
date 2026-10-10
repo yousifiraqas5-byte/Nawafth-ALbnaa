@@ -1,7 +1,7 @@
 From d8b9d9c9d5cea41aec19a1945d16b5b1480fb394 Mon Sep 17 00:00:00 2001
 From: Claude <noreply@anthropic.com>
 Date: Sat, 10 Oct 2026 09:16:30 +0300
-Subject: [PATCH 1/5] Rebuild fuel tanks section as an engineering dashboard (7
+Subject: [PATCH 1/8] Rebuild fuel tanks section as an engineering dashboard (7
  tanks)
 
 - fuel-calc.js: tested geometry engine (horizontal cylinder / rectangular)
@@ -2267,7 +2267,7 @@ index 0000000..ead6785
 From a281c4d983b62d4ce7bb5b712c680e0d4ba488a6 Mon Sep 17 00:00:00 2001
 From: Claude <noreply@anthropic.com>
 Date: Sat, 10 Oct 2026 13:05:09 +0300
-Subject: [PATCH 2/5] Add dimensions for fuel tanks 1-3
+Subject: [PATCH 2/8] Add dimensions for fuel tanks 1-3
 
 - tanks 1 and 2: 1 x 1 x 2 m (2,000 L); tank 3: 2 x 1 x 2 m (4,000 L)
 - measurement method assumed: liquid height from the bottom (needs confirmation)
@@ -2379,7 +2379,7 @@ index ead6785..1fa82c0 100644
 From 64f279e8ace1347565bec8fd98a573704c238c83 Mon Sep 17 00:00:00 2001
 From: Claude <noreply@anthropic.com>
 Date: Sat, 10 Oct 2026 13:08:05 +0300
-Subject: [PATCH 3/5] Treat fuel tanks 1-3 as always full
+Subject: [PATCH 3/8] Treat fuel tanks 1-3 as always full
 
 - alwaysFull flag: fixed quantity = nominal capacity (8,000 L total), no readings, no alerts
 - reading panel explains why; tanks still count toward totals (7 of 7)
@@ -2571,7 +2571,7 @@ index 1fa82c0..003d029 100644
 From ae45d0a05edb377c1d2990167b9a6d83d1330b70 Mon Sep 17 00:00:00 2001
 From: Claude <noreply@anthropic.com>
 Date: Sat, 10 Oct 2026 13:32:37 +0300
-Subject: [PATCH 4/5] Simplify tank cards and move tanks 1-3 to the end
+Subject: [PATCH 4/8] Simplify tank cards and move tanks 1-3 to the end
 
 - cards show only total capacity (details hidden)
 - display order: tanks 4,5,6,7 then 1,2,3 (numbers/names unchanged)
@@ -2711,7 +2711,7 @@ index 003d029..456d292 100644
 From ea20332d1758897b81f9f0e3bf9486354398bc08 Mon Sep 17 00:00:00 2001
 From: Claude <noreply@anthropic.com>
 Date: Sat, 10 Oct 2026 13:34:37 +0300
-Subject: [PATCH 5/5] Renumber tanks: big tanks 1-4, small always-full tanks
+Subject: [PATCH 5/8] Renumber tanks: big tanks 1-4, small always-full tanks
  5-7
 
 - history shows tank names from tank id so old entries follow the new numbering
@@ -2842,6 +2842,243 @@ index 456d292..ea772be 100644
    assert.strictEqual(F.computeReading(F.getGeometry(def("tank3")), "level_height", "100", "cm").volumeL, 2000);
    assert.strictEqual(F.computeReading(F.getGeometry(def("tank3")), "level_height", "200", "cm").volumeL, 4000);
  });
+-- 
+2.43.0
+
+
+From 97e56c9a777d701aa7a355e0402c14665c56f3a5 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 10 Oct 2026 13:39:17 +0300
+Subject: [PATCH 6/8] Card header: full tank name with total capacity beside it
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- title = tank number + description (e.g. tank 1 — large diesel tank)
+- total capacity shown under the name; details row removed
+
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_013dGGq9Dw7dMGkWFuLFBhLC
+---
+ index.html | 2 ++
+ script.js  | 8 +++-----
+ 2 files changed, 5 insertions(+), 5 deletions(-)
+
+diff --git a/index.html b/index.html
+index 77f6c6b..73cc03a 100644
+--- a/index.html
++++ b/index.html
+@@ -1928,6 +1928,8 @@ content="default"
+     #fuelTanksPage .fuel-tank-header-text { flex: 1; min-width: 0; }
+     #fuelTanksPage .fuel-tank-name { font-size: 17px; font-weight: 800; color: var(--fuel-text); }
+     #fuelTanksPage .fuel-tank-note { font-size: 12.5px; color: var(--fuel-muted); margin-top: 1px; }
++    #fuelTanksPage .fuel-tank-capline { font-size: 13px; color: var(--fuel-muted); margin-top: 3px; }
++    #fuelTanksPage .fuel-tank-capline b { color: var(--fuel-text); font-weight: 800; }
+ 
+     #fuelTanksPage .fuel-badge { font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; white-space: nowrap; background: #f3f4f6; color: #374151; }
+     #fuelTanksPage .fuel-badge.is-low { background: #fee2e2; color: #991b1b; }
+diff --git a/script.js b/script.js
+index 46116ff..6363b99 100644
+--- a/script.js
++++ b/script.js
+@@ -6785,8 +6785,8 @@ function renderFuelTanksCards(statesArg) {
+             '<div class="fuel-tank-card-header">' +
+                 '<span class="fuel-tank-no">' + def.no + '</span>' +
+                 '<div class="fuel-tank-header-text">' +
+-                    '<div class="fuel-tank-name">' + escapeHTML(def.name) + '</div>' +
+-                    (def.note ? '<div class="fuel-tank-note">' + escapeHTML(def.note) + '</div>' : '') +
++                    '<div class="fuel-tank-name">' + escapeHTML(fuelTankFullName(def)) + '</div>' +
++                    '<div class="fuel-tank-capline">السعة الكلية: <b>' + formatFuelLiters(st.nominalL) + '</b></div>' +
+                 '</div>' +
+                 '<span class="fuel-badge is-' + statusClass + '">' + escapeHTML(statusLabel) + '</span>' +
+             '</div>' +
+@@ -6803,9 +6803,7 @@ function renderFuelTanksCards(statesArg) {
+                 '</div>' +
+             '</div>' +
+ 
+-            '<dl class="fuel-tank-meta">' +
+-                '<div><dt>السعة الكلية</dt><dd>' + formatFuelLiters(st.nominalL) + '</dd></div>' +
+-            '</dl>' +
++
+ 
+             (st.overflowL > 0
+                 ? '<div class="fuel-card-warn">⛔ الكمية المحسوبة تتجاوز السعة الاسمية بمقدار ' + formatFuelNumber(st.overflowL) + ' لتر — تحقق من القياس أو المعايرة</div>'
+-- 
+2.43.0
+
+
+From 7153a590e18de12037658d00d890c2584bd00526 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 10 Oct 2026 13:39:42 +0300
+Subject: [PATCH 7/8] =?UTF-8?q?Summary=20card=20label:=20=D8=A7=D9=84?=
+ =?UTF-8?q?=D8=B3=D8=B9=D8=A9=20=D8=A7=D9=84=D8=AE=D8=A7=D9=84=D9=8A=D8=A9?=
+ =?UTF-8?q?=20instead=20of=20=D8=A7=D9=84=D9=83=D8=A7=D8=B2=20=D8=A7=D9=84?=
+ =?UTF-8?q?=D9=81=D8=A7=D8=B1=D8=BA?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_013dGGq9Dw7dMGkWFuLFBhLC
+---
+ script.js | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/script.js b/script.js
+index 6363b99..8ee5ced 100644
+--- a/script.js
++++ b/script.js
+@@ -6615,7 +6615,7 @@ function renderFuelSummary(totals) {
+             '<span class="fuel-sum-value">' + availableText + mark + '<small>لتر</small></span>' +
+         '</div>' +
+         '<div class="fuel-sum-card is-empty">' +
+-            '<span class="fuel-sum-label">📉 الكاز الفارغ</span>' +
++            '<span class="fuel-sum-label">📉 السعة الخالية</span>' +
+             '<span class="fuel-sum-value">' + emptyText + mark + '<small>لتر</small></span>' +
+         '</div>' +
+         '<div class="fuel-sum-card is-capacity">' +
+-- 
+2.43.0
+
+
+From b3a9b646d175af256d916e854010fcb48624e1ee Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 10 Oct 2026 13:41:52 +0300
+Subject: [PATCH 8/8] Turn readings history into a movements log
+
+- columns: date/time, tank, entered reading, previous qty, movement (+/-), qty after, entered by
+- first reading labelled, increases/decreases colored
+
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_013dGGq9Dw7dMGkWFuLFBhLC
+---
+ index.html |  6 +++++-
+ script.js  | 48 ++++++++++++++++++++++++++++++------------------
+ 2 files changed, 35 insertions(+), 19 deletions(-)
+
+diff --git a/index.html b/index.html
+index 73cc03a..f9b7e91 100644
+--- a/index.html
++++ b/index.html
+@@ -1995,6 +1995,10 @@ content="default"
+     #fuelTanksPage .fuel-table th { background: #f1f5f9; color: #334155; font-weight: 800; text-align: start; padding: 10px 12px; white-space: nowrap; }
+     #fuelTanksPage .fuel-table td { padding: 9px 12px; border-top: 1px solid #eef2f7; color: var(--fuel-text); }
+     #fuelTanksPage .fuel-table tfoot td { background: #f0fdf4; font-weight: 800; border-top: 2px solid #86efac; }
++    #fuelTanksPage .fuel-move { font-weight: 700; white-space: nowrap; color: var(--fuel-muted); }
++    #fuelTanksPage .fuel-move.is-up { color: #166534; }
++    #fuelTanksPage .fuel-move.is-down { color: #b91c1c; }
++    #fuelTanksPage .fuel-move.is-first { color: #2554a6; }
+     #fuelTanksPage .fuel-up { color: #166534; font-weight: 700; }
+     #fuelTanksPage .fuel-down { color: #b91c1c; font-weight: 700; }
+     #fuelTanksPage .fuel-history-filter { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+@@ -4320,7 +4324,7 @@ content="default"
+ </section>
+ 
+ <section class="fuel-section">
+-  <h3 class="fuel-section-title">سجل القراءات السابقة</h3>
++  <h3 class="fuel-section-title">سجل الحركات</h3>
+   <div class="fuel-history-filter">
+     <label for="fuelHistoryFilter" class="fuel-muted">الخزان:</label>
+     <select id="fuelHistoryFilter" onchange="renderFuelHistory()"></select>
+diff --git a/script.js b/script.js
+index 8ee5ced..f1d32f6 100644
+--- a/script.js
++++ b/script.js
+@@ -6559,7 +6559,7 @@ async function getFuelTanks(force) {
+             fuelHistory = rows;
+             fuelHistoryFailed = false;
+         } catch (historyError) {
+-            console.error("تعذر تحميل سجل قراءات الخزانات:", historyError);
++            console.error("تعذر تحميل سجل حركات الخزانات:", historyError);
+             fuelHistoryFailed = true;
+         }
+ 
+@@ -7200,7 +7200,7 @@ async function saveFuelReading() {
+         input.value = "";
+         showMessage(historyOk
+             ? "تم حفظ قراءة " + def.name + " بنجاح"
+-            : "تم حفظ القراءة لكن تعذر تسجيلها في سجل القراءات (تحقق من نشر قواعد Firestore)",
++            : "تم حفظ القراءة لكن تعذر تسجيلها في سجل الحركات (تحقق من نشر قواعد Firestore)",
+             historyOk ? "success" : "error");
+ 
+         fuelLastLoadAt = Date.now();
+@@ -7216,7 +7216,7 @@ async function saveFuelReading() {
+ }
+ 
+ // ============================================================
+-// سجل القراءات السابقة
++// سجل الحركات (القراءات السابقة)
+ // ============================================================
+ 
+ function renderFuelHistory() {
+@@ -7233,40 +7233,52 @@ function renderFuelHistory() {
+     const filter = filterEl ? filterEl.value : "";
+ 
+     if (fuelHistoryFailed) {
+-        box.innerHTML = '<p class="fuel-muted">تعذر تحميل سجل القراءات. إن كان هذا أول استخدام، تأكد من نشر قواعد Firestore المحدّثة (firestore.rules).</p>';
++        box.innerHTML = '<p class="fuel-muted">تعذر تحميل سجل الحركات. إن كان هذا أول استخدام، تأكد من نشر قواعد Firestore المحدّثة (firestore.rules).</p>';
+         return;
+     }
+ 
+     const rows = fuelHistory.filter(function (h) { return !filter || h.tankId === filter; }).slice(0, FUEL_HISTORY_SHOWN);
+     if (!rows.length) {
+-        box.innerHTML = '<p class="fuel-muted">لا توجد قراءات مسجلة في السجل بعد.</p>';
++        box.innerHTML = '<p class="fuel-muted">لا توجد حركات مسجلة بعد. كل قراءة تُدخلها ستظهر هنا بتاريخها ووقتها.</p>';
+         return;
+     }
+ 
+     const body = rows.map(function (h) {
+-        const methodLabel = FuelCalc.METHODS[h.method] ? FuelCalc.METHODS[h.method].short : "—";
+-        const delta = typeof h.deltaL === "number"
+-            ? '<span class="' + (h.deltaL > 0 ? "fuel-up" : h.deltaL < 0 ? "fuel-down" : "") + '">' +
+-              (h.deltaL > 0 ? "+" : h.deltaL < 0 ? "−" : "") + formatFuelNumber(Math.abs(h.deltaL)) + ' لتر</span>'
+-            : '<span class="fuel-muted">—</span>';
++        const methodLabel = FuelCalc.METHODS[h.method] ? FuelCalc.METHODS[h.method].short : "";
++        const name = (fuelFindDef(h.tankId) || {}).name || h.tankName || h.tankId;
++
++        // الحركة: الفرق بين هذه القراءة والتي قبلها
++        let movement;
++        if (typeof h.deltaL !== "number") {
++            movement = '<span class="fuel-move is-first">أول قراءة</span>';
++        } else if (h.deltaL > 0) {
++            movement = '<span class="fuel-move is-up">▲ زيادة +' + formatFuelNumber(h.deltaL) + ' لتر</span>';
++        } else if (h.deltaL < 0) {
++            movement = '<span class="fuel-move is-down">▼ نقص −' + formatFuelNumber(Math.abs(h.deltaL)) + ' لتر</span>';
++        } else {
++            movement = '<span class="fuel-move">بلا تغيير</span>';
++        }
++
++        const readingText = escapeHTML(h.value) + ' ' + fuelUnitLabel(h.unit) +
++            (methodLabel ? ' <span class="fuel-muted">(' + escapeHTML(methodLabel) + ')</span>' : '');
++
+         return '<tr>' +
+             '<td data-label="التاريخ والوقت">' + escapeHTML(formatFuelDateTime(h.createdAt)) + '</td>' +
+-            '<td data-label="الخزان">' + escapeHTML((fuelFindDef(h.tankId) || {}).name || h.tankName || h.tankId) + '</td>' +
+-            '<td data-label="القراءة">' + escapeHTML(h.value) + ' ' + fuelUnitLabel(h.unit) + '</td>' +
+-            '<td data-label="طريقة القياس">' + escapeHTML(methodLabel) + '</td>' +
+-            '<td data-label="ارتفاع الكاز">' + (typeof h.levelM === "number" ? (Math.round(h.levelM * 1000) / 10) + " سم" : "—") + '</td>' +
+-            '<td data-label="الكمية">' + (typeof h.volumeL === "number" ? formatFuelLiters(h.volumeL) : "—") + '</td>' +
+-            '<td data-label="الفرق عن السابقة">' + delta + '</td>' +
++            '<td data-label="الخزان">' + escapeHTML(name) + '</td>' +
++            '<td data-label="القراءة المُدخلة">' + readingText + '</td>' +
++            '<td data-label="الكمية السابقة">' + (typeof h.prevVolumeL === "number" ? formatFuelLiters(h.prevVolumeL) : '<span class="fuel-muted">—</span>') + '</td>' +
++            '<td data-label="الحركة">' + movement + '</td>' +
++            '<td data-label="الكمية بعد القراءة"><b>' + (typeof h.volumeL === "number" ? formatFuelLiters(h.volumeL) : "—") + '</b></td>' +
+             '<td data-label="أدخلها">' + escapeHTML(h.createdBy || "—") + '</td>' +
+         '</tr>';
+     }).join("");
+ 
+     box.innerHTML =
+         '<div class="fuel-table-wrap"><table class="fuel-table">' +
+-        '<thead><tr><th>التاريخ والوقت</th><th>الخزان</th><th>القراءة</th><th>طريقة القياس</th><th>ارتفاع الكاز</th><th>الكمية</th><th>الفرق عن السابقة</th><th>أدخلها</th></tr></thead>' +
++        '<thead><tr><th>التاريخ والوقت</th><th>الخزان</th><th>القراءة المُدخلة</th><th>الكمية السابقة</th><th>الحركة</th><th>الكمية بعد القراءة</th><th>أدخلها</th></tr></thead>' +
+         '<tbody>' + body + '</tbody></table></div>' +
+         (fuelHistory.length >= FUEL_HISTORY_LIMIT || rows.length >= FUEL_HISTORY_SHOWN
+-            ? '<p class="fuel-muted">يعرض آخر ' + FUEL_HISTORY_SHOWN + ' قراءة (السجل الكامل محفوظ في قاعدة البيانات).</p>' : '');
++            ? '<p class="fuel-muted">يعرض آخر ' + FUEL_HISTORY_SHOWN + ' حركة (السجل الكامل محفوظ في قاعدة البيانات).</p>' : '');
+ }
+ 
+ // ============================================================
 -- 
 2.43.0
 

@@ -6559,7 +6559,7 @@ async function getFuelTanks(force) {
             fuelHistory = rows;
             fuelHistoryFailed = false;
         } catch (historyError) {
-            console.error("تعذر تحميل سجل قراءات الخزانات:", historyError);
+            console.error("تعذر تحميل سجل حركات الخزانات:", historyError);
             fuelHistoryFailed = true;
         }
 
@@ -6615,7 +6615,7 @@ function renderFuelSummary(totals) {
             '<span class="fuel-sum-value">' + availableText + mark + '<small>لتر</small></span>' +
         '</div>' +
         '<div class="fuel-sum-card is-empty">' +
-            '<span class="fuel-sum-label">📉 الكاز الفارغ</span>' +
+            '<span class="fuel-sum-label">📉 السعة الخالية</span>' +
             '<span class="fuel-sum-value">' + emptyText + mark + '<small>لتر</small></span>' +
         '</div>' +
         '<div class="fuel-sum-card is-capacity">' +
@@ -6785,8 +6785,8 @@ function renderFuelTanksCards(statesArg) {
             '<div class="fuel-tank-card-header">' +
                 '<span class="fuel-tank-no">' + def.no + '</span>' +
                 '<div class="fuel-tank-header-text">' +
-                    '<div class="fuel-tank-name">' + escapeHTML(def.name) + '</div>' +
-                    (def.note ? '<div class="fuel-tank-note">' + escapeHTML(def.note) + '</div>' : '') +
+                    '<div class="fuel-tank-name">' + escapeHTML(fuelTankFullName(def)) + '</div>' +
+                    '<div class="fuel-tank-capline">السعة الكلية: <b>' + formatFuelLiters(st.nominalL) + '</b></div>' +
                 '</div>' +
                 '<span class="fuel-badge is-' + statusClass + '">' + escapeHTML(statusLabel) + '</span>' +
             '</div>' +
@@ -6803,9 +6803,7 @@ function renderFuelTanksCards(statesArg) {
                 '</div>' +
             '</div>' +
 
-            '<dl class="fuel-tank-meta">' +
-                '<div><dt>السعة الكلية</dt><dd>' + formatFuelLiters(st.nominalL) + '</dd></div>' +
-            '</dl>' +
+
 
             (st.overflowL > 0
                 ? '<div class="fuel-card-warn">⛔ الكمية المحسوبة تتجاوز السعة الاسمية بمقدار ' + formatFuelNumber(st.overflowL) + ' لتر — تحقق من القياس أو المعايرة</div>'
@@ -7202,7 +7200,7 @@ async function saveFuelReading() {
         input.value = "";
         showMessage(historyOk
             ? "تم حفظ قراءة " + def.name + " بنجاح"
-            : "تم حفظ القراءة لكن تعذر تسجيلها في سجل القراءات (تحقق من نشر قواعد Firestore)",
+            : "تم حفظ القراءة لكن تعذر تسجيلها في سجل الحركات (تحقق من نشر قواعد Firestore)",
             historyOk ? "success" : "error");
 
         fuelLastLoadAt = Date.now();
@@ -7218,7 +7216,7 @@ async function saveFuelReading() {
 }
 
 // ============================================================
-// سجل القراءات السابقة
+// سجل الحركات (القراءات السابقة)
 // ============================================================
 
 function renderFuelHistory() {
@@ -7235,40 +7233,52 @@ function renderFuelHistory() {
     const filter = filterEl ? filterEl.value : "";
 
     if (fuelHistoryFailed) {
-        box.innerHTML = '<p class="fuel-muted">تعذر تحميل سجل القراءات. إن كان هذا أول استخدام، تأكد من نشر قواعد Firestore المحدّثة (firestore.rules).</p>';
+        box.innerHTML = '<p class="fuel-muted">تعذر تحميل سجل الحركات. إن كان هذا أول استخدام، تأكد من نشر قواعد Firestore المحدّثة (firestore.rules).</p>';
         return;
     }
 
     const rows = fuelHistory.filter(function (h) { return !filter || h.tankId === filter; }).slice(0, FUEL_HISTORY_SHOWN);
     if (!rows.length) {
-        box.innerHTML = '<p class="fuel-muted">لا توجد قراءات مسجلة في السجل بعد.</p>';
+        box.innerHTML = '<p class="fuel-muted">لا توجد حركات مسجلة بعد. كل قراءة تُدخلها ستظهر هنا بتاريخها ووقتها.</p>';
         return;
     }
 
     const body = rows.map(function (h) {
-        const methodLabel = FuelCalc.METHODS[h.method] ? FuelCalc.METHODS[h.method].short : "—";
-        const delta = typeof h.deltaL === "number"
-            ? '<span class="' + (h.deltaL > 0 ? "fuel-up" : h.deltaL < 0 ? "fuel-down" : "") + '">' +
-              (h.deltaL > 0 ? "+" : h.deltaL < 0 ? "−" : "") + formatFuelNumber(Math.abs(h.deltaL)) + ' لتر</span>'
-            : '<span class="fuel-muted">—</span>';
+        const methodLabel = FuelCalc.METHODS[h.method] ? FuelCalc.METHODS[h.method].short : "";
+        const name = (fuelFindDef(h.tankId) || {}).name || h.tankName || h.tankId;
+
+        // الحركة: الفرق بين هذه القراءة والتي قبلها
+        let movement;
+        if (typeof h.deltaL !== "number") {
+            movement = '<span class="fuel-move is-first">أول قراءة</span>';
+        } else if (h.deltaL > 0) {
+            movement = '<span class="fuel-move is-up">▲ زيادة +' + formatFuelNumber(h.deltaL) + ' لتر</span>';
+        } else if (h.deltaL < 0) {
+            movement = '<span class="fuel-move is-down">▼ نقص −' + formatFuelNumber(Math.abs(h.deltaL)) + ' لتر</span>';
+        } else {
+            movement = '<span class="fuel-move">بلا تغيير</span>';
+        }
+
+        const readingText = escapeHTML(h.value) + ' ' + fuelUnitLabel(h.unit) +
+            (methodLabel ? ' <span class="fuel-muted">(' + escapeHTML(methodLabel) + ')</span>' : '');
+
         return '<tr>' +
             '<td data-label="التاريخ والوقت">' + escapeHTML(formatFuelDateTime(h.createdAt)) + '</td>' +
-            '<td data-label="الخزان">' + escapeHTML((fuelFindDef(h.tankId) || {}).name || h.tankName || h.tankId) + '</td>' +
-            '<td data-label="القراءة">' + escapeHTML(h.value) + ' ' + fuelUnitLabel(h.unit) + '</td>' +
-            '<td data-label="طريقة القياس">' + escapeHTML(methodLabel) + '</td>' +
-            '<td data-label="ارتفاع الكاز">' + (typeof h.levelM === "number" ? (Math.round(h.levelM * 1000) / 10) + " سم" : "—") + '</td>' +
-            '<td data-label="الكمية">' + (typeof h.volumeL === "number" ? formatFuelLiters(h.volumeL) : "—") + '</td>' +
-            '<td data-label="الفرق عن السابقة">' + delta + '</td>' +
+            '<td data-label="الخزان">' + escapeHTML(name) + '</td>' +
+            '<td data-label="القراءة المُدخلة">' + readingText + '</td>' +
+            '<td data-label="الكمية السابقة">' + (typeof h.prevVolumeL === "number" ? formatFuelLiters(h.prevVolumeL) : '<span class="fuel-muted">—</span>') + '</td>' +
+            '<td data-label="الحركة">' + movement + '</td>' +
+            '<td data-label="الكمية بعد القراءة"><b>' + (typeof h.volumeL === "number" ? formatFuelLiters(h.volumeL) : "—") + '</b></td>' +
             '<td data-label="أدخلها">' + escapeHTML(h.createdBy || "—") + '</td>' +
         '</tr>';
     }).join("");
 
     box.innerHTML =
         '<div class="fuel-table-wrap"><table class="fuel-table">' +
-        '<thead><tr><th>التاريخ والوقت</th><th>الخزان</th><th>القراءة</th><th>طريقة القياس</th><th>ارتفاع الكاز</th><th>الكمية</th><th>الفرق عن السابقة</th><th>أدخلها</th></tr></thead>' +
+        '<thead><tr><th>التاريخ والوقت</th><th>الخزان</th><th>القراءة المُدخلة</th><th>الكمية السابقة</th><th>الحركة</th><th>الكمية بعد القراءة</th><th>أدخلها</th></tr></thead>' +
         '<tbody>' + body + '</tbody></table></div>' +
         (fuelHistory.length >= FUEL_HISTORY_LIMIT || rows.length >= FUEL_HISTORY_SHOWN
-            ? '<p class="fuel-muted">يعرض آخر ' + FUEL_HISTORY_SHOWN + ' قراءة (السجل الكامل محفوظ في قاعدة البيانات).</p>' : '');
+            ? '<p class="fuel-muted">يعرض آخر ' + FUEL_HISTORY_SHOWN + ' حركة (السجل الكامل محفوظ في قاعدة البيانات).</p>' : '');
 }
 
 // ============================================================
