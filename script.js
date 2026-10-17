@@ -14,6 +14,49 @@ const MEDICAL_COUNTERS_COLLECTION = "counters";
 const FUEL_TANKS_COLLECTION = "fuelTanks";
 const MEDICAL_LOCATIONS_COLLECTION = "medical_locations";
 
+// قسم الميكانيك — مجموعات Firestore والثوابت
+const MECH_EQUIPMENT_COLLECTION = "mechanical_equipment";
+const MECH_ORDERS_COLLECTION = "mechanical_work_orders";
+const MECH_ORDER_HISTORY_COLLECTION = "mechanical_work_order_history";
+const MECH_PM_PLANS_COLLECTION = "mechanical_pm_plans";
+const MECH_PM_LOGS_COLLECTION = "mechanical_pm_logs";
+const MECH_SPARES_COLLECTION = "mechanical_spares";
+const MECH_COUNTERS_COLLECTION = "mechanical_counters";
+const MECH_TYPES_COLLECTION = "mechanical_equipment_types";
+
+// حالة قسم الميكانيك (ذاكرة التطبيق)
+const MC = window.MechanicsCalc || {};
+let mechActiveDept = "fire-fighting";
+let mechActiveTab = "dashboard"; // dashboard | equipment | orders | pm | spares | reports
+let mechEquipmentCache = [];
+let mechOrdersCache = [];
+let mechPmPlansCache = [];
+let mechPmLogsCache = [];
+let mechSparesCache = [];
+let mechTypesCache = [];
+let mechActiveOrderId = null;
+let mechLoaded = false;
+let mechLoadFailures = [];   // أسماء المجموعات التي فشل تحميلها (صلاحيات/اتصال)
+let mechLoadErrors = [];     // تفاصيل الفشل: { name, code, message }
+let mechDataUnsubscribe = null;
+
+let mechEquipShown = 0;
+let mechOrderShown = 0;
+let mechLastLoadAt = 0;
+let mechOrderHistoryCache = [];
+// فلاتر قائمة المعدات (عرض فقط)
+let mechEquipStatusFilter = "";
+let mechEquipCriticalityFilter = "";
+let mechEquipSearch = "";
+// فلاتر قائمة أوامر العمل (عرض فقط)
+let mechOrderStatusFilter = "";
+let mechOrderPriorityFilter = "";
+let mechOrderSearch = "";
+// فلتر قائمة «الأعمال التي تحتاج إلى متابعة» (عرض فقط): all | orders | pm
+let mechFollowFilter = "all";
+// مسار وحدة Firestore المستخدم في كل عمليات قسم الميكانيك
+const MECH_FIRESTORE_URL = "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
+
 // مهم: ضع هنا مفتاح VAPID العام من
 // Firebase Console > Project settings > Cloud Messaging > Web push certificates
 const VAPID_KEY = "BHbv8qWWjW8vpXgOUwauTqEev2HCJSAtpXsOiR9_YRKNWY2LwBXbiZwn_SnIpRNNL0vkvIFM0yVHkBoD-DsCfp4";
@@ -8022,4 +8065,3375 @@ function downloadMedicalExportFile() {
     link.remove();
 
     setTimeout(function () { URL.revokeObjectURL(url); }, 5000);
+}
+
+
+// ============================================================
+// ==================== قسم الميكانيك =========================
+// ============================================================
+// نظام إدارة الأنظمة الميكانيكية: المعدات، أوامر العمل والأعطال،
+// الصيانة الوقائية، قطع الغيار المرتبطة، التقارير والبحث.
+// المنطق النقي (حسابات/تحقق/تصدير) في mechanics-calc.js
+// (window.MechanicsCalc = MC)، وهنا الربط بـ Firestore وDOM فقط.
+// بنية الصفحة في index.html: #mechStats #mechFollowUp #mechDepts
+// #mechStatView #mechTabHost(#mechTabTitle #mechTabs #mechTabContent
+// #mechFormHost) و#mechState لرسائل التحميل/الخطأ.
+// ============================================================
+
+// بيانات المستخدم الحالي لسجل «من قام بالإضافة/التغيير»
+function mechWho() {
+    if (typeof currentUser !== "undefined" && currentUser) {
+        return {
+            name: currentUser.displayName || currentUser.email || "مستخدم",
+            uid: currentUser.uid || null
+        };
+    }
+    return { name: "زائر", uid: null };
+}
+
+// ---------- فتح القسم + تحميل البيانات ----------
+function openMechanics() {
+    showPage("mechanicsPage");
+    mechActiveTab = "equipment";
+    mechActiveOrderId = null;
+    hideMechState();
+    renderMechanicsDashboard();
+    ensureMechData();
+    subscribeMechData();
+}
+
+// قراءة أولية لجميع مجموعات الميكانيك (قراءة واحدة لكل مجموعة)
+async function ensureMechData(force) {
+    if (mechLoaded && !force) return;
+    const db = getFirestoreDB();
+    if (!db) { showMechState("loading", "جارٍ الاتصال بقاعدة البيانات…"); return; }
+    showMechState("loading", "جارٍ تحميل بيانات الميكانيك…");
+    try {
+        const fs = await import(MECH_FIRESTORE_URL);
+        // كل مجموعة تُحمَّل باستقلال: فشل مجموعة واحدة (مثل صلاحية ناقصة) لا يُسقط القسم كله
+        const names = [MECH_EQUIPMENT_COLLECTION, MECH_ORDERS_COLLECTION, MECH_PM_PLANS_COLLECTION, MECH_PM_LOGS_COLLECTION, MECH_SPARES_COLLECTION, MECH_TYPES_COLLECTION];
+        const results = await Promise.allSettled(names.map(n => fs.getDocs(fs.collection(db, n))));
+        mechLoadFailures = [];
+        mechLoadErrors = [];
+        const docsOf = (i) => {
+            const r = results[i];
+            if (r.status === "fulfilled") return r.value.docs.map(d => ({ id: d.id, ...d.data() }));
+            mechLoadFailures.push(names[i]);
+            mechLoadErrors.push({ name: names[i], code: (r.reason && r.reason.code) || "", message: String((r.reason && r.reason.message) || r.reason || "") });
+            console.error("Mechanics collection failed:", names[i], r.reason);
+            return [];
+        };
+        const [eqDocs, ordDocs, pmDocs, pmLogDocs, spareDocs, typeDocs] = names.map((n, i) => docsOf(i));
+        if (mechLoadFailures.length === names.length) throw new Error("all mechanics collections failed");
+        mechEquipmentCache = eqDocs;
+        mechOrdersCache = ordDocs;
+        mechPmPlansCache = pmDocs;
+        mechPmLogsCache = pmLogDocs;
+        mechSparesCache = spareDocs;
+        mechTypesCache = typeDocs;
+        mechLoaded = true;
+        mechLastLoadAt = Date.now();
+        hideMechState();
+    } catch (error) {
+        console.error("Error loading mechanics data:", error);
+        const first = mechLoadErrors[0];
+        const detail = first
+            ? " السبب: " + (first.code || first.message || "غير معروف") + " (المجموعة: " + first.name + ")."
+            : " السبب: " + String((error && (error.code || error.message)) || error);
+        const hint = first && /permission|insufficient/i.test(first.code + " " + first.message)
+            ? " قواعد Firestore المنشورة لا تسمح بالقراءة؛ انسخ ملف firestore.rules إلى Firebase Console ثم Publish."
+            : " تحقّق من الاتصال ثم أعد المحاولة.";
+        showMechState("error", "تعذّر تحميل بيانات الميكانيك." + detail + hint);
+        return;
+    }
+    try {
+        renderMechanicsDashboard();
+    } catch (renderError) {
+        console.error("Error rendering mechanics dashboard:", renderError);
+        showMechState("error", "تحمّلت البيانات لكن تعذّر رسم اللوحة: " + String(renderError && renderError.message || renderError));
+    }
+}
+
+// اشتراك حيّ: تحديث الذاكرة وإعادة الرسم عند أي تغيير.
+// نُحدّث المصفوفات العامة مباشرةً (بلا تمرير مراجع قديمة) حتى تبقى
+// نفس المراجع التي تقرأها بقية الدوال محدّثة.
+function subscribeMechData() {
+    if (mechDataUnsubscribe) return;
+    const db = getFirestoreDB();
+    if (!db) return;
+    import(MECH_FIRESTORE_URL).then(({ collection, onSnapshot }) => {
+        const unsubs = [];
+        const bind = (collName, setter) => {
+            const arr = [];
+            setter(arr);
+            unsubs.push(onSnapshot(collection(db, collName), snap => {
+                arr.length = 0;
+                snap.forEach(d => arr.push({ id: d.id, ...d.data() }));
+                mechLoaded = true;
+                renderMechanicsDashboard();
+                renderActiveMechView();
+                renderFireFightingIfVisible();
+            }, err => console.error("mech snapshot error", collName, err)));
+        };
+        bind(MECH_EQUIPMENT_COLLECTION, (arr) => { mechEquipmentCache = arr; });
+        bind(MECH_ORDERS_COLLECTION, (arr) => { mechOrdersCache = arr; });
+        bind(MECH_PM_PLANS_COLLECTION, (arr) => { mechPmPlansCache = arr; });
+        bind(MECH_PM_LOGS_COLLECTION, (arr) => { mechPmLogsCache = arr; });
+        bind(MECH_SPARES_COLLECTION, (arr) => { mechSparesCache = arr; });
+        bind(MECH_TYPES_COLLECTION, (arr) => { mechTypesCache = arr; });
+        mechDataUnsubscribe = unsubs;
+    }).catch(err => console.error("mech subscribe import error", err));
+}
+
+function showMechState(kind, msg) {
+    const el = document.getElementById("mechState");
+    if (!el) return;
+    el.hidden = false;
+    el.className = "mech-state is-" + kind;
+    el.textContent = msg;
+}
+function hideMechState() {
+    const el = document.getElementById("mechState");
+    if (el) { el.hidden = true; el.textContent = ""; }
+}
+
+
+// ---------- الهيكل الرئيسي: لوحة التحكم ----------
+function renderMechanicsDashboard() {
+    const stats = MC.computeStats({
+        equipment: mechEquipmentCache,
+        orders: mechOrdersCache,
+        plans: mechPmPlansCache
+    });
+
+    const statsHost = document.getElementById("mechStats");
+    if (statsHost) {
+        const grp = (title, cls, cards) => `<div><div class="mech-stat-group-title">${title}</div><div class="mech-stat-grid ${cls || ""}">${cards.join("")}</div></div>`;
+        statsHost.innerHTML = `<div class="mech-stat-groups">` + [
+            grp("المعدات · Equipment", "is-three", [
+                mechStatCard("إجمالي المعدات", stats.totalEquipment, "⚙️", "", "mechShowStat('all')", "Total equipment"),
+                mechStatCard("معدات عاملة", stats.operationalEquipment, "✅", "is-ok", "mechShowStat('operational')", "Operational"),
+                mechStatCard("معدات متوقفة", stats.stoppedEquipment, "⛔", stats.stoppedEquipment ? "is-danger" : "", "mechShowStat('stopped')", "Stopped")
+            ]),
+            grp("الصيانة · Maintenance", "", [
+                mechStatCard("صيانة مستحقة", stats.dueMaintenance, "🗓️", stats.dueMaintenance ? "is-warn" : "", "mechShowStat('duePm')", "Due"),
+                mechStatCard("صيانة متأخرة", stats.overdueMaintenance, "⚠️", stats.overdueMaintenance ? "is-danger" : "", "mechShowStat('overduePm')", "Overdue")
+            ]),
+            grp("الأعمال والأعطال · Work orders", "", [
+                mechStatCard("أعطال مفتوحة", stats.openOrders, "🔴", stats.openOrders ? "is-danger" : "", "mechShowStat('openOrders')", "Open faults"),
+                mechStatCard("مهام قيد التنفيذ", stats.tasksInProgress, "🔧", "", "mechShowStat('inProgress')", "In progress"),
+                mechStatCard("بانتظار القطع", stats.tasksAwaitingParts, "⏳", stats.tasksAwaitingParts ? "is-warn" : "", "mechShowStat('awaitingParts')", "Awaiting parts"),
+                mechStatCard("أعمال مكتملة", stats.completedOrders, "✔️", "is-ok", "mechShowStat('completed')", "Completed")
+            ])
+        ].join("") + `</div>`;
+    }
+
+    const followHost = document.getElementById("mechFollowUp");
+    if (followHost) {
+        const followUp = MC.buildFollowUpList({
+            equipment: mechEquipmentCache, orders: mechOrdersCache, plans: mechPmPlansCache
+        }).slice(0, 12);
+        followHost.innerHTML = followUp.length ? followUp.map(mechFollowRow).join("")
+            : `<div class="mech-empty"><div class="mech-empty-icon">✅</div>لا توجد أعمال تحتاج إلى متابعة حالياً.</div>`;
+    }
+
+    const deptHost = document.getElementById("mechDepts");
+    if (deptHost) deptHost.innerHTML = MC.DEPARTMENTS.map(mechDeptCard).join("");
+}
+
+function mechStatCard(label, value, icon, cls, onclick, labelEn) {
+    return `<button type="button" class="mech-stat ${cls || ""}" onclick="${onclick}">
+        <div class="mech-stat-top"><span class="mech-stat-icon">${icon}</span><span class="mech-stat-label">${label}${labelEn ? `<small>${labelEn}</small>` : ""}</span></div>
+        <span class="mech-stat-val">${value}</span></button>`;
+}
+
+function mechDeptCard(d) {
+    const eq = mechEquipmentCache.filter(e => e.department === d.id);
+    const open = mechOrdersCache.filter(o => o.department === d.id && o.status !== "COMPLETE").length;
+    const plans = mechPmPlansCache.filter(p => p.department === d.id && p.active !== false);
+    const overdue = plans.filter(p => MC.pmStatus(p.nextDue) === "OVERDUE").length;
+    return `<button type="button" class="mech-dept" onclick="mechOpenDept('${d.id}')">
+        <div class="mech-dept-top">
+            <div class="mech-dept-icon">${d.icon}</div>
+            <div>
+                <div class="mech-dept-name">${d.name}</div>
+                <div class="mech-dept-en">${d.nameEn}</div>
+            </div>
+        </div>
+        <div class="mech-dept-counts">
+            <span class="mech-count">عدد المعدات <b>${eq.length}</b></span>
+            <span class="mech-count ${open ? "is-danger" : ""}">أعطال مفتوحة <b>${open}</b></span>
+            <span class="mech-count ${overdue ? "is-warn" : ""}">صيانة متأخرة <b>${overdue}</b></span>
+        </div>
+    </button>`;
+}
+
+function mechFollowRow(it) {
+    const pr = it.priority ? `p-${it.priority}` : "p-MEDIUM";
+    return `<div class="mech-followup-item">
+        <div class="mech-followup-title">
+            <span class="mech-pill ${pr}">${MC.priorityLabel(it.priority)}</span>
+            ${escapeHTML(it.title)}
+        </div>
+        <div class="mech-followup-meta">
+            ${escapeHTML(it.system)} · ${escapeHTML(it.equipment)} · ${escapeHTML(it.location)} · الاستحقاق: ${MC.formatDateShort(it.dueDate)}
+        </div>
+    </div>`;
+}
+
+// ---------- فتح قسم فرعي من بطاقات الأقسام ----------
+function mechOpenDept(deptId) {
+    // منظومة مكافحة الحريق لها واجهة مخصّصة داخل الميكانيك
+    if (deptId === "fire-fighting") {
+        openFireFighting();
+        return;
+    }
+    mechActiveDept = deptId;
+    mechActiveTab = "equipment";
+    mechActiveOrderId = null;
+    closeMechFormHost();
+    hideMechState();
+    renderMechView();
+}
+
+// ---------- الضغط على بطاقة إحصائية: عرض السجلات المرتبطة ----------
+function mechShowStat(kind) {
+    mechActiveOrderId = null;
+    // أعِد ضبط الفلاتر حسب نوع الإحصائية
+    mechOrderStatusFilter = "";
+    mechOrderPriorityFilter = "";
+    mechEquipStatusFilter = "";
+    mechEquipCriticalityFilter = "";
+    mechEquipSearch = "";
+    mechOrderSearch = "";
+
+    if (kind === "all" || kind === "operational" || kind === "stopped") {
+        if (kind === "operational") mechEquipStatusFilter = "OPERATIONAL";
+        if (kind === "stopped") mechEquipStatusFilter = "STOPPED";
+        mechActiveTab = "equipment";
+    } else if (kind === "openOrders") {
+        mechActiveTab = "orders"; // تُعرض كل الأوامر المفتوحة أدناه
+    } else if (kind === "duePm" || kind === "overduePm") {
+        mechActiveTab = "pm";
+    } else if (kind === "inProgress") {
+        mechOrderStatusFilter = "IN PROGRESS";
+        mechActiveTab = "orders";
+    } else if (kind === "awaitingParts") {
+        mechOrderStatusFilter = "AWAITING PARTS";
+        mechActiveTab = "orders";
+    } else if (kind === "completed") {
+        mechOrderStatusFilter = "COMPLETE";
+        mechActiveTab = "orders";
+    }
+    closeMechFormHost();
+    renderMechView();
+}
+
+// ---------- إعادة رسم العرض النشط (عند تحديث الاشتراك الحيّ) ----------
+function renderActiveMechView() {
+    if (!mechLoaded) return;
+    if (mechActiveTab === "dashboard") renderMechanicsDashboard();
+    else if (document.getElementById("mechTabHost") && !document.getElementById("mechTabHost").hidden) {
+        renderMechView();
+    } else {
+        renderMechanicsDashboard();
+    }
+}
+
+// ---------- الرجوع إلى لوحة التحكم الرئيسية ----------
+function mechGoDashboard() {
+    mechActiveTab = "dashboard";
+    mechActiveOrderId = null;
+    const host = document.getElementById("mechTabHost");
+    if (host) host.hidden = true;
+    const statsView = document.getElementById("mechStatView");
+    if (statsView) statsView.hidden = true;
+    renderMechanicsDashboard();
+}
+
+// ---------- تبديل التبويب داخل القسم ----------
+function mechSwitchTab(tab) {
+    mechActiveTab = tab;
+    mechActiveOrderId = null;
+    closeMechFormHost();
+    renderMechView();
+}
+
+
+
+// ---------- الرسم الرئيسي للتبويب النشط ----------
+function renderMechView() {
+    const dashHost = document.getElementById("mechDashboardView");
+    const tabHost = document.getElementById("mechTabHost");
+    const statView = document.getElementById("mechStatView");
+
+    if (mechActiveTab === "dashboard") {
+        if (dashHost) dashHost.hidden = false;
+        if (tabHost) tabHost.hidden = true;
+        if (statView) statView.hidden = true;
+        renderMechanicsDashboard();
+        return;
+    }
+
+    if (dashHost) dashHost.hidden = true;
+    if (statView) statView.hidden = true;
+    if (!tabHost) return;
+    tabHost.hidden = false;
+
+    const titleMap = {
+        equipment: "المعدات والأصول", orders: "أوامر العمل والأعطال",
+        pm: "الصيانة الوقائية", spares: "قطع الغيار", reports: "التقارير"
+    };
+    const titleEl = document.getElementById("mechTabTitle");
+    if (titleEl) titleEl.textContent = titleMap[mechActiveTab] || "";
+
+    // شريط التبويبات
+    const tabsHost = document.getElementById("mechTabs");
+    if (tabsHost) {
+        const tabs = [
+            ["equipment", "المعدات"], ["orders", "أوامر العمل"], ["pm", "الصيانة الوقائية"],
+            ["spares", "قطع الغيار"], ["reports", "التقارير"]
+        ];
+        tabsHost.innerHTML = tabs.map(t =>
+            `<button type="button" class="mech-tab ${t[0] === mechActiveTab ? "is-active" : ""}" onclick="mechSwitchTab('${t[0]}')">${t[1]}</button>`
+        ).join("");
+    }
+
+    // شارة القسم النشط
+    const deptBadge = document.getElementById("mechTabDept");
+    if (deptBadge) deptBadge.textContent = MC.deptName(mechActiveDept) + " — " + MC.deptNameEn(mechActiveDept);
+
+    const content = document.getElementById("mechTabContent");
+    if (!content) return;
+
+    if (mechActiveOrderId) {
+        content.innerHTML = renderMechOrderDetail(mechActiveOrderId);
+        return;
+    }
+
+    if (mechActiveTab === "equipment") content.innerHTML = renderMechEquipmentTab(mechActiveDept);
+    else if (mechActiveTab === "orders") content.innerHTML = renderMechOrdersTab(mechActiveDept);
+    else if (mechActiveTab === "pm") content.innerHTML = renderMechPmTab(mechActiveDept);
+    else if (mechActiveTab === "spares") content.innerHTML = renderMechSparesTab(mechActiveDept);
+    else if (mechActiveTab === "reports") content.innerHTML = renderMechReportsTab();
+}
+
+function closeMechFormHost() {
+    const host = document.getElementById("mechFormHost");
+    if (host) { host.innerHTML = ""; host.setAttribute("data-open", "0"); host.removeAttribute("data-edit-id"); }
+}
+
+
+// ============================================================
+// محتوى التبويبات — دوال مطلوبة من renderMechView()
+// تعرض ما هو مسجل فقط في الذاكرة (mech*Cache)، دون استعلامات
+// جديدة، وبأصناف CSS الموجودة في صفحة الميكانيك.
+// ============================================================
+
+// تبويب المعدات: قائمة معدات القسم المختار
+function renderMechEquipmentTab(deptId) {
+    const eq = mechEquipmentCache.filter(e => e.department === deptId);
+    if (!eq.length) {
+        return `<div class="mech-empty"><div class="mech-empty-icon">⚙️</div>لا توجد معدات مسجلة في قسم ${escapeHTML(MC.deptName(deptId))} بعد.</div>`;
+    }
+    return eq.map(e => `
+        <div class="mech-card">
+            <h4 class="mech-card-title">${escapeHTML(e.name || "—")}</h4>
+            <div class="mech-card-meta">
+                ${e.tagNumber ? "الرمز: " + escapeHTML(e.tagNumber) + " · " : ""}
+                ${e.type ? escapeHTML(e.type) + " · " : ""}
+                ${e.location ? "الموقع: " + escapeHTML(e.location) + " · " : ""}
+                الحالة: ${escapeHTML(MC.equipStatusLabel(e.status))}
+            </div>
+        </div>`).join("");
+}
+
+// تبويب أوامر العمل: أوامر القسم مرتبة من الأحدث
+function renderMechOrdersTab(deptId) {
+    const orders = mechOrdersCache
+        .filter(o => o.department === deptId)
+        .sort((a, b) => {
+            const ta = a.createdAt && a.createdAt.toDate ? a.createdAt.toDate().getTime() : 0;
+            const tb = b.createdAt && b.createdAt.toDate ? b.createdAt.toDate().getTime() : 0;
+            return tb - ta;
+        });
+    if (!orders.length) {
+        return `<div class="mech-empty"><div class="mech-empty-icon">📋</div>لا توجد أوامر عمل مسجلة في قسم ${escapeHTML(MC.deptName(deptId))} بعد.</div>`;
+    }
+    return orders.map(o => `
+        <div class="mech-card">
+            <h4 class="mech-card-title">${escapeHTML(o.orderNumber || "—")} — ${escapeHTML(o.title || "بدون عنوان")}</h4>
+            <div class="mech-card-meta">
+                ${o.equipmentName ? "المعدة: " + escapeHTML(o.equipmentName) + " · " : ""}
+                ${o.location ? "الموقع: " + escapeHTML(o.location) + " · " : ""}
+                الحالة: ${escapeHTML(MC.statusLabel(o.status))}
+                ${o.dueDate ? " · الاستحقاق: " + MC.formatDateShort(o.dueDate) : ""}
+            </div>
+            <div class="mech-tagline">
+                <span class="mech-pill p-${escapeHTML(o.priority || "MEDIUM")}">${escapeHTML(MC.priorityLabel(o.priority))}</span>
+            </div>
+        </div>`).join("");
+}
+
+// تبويب الصيانة الوقائية: خطط القسم مع حالة الاستحقاق
+function renderMechPmTab(deptId) {
+    const plans = mechPmPlansCache.filter(p => p.department === deptId || (p.equipmentId && mechEquipmentCache.some(e => e.id === p.equipmentId && e.department === deptId)));
+    if (!plans.length) {
+        return `<div class="mech-empty"><div class="mech-empty-icon">🗓️</div>لا توجد خطط صيانة وقائية لقسم ${escapeHTML(MC.deptName(deptId))} بعد.</div>`;
+    }
+    return plans.map(p => {
+        const eq = mechEquipmentCache.find(e => e.id === p.equipmentId);
+        const st = MC.pmStatus(p.nextDue);
+        return `
+        <div class="mech-card">
+            <h4 class="mech-card-title">${escapeHTML(eq ? eq.name : (p.equipmentName || "—"))}</h4>
+            <div class="mech-card-meta">
+                الفترة: ${escapeHTML(MC.pmPeriodLabel(p.period))} ·
+                آخر تنفيذ: ${MC.formatDateShort(p.lastDone)} ·
+                الاستحقاق القادم: ${MC.formatDateShort(p.nextDue)} ·
+                الحالة: ${escapeHTML(MC.pmStatusLabel(st))}
+            </div>
+        </div>`;
+    }).join("");
+}
+
+// تبويب قطع الغيار: غير مفعّل حالياً في شريط التبويبات —
+// يعرض حالة فارغة بدل إلقاء ReferenceError.
+function renderMechSparesTab() {
+    return `<div class="mech-empty"><div class="mech-empty-icon">📦</div>إدارة قطع الغيار غير مفعّلة في الواجهة الحالية.</div>`;
+}
+
+// تبويب التقارير: غير مكتمل بعد — يعرض إشعاراً بدل الخطأ،
+// والإحصائيات متاحة في لوحة المعلومات الرئيسية.
+function renderMechReportsTab() {
+    return `<div class="mech-empty"><div class="mech-empty-icon">📄</div>قسم التقارير قيد الإعداد، ويمكن متابعة الإحصائيات من لوحة المعلومات.</div>`;
+}
+
+// ============================================================
+// ================= منظومة مكافحة الحريق (FF) =================
+// واجهة متكاملة واحترافية لإدارة معدات مكافحة الحريق،
+// والمضخات، والفحوصات، والصيانة، والأعطال، وأوامر العمل.
+// جميع الأرقام والإحصائيات تُحسب فعلياً من الذاكرة الحالية (Firestore).
+// ============================================================
+let ffActiveView = "groups";    // "groups" | "tracker" | "orders"
+let ffActiveGroup = null;       // null = نظرة عامة | "pump-set" | "extinguishers" | "fixed"
+let ffDetail = null;            // null | { kind: "pump"|"unit"|"type", id, tab: "info"|"inspections"|"maintenance"|"faults"|"orders"|"changes" }
+let ffSearch = "";
+let ffGroupFilter = "";
+let ffStatusFilter = "";
+let ffTypeFilter = "";
+let ffTrackerFilter = "all";    // "all" | "uninspected" | "due_soon" | "overdue" | "faults" | "ongoing" | "completed"
+let ffOrderFilterStatus = "";
+let ffOrderFilterPriority = "";
+let ffOrderFilterType = "";
+let ffFacilityFilter = "hospital"; // hospital | complex | unassigned (لا دمج بين الجهات)
+let ffMaintFilter = "";          // "" | needs | faults | ok
+let ffInspFilter = "";           // "" | overdue | soon | never | ok
+let ffRegisterBusy = false;
+
+// ---------- فتح واجهة منظومة مكافحة الحريق ----------
+function openFireFighting() {
+    showPage("fireFightingPage");
+    ffActiveView = "groups";
+    ffActiveGroup = null;
+    ffDetail = null;
+    ffSearch = "";
+    ffGroupFilter = "";
+    ffStatusFilter = "";
+    ffTypeFilter = "";
+    ffFacilityFilter = "hospital";
+    ffMaintFilter = "";
+    ffInspFilter = "";
+    ffTrackerFilter = "all";
+    ffOrderFilterStatus = "";
+    ffOrderFilterPriority = "";
+    ffOrderFilterType = "";
+    ffCloseModal();
+
+    const searchEl = document.getElementById("ffSearch");
+    if (searchEl) searchEl.value = "";
+    const groupEl = document.getElementById("ffGroupFilter");
+    if (groupEl) groupEl.value = "";
+    ["ffMaint", "ffInsp"].forEach(function (id) { const el = document.getElementById(id); if (el) el.value = ""; });
+
+    ffFillToolbar();
+    ffUpdateSubnavButtons();
+    ffShowState("loading", "جارٍ تحميل بيانات منظومة مكافحة الحريق…");
+    renderFFStats();
+    renderFFContent();
+
+    Promise.resolve(ensureMechData()).then(function () {
+        if (mechLoaded && mechLoadFailures.length) {
+            ffShowState("error", "تعذّر تحميل جزء من البيانات (" + mechLoadErrors.map(e => e.name + (e.code ? ": " + e.code : "")).join("، ") + "). السبب الأرجح: قواعد Firestore المنشورة لا تتضمن هذه المجموعات؛ انسخ ملف firestore.rules إلى Firebase Console ثم اضغط Publish.", true);
+        } else if (mechLoaded) {
+            ffHideState();
+        } else {
+            ffShowState("error", "تعذّر تحميل البيانات." + (mechLoadErrors[0] ? " السبب: " + (mechLoadErrors[0].code || mechLoadErrors[0].message) + " (" + mechLoadErrors[0].name + ")." : "") + " تحقّق من الاتصال وقواعد Firestore ثم أعد المحاولة.", true);
+        }
+        renderFFStats();
+        renderFFContent();
+    });
+    subscribeMechData();
+}
+
+function ffShowState(kind, msg, retry) {
+    const el = document.getElementById("ffState");
+    if (!el) return;
+    el.hidden = false;
+    el.className = "ff-state is-" + kind;
+    el.innerHTML = escapeHTML(msg) + (retry ? `<br><button type="button" class="ff-retry" onclick="openFireFighting()">إعادة المحاولة</button>` : "");
+}
+function ffHideState() {
+    const el = document.getElementById("ffState");
+    if (el) { el.hidden = true; el.innerHTML = ""; }
+}
+
+// تبديل العرض الرئيسي: المجموعات / متابعة الفحص والصيانة / أوامر العمل
+function ffSwitchView(viewName) {
+    ffActiveView = viewName || "groups";
+    ffDetail = null;
+    ffUpdateSubnavButtons();
+    renderFFContent();
+    const host = document.getElementById("ffContent");
+    if (host) host.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function ffUpdateSubnavButtons() {
+    const tabs = ["groups", "tracker", "orders"];
+    tabs.forEach(t => {
+        const btn = document.getElementById("ffTabBtn-" + t);
+        if (btn) {
+            if (t === ffActiveView && !ffDetail) btn.classList.add("is-active");
+            else btn.classList.remove("is-active");
+        }
+    });
+}
+
+// استخراج بيانات مكافحة الحريق (كل الجهات) من الذاكرة الحالية
+function ffFireDataAll() {
+    const eq = (mechEquipmentCache || []).filter(e => e.department === "fire-fighting");
+    const ids = {};
+    eq.forEach(e => { ids[e.id] = 1; });
+    const orders = (mechOrdersCache || []).filter(o => o.department === "fire-fighting" || (o.equipmentId && ids[o.equipmentId]));
+    const plans = (mechPmPlansCache || []).filter(p => p.department === "fire-fighting" || (p.equipmentId && ids[p.equipmentId]));
+    const pmLogs = (mechPmLogsCache || []).filter(l => l.department === "fire-fighting" || (l.equipmentId && ids[l.equipmentId]));
+    const types = (mechTypesCache || []).filter(t => t.department === "fire-fighting");
+    return { equipment: eq, orders: orders, plans: plans, pmLogs: pmLogs, types: types };
+}
+
+// بيانات الجهة المختارة فقط (المستشفى أو المجمع) — تُستخدم في الإحصائيات والعروض
+function ffFireData() {
+    return MC.ffScopeData(ffFireDataAll(), ffFacilityFilter);
+}
+
+function ffFacilityMeta(id) {
+    return MC.FF_FACILITIES.find(f => f.id === id) || MC.FF_UNASSIGNED_FACILITY;
+}
+function ffCatalogOf(e) {
+    return e && e.catalogTypeId ? (MC.FF_CATALOG_SEED.find(c => c.id === e.catalogTypeId) || null) : null;
+}
+function ffModeLabel(mode) {
+    if (mode === "portable") return "محمولة (Portable)";
+    if (mode === "automatic") return "أوتوماتيكية (Automatic)";
+    return "";
+}
+function ffModeBadge(mode) {
+    if (!mode) return "";
+    return `<span class="ff-mode-badge ${mode === "automatic" ? "is-auto" : ""}">${escapeHTML(ffModeLabel(mode))}</span>`;
+}
+function ffGroupMeta(id) {
+    return MC.FF_GROUPS.find(g => g.id === id) || MC.FF_GROUPS[MC.FF_GROUPS.length - 1];
+}
+
+// خرائط الأعطال المفتوحة وسجلات الفحص (من كل الجهات؛ مفتاحها معرّف المعدة)
+function ffIssueMaps() {
+    const all = ffFireDataAll();
+    const faults = {}, corrective = {}, inspected = {};
+    all.orders.forEach(o => {
+        if (!o.equipmentId) return;
+        if (o.status !== "COMPLETE" && o.type === "BREAKDOWN") faults[o.equipmentId] = 1;
+        if (o.status !== "COMPLETE" && (o.type === "BREAKDOWN" || o.type === "CORRECTIVE")) corrective[o.equipmentId] = 1;
+        if (o.type === "INSPECTION" && o.status === "COMPLETE") inspected[o.equipmentId] = 1;
+    });
+    all.pmLogs.forEach(l => {
+        if (l.equipmentId && (l.type === "INSPECTION" || l.type === "فحص")) inspected[l.equipmentId] = 1;
+    });
+    return { faults: faults, corrective: corrective, inspected: inspected };
+}
+
+// تطبيق البحث والفلاتر (الاسم عربي/إنجليزي، النوع، المجموعة، الحالة، الصيانة، موعد الفحص)
+function ffApplyFilters(list) {
+    const q = (ffSearch || "").trim().toLowerCase();
+    const maps = (ffMaintFilter || ffInspFilter) ? ffIssueMaps() : null;
+    const now = new Date();
+    const in14 = new Date(now.getTime() + 14 * 86400000);
+    return (list || []).filter(function (e) {
+        if (ffGroupFilter && MC.ffGroupOf(e) !== ffGroupFilter) return false;
+        if (ffStatusFilter && e.status !== ffStatusFilter) return false;
+        if (ffTypeFilter) {
+            const cat = ffCatalogOf(e);
+            if (e.type !== ffTypeFilter && !(cat && cat.name === ffTypeFilter)) return false;
+        }
+        if (ffMaintFilter) {
+            const needs = e.status === "STOPPED" || e.status === "UNDER_MAINTENANCE" || !!maps.corrective[e.id];
+            if (ffMaintFilter === "needs" && !needs) return false;
+            if (ffMaintFilter === "faults" && !maps.faults[e.id]) return false;
+            if (ffMaintFilter === "ok" && needs) return false;
+        }
+        if (ffInspFilter) {
+            const dueStr = e.nextInspectionDue || e.nextDue;
+            const due = dueStr ? MC.toDate(dueStr) : null;
+            const hasDue = !!(due && !isNaN(due.getTime()));
+            const everInspected = !!(e.lastInspectionDate || maps.inspected[e.id]);
+            if (ffInspFilter === "never" && everInspected) return false;
+            if (ffInspFilter === "overdue" && !(hasDue && due <= now)) return false;
+            if (ffInspFilter === "soon" && !(hasDue && due > now && due <= in14)) return false;
+            if (ffInspFilter === "ok" && !(hasDue && due > in14)) return false;
+        }
+        if (q) {
+            const cat = ffCatalogOf(e);
+            const grp = ffGroupMeta(MC.ffGroupOf(e));
+            const hay = [
+                e.name, e.nameAr, e.tagNumber, e.internalCode, e.type, e.location,
+                e.manufacturer, e.model, e.serialNumber, e.notes,
+                cat ? cat.name : "", cat ? cat.nameAr : "", grp.name, grp.nameEn,
+                ffFacilityMeta(MC.ffFacilityOf(e)).name
+            ].join(" ").toLowerCase();
+            if (hay.indexOf(q) === -1) return false;
+        }
+        return true;
+    });
+}
+
+function ffFiltersActive() {
+    return !!(ffSearch || ffGroupFilter || ffStatusFilter || ffTypeFilter || ffMaintFilter || ffInspFilter);
+}
+
+// مطابقة نوع كتالوج مع البحث/النوع/المجموعة الحالية
+function ffCatalogMatches(t) {
+    if (ffGroupFilter && t.ffGroup !== ffGroupFilter) return false;
+    if (ffTypeFilter && t.name !== ffTypeFilter) return false;
+    const q = (ffSearch || "").trim().toLowerCase();
+    if (q) {
+        const hay = [t.name, t.nameAr, t.notes, t.sourceDescription, ffGroupMeta(t.ffGroup).name, ffGroupMeta(t.ffGroup).nameEn].join(" ").toLowerCase();
+        if (hay.indexOf(q) === -1) return false;
+    }
+    return true;
+}
+
+// ---------- اختيار الجهة (المستشفى / المجمع) ----------
+function renderFFFacilityBar() {
+    const host = document.getElementById("ffFacilityBar");
+    if (!host) return;
+    const un = MC.ffScopeData(ffFireDataAll(), "unassigned");
+    const hasUnassigned = un.equipment.length > 0 || un.orders.length > 0;
+    if (!hasUnassigned && ffFacilityFilter === "unassigned") ffFacilityFilter = "hospital";
+    const facs = MC.FF_FACILITIES.slice();
+    if (hasUnassigned) facs.push(MC.FF_UNASSIGNED_FACILITY);
+    const icons = { hospital: "🏥", complex: "🏢", unassigned: "❔" };
+    host.innerHTML = facs.map(f => `
+        <button type="button" role="tab" aria-selected="${f.id === ffFacilityFilter}" class="ff-fac-btn ${f.id === ffFacilityFilter ? "is-active" : ""}" onclick="ffSetFacility('${f.id}')">
+            ${icons[f.id] || ""} ${escapeHTML(f.name)} <small>${escapeHTML(f.nameEn)}</small>
+        </button>`).join("") +
+        `<p class="ff-fac-note" style="flex-basis:100%;margin:4px 2px 0;">الأرقام والإحصائيات أدناه تخص <b>${escapeHTML(ffFacilityMeta(ffFacilityFilter).name)}</b> فقط، ولا تُجمع مع الجهة الأخرى.` +
+        (hasUnassigned ? ` تظهر تبويبة «غير محددة الجهة» لوجود سجلات لم تُحدَّد جهتها بعد.` : "") + `</p>`;
+}
+
+function ffSetFacility(id) {
+    ffFacilityFilter = id || "hospital";
+    ffDetail = null;
+    ffActiveGroup = null;
+    ffFillToolbar();
+    renderFFStats();
+    renderFFContent();
+}
+
+// ============================================================
+// بطاقات الإحصائيات الفعلية من قاعدة البيانات (لا أرقام وهمية)
+// 1. إجمالي أنواع المعدات
+// 2. إجمالي الوحدات المسجلة
+// 3. الوحدات التي تم فحصها
+// 4. الوحدات التي تحتاج إلى صيانة
+// 5. أوامر العمل المفتوحة
+// 6. الفحوصات المستحقة
+// 7. المعدات التي سُجلت عليها أعطال
+// ============================================================
+function renderFFStats() {
+    renderFFFacilityBar();
+    const host = document.getElementById("ffStats");
+    if (!host) return;
+    const data = ffFireData();
+
+    // الكمية المعتمدة للجهة (من الكتالوج المعتمد؛ لا تُقدَّر لجهة «غير محددة»)
+    const approvedTotal = ffFacilityFilter === "unassigned" ? null : MC.ffApprovedTotals(ffFacilityFilter).total;
+
+    // الوحدات المسجلة فعلياً في Firestore لهذه الجهة
+    const totalUnits = data.equipment.length;
+
+    // العاملة: حالتها التشغيلية OPERATIONAL فقط (غير المفحوصة لا تُعدّ عاملة)
+    const operationalUnits = data.equipment.filter(e => e.status === "OPERATIONAL").length;
+
+    // الوحدات التي تم فحصها فعلياً (لا نفترض فحص أي معدة دون سجل فحص مثبت)
+    const inspectedUnits = data.equipment.filter(e => {
+        const hasInspectionOrder = data.orders.some(o => o.equipmentId === e.id && o.type === "INSPECTION" && o.status === "COMPLETE");
+        const hasInspectionDate = !!e.lastInspectionDate;
+        const hasInspectionLog = data.pmLogs.some(l => l.equipmentId === e.id && (l.type === "INSPECTION" || l.type === "فحص"));
+        return hasInspectionOrder || hasInspectionDate || hasInspectionLog;
+    }).length;
+
+    // تحتاج إلى صيانة (متوقفة، تحت الصيانة، أو عليها أعطال/صيانة تصحيحية غير مكتملة)
+    const needingMaintenance = data.equipment.filter(e => {
+        if (e.status === "STOPPED" || e.status === "UNDER_MAINTENANCE") return true;
+        return data.orders.some(o => o.equipmentId === e.id && o.status !== "COMPLETE" && (o.type === "BREAKDOWN" || o.type === "CORRECTIVE"));
+    }).length;
+
+    const openOrders = data.orders.filter(o => o.status !== "COMPLETE").length;
+
+    // الفحوصات المستحقة (متأخرة أو خلال 14 يوماً — فقط للمعدات ذات موعد مسجل)
+    const now = new Date();
+    const in14Days = new Date(now.getTime() + 14 * 86400000);
+    const dueInspections = data.equipment.filter(e => {
+        const dueStr = e.nextInspectionDue || e.nextDue;
+        if (!dueStr) return false;
+        const dueDate = MC.toDate(dueStr);
+        if (!dueDate || isNaN(dueDate.getTime())) return false;
+        return dueDate <= in14Days;
+    }).length;
+
+    const equipmentWithFaults = data.equipment.filter(e => {
+        return data.orders.some(o => o.equipmentId === e.id && o.type === "BREAKDOWN" && o.status !== "COMPLETE");
+    }).length;
+
+    const card = (label, labelEn, value, icon, cls, clickFn) => `
+        <button type="button" class="ff-stat ${cls || ""}" onclick="${clickFn}" title="${label} — ${labelEn}">
+            <div class="ff-stat-top"><span class="ff-stat-icon">${icon}</span><span>${label}<br><small style="font-weight:600;opacity:.75;">${labelEn}</small></span></div>
+            <span class="ff-stat-val">${value}</span>
+        </button>`;
+
+    const cards = [];
+    if (approvedTotal !== null) cards.push(card("الكمية المعتمدة", "Approved qty", approvedTotal, "📋", "is-blue", "ffSwitchView('groups')"));
+    cards.push(
+        card("الوحدات المسجلة فردياً", "Registered units", totalUnits, "⚙️", "", "ffSwitchView('groups')"),
+        card("وحدات عاملة", "Operational", operationalUnits, "🟢", operationalUnits ? "is-ok" : "", "ffSwitchView('groups')"),
+        card("تحتاج إلى صيانة", "Need maintenance", needingMaintenance, "⚠️", needingMaintenance ? "is-warn" : "", "ffFilterTracker('ongoing')"),
+        card("الفحوصات المستحقة", "Inspections due", dueInspections, "🗓️", dueInspections ? "is-warn" : "", "ffFilterTracker('due_soon')"),
+        card("أوامر العمل المفتوحة", "Open work orders", openOrders, "🔴", openOrders ? "is-danger" : "", "ffSwitchView('orders')"),
+        card("أعطال مفتوحة", "Open faults", equipmentWithFaults, "🚨", equipmentWithFaults ? "is-danger" : "", "ffFilterTracker('faults')"),
+        card("وحدات تم فحصها", "Inspected", inspectedUnits, "✅", inspectedUnits ? "is-ok" : "", "ffFilterTracker('completed')")
+    );
+    host.innerHTML = cards.join("");
+}
+
+function ffFilterTracker(type) {
+    ffActiveView = "tracker";
+    ffTrackerFilter = type;
+    ffDetail = null;
+    ffUpdateSubnavButtons();
+    renderFFContent();
+}
+
+// ---------- شريط البحث والتصفية ----------
+function ffFillToolbar() {
+    const statusEl = document.getElementById("ffStatus");
+    if (statusEl) {
+        statusEl.innerHTML = `<option value="">كل الحالات التشغيلية</option>` +
+            MC.EQUIPMENT_STATUSES.map(s => `<option value="${s}">${MC.equipStatusLabel(s)}</option>`).join("");
+        statusEl.value = ffStatusFilter;
+    }
+    const typeEl = document.getElementById("ffType");
+    if (typeEl) {
+        const opts = [];
+        const seen = {};
+        const add = (value, label) => { if (value && !seen[value]) { seen[value] = 1; opts.push({ value: value, label: label }); } };
+        (MC.deptTypes("fire-fighting") || []).forEach(t => add(t, t));
+        MC.FF_CATALOG_SEED.filter(c => ffFacilityFilter === "unassigned" || c.facility === ffFacilityFilter)
+            .forEach(c => add(c.name, c.nameAr ? c.name + " — " + c.nameAr : c.name));
+        typeEl.innerHTML = `<option value="">كل الأنواع</option>` +
+            opts.map(o => `<option value="${escapeHTML(o.value)}">${escapeHTML(o.label)}</option>`).join("");
+        typeEl.value = ffTypeFilter;
+    }
+    const mEl = document.getElementById("ffMaint"); if (mEl) mEl.value = ffMaintFilter;
+    const iEl = document.getElementById("ffInsp"); if (iEl) iEl.value = ffInspFilter;
+}
+
+function ffOnSearch(v) { ffSearch = v || ""; renderFFContent(); }
+function ffOnGroupFilter(v) { ffGroupFilter = v || ""; renderFFContent(); }
+function ffOnStatus(v) { ffStatusFilter = v || ""; renderFFContent(); }
+function ffOnType(v) { ffTypeFilter = v || ""; renderFFContent(); }
+function ffOnMaint(v) { ffMaintFilter = v || ""; renderFFContent(); }
+function ffOnInsp(v) { ffInspFilter = v || ""; renderFFContent(); }
+function ffResetFilters() {
+    ffSearch = "";
+    ffGroupFilter = "";
+    ffStatusFilter = "";
+    ffTypeFilter = "";
+    ffMaintFilter = "";
+    ffInspFilter = "";
+    ["ffSearch", "ffGroupFilter", "ffStatus", "ffType", "ffMaint", "ffInsp"].forEach(function (id) {
+        const el = document.getElementById(id); if (el) el.value = "";
+    });
+    renderFFContent();
+}
+
+// ---------- رسم المحتوى الرئيسي ----------
+function renderFFContent() {
+    const host = document.getElementById("ffContent");
+    if (!host) return;
+
+    if (ffDetail) {
+        if (ffDetail.kind === "pump" || ffDetail.kind === "unit") {
+            host.innerHTML = renderFFUnitDetail(ffDetail.id);
+        } else if (ffDetail.kind === "type") {
+            host.innerHTML = renderFFTypeDetail(ffDetail.id);
+        }
+        return;
+    }
+
+    if (ffActiveView === "tracker") {
+        host.innerHTML = renderFFTrackerView();
+    } else if (ffActiveView === "orders") {
+        host.innerHTML = renderFFOrdersView();
+    } else {
+        if (!ffActiveGroup) {
+            host.innerHTML = renderFFGroups();
+        } else {
+            host.innerHTML = renderFFGroupView(ffActiveGroup);
+        }
+    }
+}
+
+// ============================================================
+// العرض 1: نظرة عامة على مجموعات الجهة المختارة
+// ============================================================
+function renderFFGroups() {
+    const data = ffFireData();
+    const fac = ffFacilityFilter;
+    const facName = ffFacilityMeta(fac).name;
+    const totals = fac === "unassigned" ? { byGroup: {}, total: 0 } : MC.ffApprovedTotals(fac);
+    const hint = ffFiltersActive()
+        ? `<p class="ff-section-subtitle">الأرقام أدناه مصفاة حسب البحث أو التصفية الحالية (${escapeHTML(facName)}).</p>`
+        : `<p class="ff-section-subtitle">معدات مكافحة الحريق — ${escapeHTML(facName)}، مقسّمة إلى مجموعات واضحة.</p>`;
+
+    const visible = MC.FF_GROUPS.filter(g => g.id !== "fixed" || data.equipment.some(e => MC.ffGroupOf(e) === "fixed"));
+    const cards = visible.map(function (g) {
+        const groupEqs = data.equipment.filter(e => MC.ffGroupOf(e) === g.id);
+        const eqs = ffApplyFilters(groupEqs);
+        const eqIds = {};
+        eqs.forEach(e => { eqIds[e.id] = 1; });
+        const openFaults = data.orders.filter(o => o.status !== "COMPLETE" && o.equipmentId && eqIds[o.equipmentId]).length;
+        const operational = eqs.filter(e => e.status === "OPERATIONAL").length;
+        const approved = totals.byGroup[g.id] || 0;
+        const muted = approved === 0 && groupEqs.length === 0;
+
+        let note;
+        if (muted) note = "لا توجد كمية مسجلة لهذه الجهة";
+        else if (g.id === "pump-set" && fac === "hospital") note = "الكهربائية • الديزل • الجوكي + الصمامات والحساسات والمقاييس";
+        else if (g.id === "pump-set" && fac === "complex") note = "العدد مسجل؛ الأنواع والمواصفات غير محددة بعد";
+        else if (g.id === "extinguishers" && fac === "complex") note = "العدد مسجل؛ الأنواع والسعات غير محددة بعد";
+        else note = "";
+
+        return `
+        <button type="button" class="ff-group ${muted ? "is-muted" : ""}" onclick="ffOpenGroup('${g.id}')">
+            <div class="ff-group-top">
+                <div class="ff-group-icon">${g.icon}</div>
+                <div>
+                    <div class="ff-group-name">${escapeHTML(g.name)}</div>
+                    <div class="ff-group-en">${escapeHTML(g.nameEn)}</div>
+                    ${note ? `<div style="font-size:11px;color:var(--ff-muted);margin-top:2px;line-height:1.5;">${escapeHTML(note)}</div>` : ""}
+                </div>
+            </div>
+            <div class="ff-group-counts">
+                <span class="ff-count">الكمية المعتمدة <b>${approved || "—"}</b></span>
+                <span class="ff-count">مسجلة فردياً <b>${eqs.length}</b></span>
+                <span class="ff-count">عاملة <b>${operational}</b></span>
+                <span class="ff-count ${openFaults ? "is-danger" : ""}">أعطال مفتوحة <b>${openFaults}</b></span>
+            </div>
+        </button>`;
+    }).join("");
+
+    const actionsBar = `
+        <div style="display:flex;flex-wrap:wrap;gap:10px;padding:16px 16px 8px;">
+            <button type="button" class="ff-btn is-primary" id="ffRegisterBtn" onclick="ffRegisterApprovedCatalog()" ${ffRegisterBusy ? "disabled" : ""}>📋 تسجيل الأنواع والكميات المعتمدة</button>
+            <button type="button" class="ff-btn" onclick="ffOpenUnitModal(null, null, null)">➕ تسجيل وحدة فردية جديدة</button>
+        </div>
+        <p class="ff-section-subtitle" style="margin-top:2px;">
+            تسجيل الأنواع والكميات المعتمدة يُسجل مواصفات جدول التجهيز والمضخات مرة واحدة دون تكرار. الوحدات الجديدة تُسجَّل بحالة «غير مفحوصة» حتى يوثَّق فحص فعلي.
+        </p>`;
+
+    return `<h3 class="ff-section-title">🏢 مجموعات المعدات — ${escapeHTML(facName)}</h3>${hint}<div class="ff-groups">${cards}</div>${actionsBar}`;
+}
+
+// بطاقة نوع معتمد واحد من الكتالوج
+function ffRenderTypeCard(t, group, c) {
+    const approvedQty = t.approvedQuantity;
+    const hasQty = approvedQty !== null && approvedQty !== undefined;
+    const remaining = hasQty ? Math.max(0, approvedQty - c.registered) : "غير محدد";
+    const noteText = (t.sourceDescription || t.notes)
+        ? `<div style="font-size:11px;color:#92400e;background:var(--ff-amber-bg);padding:4px 8px;border-radius:6px;margin-top:4px;">${t.sourceDescription ? `وصف المصدر الأصلي: «${escapeHTML(t.sourceDescription)}» — ` : ""}${escapeHTML(t.notes || "")}</div>`
+        : "";
+    return `
+    <div class="ff-type-card">
+        <div class="ff-type-top">
+            <div>
+                <div class="ff-type-title">${escapeHTML(t.nameAr || t.name)}${ffModeBadge(t.ffMode)}</div>
+                <div class="ff-type-meta">${escapeHTML(t.name)} · ${escapeHTML(group.name)}</div>
+            </div>
+            <span class="ff-pill st-NEW">معتمد</span>
+        </div>
+        <div class="ff-qty-bar">
+            <span><i>الكمية المعتمدة</i><b>${hasQty ? approvedQty + " " + (t.unit === "pcs" ? "قطعة" : (t.unit || "")) : "—"}</b></span>
+            <span><i>مسجل فردياً</i><b>${c.registered}</b></span>
+            <span><i>المتبقي</i><b>${remaining === "غير محدد" ? "—" : remaining}</b></span>
+        </div>
+        <div style="font-size:11.5px;color:var(--ff-muted);">
+            <span class="ff-mi">ذوو فحص موثق: <b>${c.withInspections}</b></span><span class="ff-mi">أعطال مفتوحة: <b>${c.withOpenFaults}</b></span>
+        </div>
+        ${noteText}
+        <div class="ff-type-actions">
+            <button type="button" class="ff-btn-sm is-primary" onclick="ffOpenType('${t.id}')">عرض الوحدات المسجلة (${c.registered}) ←</button>
+            <button type="button" class="ff-btn-sm" onclick="ffOpenUnitModal(null, '${group.id}', '${t.id}')">➕ تسجيل وحدة</button>
+        </div>
+    </div>`;
+}
+
+// ============================================================
+// العرض 2: تفاصيل مجموعة واحدة ضمن الجهة المختارة
+// ============================================================
+function renderFFGroupView(groupId) {
+    const group = MC.FF_GROUPS.find(g => g.id === groupId);
+    if (!group) return renderFFGroups();
+    const data = ffFireData();
+    const fac = ffFacilityFilter;
+    const facName = ffFacilityMeta(fac).name;
+    const allGroupEqs = data.equipment.filter(e => MC.ffGroupOf(e) === group.id);
+    const eqs = ffApplyFilters(allGroupEqs)
+        .sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "ar"));
+
+    const backBtn = `
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;padding:10px 16px 4px;">
+            <button type="button" class="ff-back" style="margin:0;" onclick="ffOpenGroup(null)">→ كل المجموعات</button>
+            <button type="button" class="ff-btn is-primary" onclick="ffOpenUnitModal(null, '${group.id}', null)">➕ تسجيل وحدة فردية</button>
+        </div>`;
+
+    const title = `
+        <h3 class="ff-section-title">${group.icon} ${escapeHTML(group.name)}</h3>
+        <div class="ff-title-sub">${escapeHTML(group.nameEn)} · ${escapeHTML(facName)}</div>
+        <p class="ff-section-subtitle">الوحدات الفردية المسجلة في هذه المجموعة لدى ${escapeHTML(facName)}: <b>${allGroupEqs.length}</b> وحدة.</p>`;
+
+    // ---- مضخات المستشفى (بطاقات مستقلة بالمواصفات الفنية) ----
+    let pumpSetHtml = "";
+    if (group.id === "pump-set" && fac === "hospital") {
+        const pumpAr = { "ff-pump-electric": "المضخة الكهربائية", "ff-pump-diesel": "مضخة الديزل", "ff-pump-jockey": "مضخة الجوكي" };
+        const pumpCards = MC.FF_PUMP_SEED.filter(seed => ffCatalogMatchesPump(seed)).map(function (seed) {
+            const unit = data.equipment.find(e => e.id === seed.id) || null;
+            const status = unit ? (unit.status || "UNVERIFIED") : "NOT_REGISTERED";
+            const stLabel = unit ? MC.equipStatusLabel(status) : "لم تسجل بعد في قاعدة البيانات";
+            const stClass = unit ? `st-${status}` : "st-OUT_OF_SERVICE";
+            const tech = seed.techData || {};
+            const noteHtml = seed.id === "ff-pump-diesel" ? `
+                <div class="ff-review-note">
+                    ⚠️ <b>ملاحظة للمراجعة الفنية:</b> مواصفات محرك الديزل الكهربائية (القدرة 75 kW، الجهد 400 V، التردد 50 Hz) مسجلة حسب جدول التجهيز كما وردت دون تغيير، وتتطلب مراجعة وتأكيداً فنياً.
+                </div>` : "";
+            const clickAction = unit ? `onclick="ffOpenPump('${unit.id}')"` : `onclick="ffRegisterApprovedCatalog()"`;
+            const last = unit && unit.lastInspectionDate ? MC.formatDateShort(unit.lastInspectionDate) : "لم تُفحص بعد";
+            const next = unit && unit.nextInspectionDue ? MC.formatDateShort(unit.nextInspectionDue) : "غير محدد";
+            return `
+            <div class="ff-pump-card" ${clickAction}>
+                <div class="ff-pump-top">
+                    <div>
+                        <div class="ff-pump-name">⚡ ${escapeHTML(pumpAr[seed.id] || seed.name)}</div>
+                        <div class="ff-pump-en">${escapeHTML(seed.name)}</div>
+                    </div>
+                    <span class="ff-pill ${stClass}">${escapeHTML(stLabel)}</span>
+                </div>
+                <div class="ff-specs-grid">
+                    <div class="ff-spec-item"><span class="ff-spec-lbl">الضغط (Head)</span><span class="ff-spec-val">${escapeHTML(tech.head || "—")}</span></div>
+                    <div class="ff-spec-item"><span class="ff-spec-lbl">التصريف (Flow)</span><span class="ff-spec-val">${escapeHTML(tech.flow || "—")}</span></div>
+                    <div class="ff-spec-item"><span class="ff-spec-lbl">القدرة (Power)</span><span class="ff-spec-val">${escapeHTML(tech.power || "—")}</span></div>
+                    <div class="ff-spec-item"><span class="ff-spec-lbl">الجهد (Voltage)</span><span class="ff-spec-val">${escapeHTML(tech.voltage || "—")}</span></div>
+                    <div class="ff-spec-item"><span class="ff-spec-lbl">التردد (Frequency)</span><span class="ff-spec-val">${escapeHTML(tech.frequency || "—")}</span></div>
+                    <div class="ff-spec-item"><span class="ff-spec-lbl">رقم المعدة / Tag</span><span class="ff-spec-val">${unit && unit.tagNumber ? escapeHTML(unit.tagNumber) : "—"}</span></div>
+                    <div class="ff-spec-item"><span class="ff-spec-lbl">آخر فحص</span><span class="ff-spec-val">${escapeHTML(last)}</span></div>
+                    <div class="ff-spec-item"><span class="ff-spec-lbl">الفحص القادم</span><span class="ff-spec-val">${escapeHTML(next)}</span></div>
+                </div>
+                ${noteHtml}
+                <div class="ff-pump-footer">
+                    <span>${unit ? "عرض السجل والتفاصيل الفنية وسجل الصيانة" : "اضغط للتسجيل الأولي"}</span>
+                    <span>←</span>
+                </div>
+            </div>`;
+        }).join("");
+
+        pumpSetHtml = `
+        <div class="ff-pumpset-box">
+            <div class="ff-pumpset-head">
+                <div class="ff-pumpset-head-icon">🚒</div>
+                <div>
+                    <div class="ff-pumpset-title">مضخات الحريق — Fire Pumps</div>
+                    <div class="ff-pumpset-sub">ثلاث مضخات بسجلات مستقلة (فحص وصيانة وأعطال لكل مضخة).</div>
+                </div>
+            </div>
+            <div class="ff-pump-grid">${pumpCards || `<div class="ff-empty">لا توجد مضخات مطابقة للبحث الحالي.</div>`}</div>
+            <div class="ff-accessories-box">
+                <div class="ff-accessories-title">⚙️ الصمامات والحساسات وأجهزة القياس والتحكم (Valves, Sensors, Gauges & Controls)</div>
+                <div class="ff-accessories-chips">
+                    <span class="ff-chip">Valves — الصمامات</span>
+                    <span class="ff-chip">Sensors — الحساسات</span>
+                    <span class="ff-chip">Pressure Gauges — مقاييس الضغط</span>
+                    <span class="ff-chip">Other Accessories — أجهزة القياس والتحكم الأخرى</span>
+                </div>
+                <p class="ff-accessories-note">
+                    ℹ️ مواصفات وأعداد هذه الملحقات غير واردة في المصدر؛ سُجلت أنواعها دون اختراع أعداد، وتُضاف الوحدات الفردية عند توفر البيانات.
+                </p>
+            </div>
+        </div>`;
+    }
+
+    // ---- ملاحظة بيانات لمطافئ المستشفى (الأعداد كما وردت دون تعديل) ----
+    let dataNote = "";
+    if (group.id === "extinguishers" && fac === "hospital") {
+        dataNote = `<div class="ff-data-note">ℹ️ أعداد أنواع المطافئ (221 / 14 / 38 قطعة) مسجلة كما وردت في المصدر الحالي ولم تُعدَّل. إن وُجد سجل أحدث بأعداد مختلفة فيجب مطابقته قبل اعتماد أي تغيير.</div>`;
+    }
+
+    // ---- الأنواع والكميات المعتمدة للجهة ----
+    let catalogHtml = "";
+    const catTypes = fac === "unassigned" ? [] : MC.FF_CATALOG_SEED.filter(t => t.ffGroup === group.id && t.facility === fac && ffCatalogMatches(t));
+    if (catTypes.length) {
+        const counts = MC.ffCatalogCounts(catTypes, data.equipment, data.orders);
+        const cardOf = t => ffRenderTypeCard(t, group, counts[t.id] || { registered: 0, withInspections: 0, withOpenFaults: 0 });
+        let inner;
+        if (group.id === "extinguishers") {
+            const sections = [
+                ["portable", "المطافئ المحمولة — Portable"],
+                ["automatic", "المطافئ الأوتوماتيكية — Automatic"],
+                [null, "غير محددة النوع في المصدر — Unspecified"]
+            ];
+            inner = sections.map(function (sec) {
+                const list = catTypes.filter(t => (t.ffMode || null) === sec[0]);
+                return list.length ? `<h5 class="ff-subgroup-title">${sec[1]}</h5><div class="ff-catalog-grid">${list.map(cardOf).join("")}</div>` : "";
+            }).join("");
+        } else {
+            inner = `<div class="ff-catalog-grid">${catTypes.map(cardOf).join("")}</div>`;
+        }
+        catalogHtml = `<h4 class="ff-section-title">📋 الأنواع والكميات المعتمدة</h4>${inner}`;
+    }
+
+    // ---- الوحدات المسجلة فردياً ----
+    let rowsHtml = "";
+    if (eqs.length) {
+        const rows = eqs.map(function (e) {
+            const isPump = MC.FF_PUMP_SEED.some(p => p.id === e.id);
+            const openFn = isPump ? `ffOpenPump('${e.id}')` : `ffOpenUnit('${e.id}')`;
+            const stCls = "st-" + (e.status || "UNVERIFIED");
+            const cat = ffCatalogOf(e);
+            const tagStr = e.tagNumber
+                ? `<span style="font-weight:700;color:var(--ff-dark);">Tag: ${escapeHTML(e.tagNumber)}</span>`
+                : (e.internalCode ? `<span style="color:var(--ff-muted);">رمز داخلي: ${escapeHTML(e.internalCode)} <small>(غير رسمي)</small></span>` : `<span style="color:var(--ff-muted);">بدون رمز</span>`);
+            return `
+            <div class="ff-row" onclick="${openFn}">
+                <div class="ff-row-title">
+                    <span>${isPump ? "⚡" : group.icon} ${escapeHTML(e.name || "معدة بدون اسم")}${ffModeBadge(cat && cat.ffMode)}</span>
+                    <span class="ff-pill ${stCls}">${escapeHTML(MC.equipStatusLabel(e.status))}</span>
+                </div>
+                <div class="ff-row-meta">
+                    <span class="ff-mi">${tagStr}</span>
+                    <span class="ff-mi">النوع: ${escapeHTML(e.type || "—")}</span>
+                    <span class="ff-mi">الموقع: ${e.location ? escapeHTML(e.location) : "غير محدد"}</span>
+                    <span class="ff-mi">آخر فحص: ${e.lastInspectionDate ? MC.formatDateShort(e.lastInspectionDate) : "لم تُفحص بعد"}</span>
+                    ${e.nextInspectionDue ? `<span class="ff-mi">الفحص القادم: ${MC.formatDateShort(e.nextInspectionDue)}</span>` : ""}
+                </div>
+                <div style="font-size:11.5px;color:var(--ff-green);font-weight:700;margin-top:4px;">افتح صفحة التفاصيل والسجلات ←</div>
+            </div>`;
+        }).join("");
+        rowsHtml = `<h4 class="ff-section-title">⚙️ الوحدات المسجلة فردياً (${eqs.length})</h4>${rows}`;
+    } else {
+        rowsHtml = `
+            <div class="ff-empty">
+                <div class="ff-empty-icon">📦</div>
+                ${ffFiltersActive() ? "لا توجد وحدات مطابقة للتصفية الحالية." : "لم تُسجَّل وحدات فردية تفصيلية لهذه المجموعة بعد. يمكنك تسجيلها تدريجياً عند توفر أرقامها ومواقعها."}
+            </div>`;
+    }
+
+    return `${backBtn}${title}${pumpSetHtml}${dataNote}${catalogHtml}${rowsHtml}`;
+}
+
+// مطابقة مضخة معتمدة مع البحث/النوع الحالي (بطاقات مضخات المستشفى)
+function ffCatalogMatchesPump(seed) {
+    if (ffTypeFilter && seed.type !== ffTypeFilter && seed.name !== ffTypeFilter) return false;
+    const q = (ffSearch || "").trim().toLowerCase();
+    if (!q) return true;
+    const ar = { "ff-pump-electric": "المضخة الكهربائية", "ff-pump-diesel": "مضخة الديزل", "ff-pump-jockey": "مضخة الجوكي" }[seed.id] || "";
+    return [seed.name, ar, seed.type].join(" ").toLowerCase().indexOf(q) !== -1;
+}
+
+function ffOpenGroup(groupId) {
+    ffActiveGroup = groupId || null;
+    ffDetail = null;
+    renderFFContent();
+    const host = document.getElementById("ffContent");
+    if (host) host.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+// ============================================================
+// العرض 3: صفحة تفاصيل المعدة الفردية (مضخة أو وحدة مسجلة)
+// تشمل: المعلومات الأساسية، الفحوصات، الصيانة، الأعطال، أوامر العمل، وسجل التغييرات.
+// ============================================================
+function ffOpenPump(pumpId) {
+    ffDetail = { kind: "pump", id: pumpId, tab: "info" };
+    renderFFContent();
+    const host = document.getElementById("ffContent");
+    if (host) host.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function ffOpenUnit(unitId) {
+    ffDetail = { kind: "unit", id: unitId, tab: "info" };
+    renderFFContent();
+    const host = document.getElementById("ffContent");
+    if (host) host.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function ffCloseDetail() {
+    ffDetail = null;
+    renderFFContent();
+}
+
+function ffSwitchDetailTab(tabName) {
+    if (!ffDetail) return;
+    ffDetail.tab = tabName || "info";
+    renderFFContent();
+}
+
+function ffOpenType(typeId) {
+    ffDetail = { kind: "type", id: typeId, tab: "units" };
+    renderFFContent();
+    const host = document.getElementById("ffContent");
+    if (host) host.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function renderFFUnitDetail(unitId) {
+    const data = ffFireDataAll();
+    let eq = data.equipment.find(e => e.id === unitId);
+
+    // إذا كانت مضخة مسجلة كبذرة ولم تُحفظ بعد في Firestore
+    const pumpSeed = MC.FF_PUMP_SEED.find(p => p.id === unitId);
+    if (!eq && pumpSeed) {
+        eq = {
+            id: pumpSeed.id,
+            name: pumpSeed.name,
+            department: "fire-fighting",
+            type: pumpSeed.type,
+            status: "UNVERIFIED",
+            techData: pumpSeed.techData,
+            notes: pumpSeed.notes || "",
+            location: "غرفة مضخات الحريق"
+        };
+    }
+
+    if (!eq) {
+        return `
+        <div class="ff-detail-page">
+            <button type="button" class="ff-back" onclick="ffCloseDetail()">→ عودة</button>
+            <div class="ff-empty"><div class="ff-empty-icon">⚠️</div>لم يتم العثور على سجل لهذه المعدة.</div>
+        </div>`;
+    }
+
+    const currentTab = (ffDetail && ffDetail.tab) || "info";
+    const status = eq.status || "UNVERIFIED";
+    const stPill = `<span class="ff-pill st-${status}">${escapeHTML(MC.equipStatusLabel(status))}</span>`;
+    const logs = MC.ffUnitLogs(data.orders, data.pmLogs, eq.id);
+
+    // التحقق من نوع المعدة والمواصفات
+    const isPump = MC.FF_PUMP_SEED.some(p => p.id === eq.id);
+    const techData = eq.techData || {};
+    const techKeys = Object.keys(techData);
+
+    const backAction = ffActiveGroup ? `ffOpenGroup('${ffActiveGroup}')` : `ffCloseDetail()`;
+
+    // ---------------- زر إجراءات المعدة ----------------
+    const heroActions = `
+        <div class="ff-detail-actions">
+            <button type="button" class="ff-btn is-primary" onclick="ffOpenInspectionModal('${eq.id}')">🔍 تسجيل فحص جديد</button>
+            <button type="button" class="ff-btn" onclick="ffOpenMaintenanceModal('${eq.id}')">🔧 تسجيل صيانة جديدة</button>
+            <button type="button" class="ff-btn is-danger" onclick="ffOpenFaultModal('${eq.id}')">⚠️ تسجيل عطل</button>
+            <button type="button" class="ff-btn" onclick="ffOpenOrderModal('${eq.id}')">📋 أمر عمل جديد</button>
+            <button type="button" class="ff-btn" onclick="ffOpenEditEquipmentModal('${eq.id}')">✏️ تعديل بيانات المعدة</button>
+        </div>`;
+
+    // ---------------- تبويبات تفاصيل المعدة ----------------
+    const tabBtn = (t, label, count) => `
+        <button type="button" class="ff-detail-tab-btn ${currentTab === t ? "is-active" : ""}" onclick="ffSwitchDetailTab('${t}')">
+            ${label} ${count !== undefined ? `(${count})` : ""}
+        </button>`;
+
+    const detailTabs = `
+        <div class="ff-detail-tabs">
+            ${tabBtn("info", "المعلومات الفنية")}
+            ${tabBtn("inspections", "سجل الفحوصات", logs.inspections.length)}
+            ${tabBtn("maintenance", "سجل الصيانة", logs.maintenance.length)}
+            ${tabBtn("faults", "سجل الأعطال", logs.faults.length)}
+            ${tabBtn("orders", "أوامر العمل المرتبطة", logs.workOrders.length)}
+            ${tabBtn("changes", "سجل التغييرات", (eq.changeLog || []).length)}
+        </div>`;
+
+    // ---------------- محتوى التبويب النشط ----------------
+    let tabContent = "";
+
+    // 1. تبويب المعلومات الفنية
+    if (currentTab === "info") {
+        let specsRows = "";
+        if (techKeys.length) {
+            specsRows = `
+            <div class="ff-specs-grid" style="grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:10px;padding:12px;margin:12px 0;">
+                ${techKeys.map(k => `
+                    <div class="ff-spec-item">
+                        <span class="ff-spec-lbl">${escapeHTML(MC.techLabel(k))}</span>
+                        <span class="ff-spec-val" style="font-size:13.5px;">${escapeHTML(techData[k])}</span>
+                    </div>`).join("")}
+            </div>`;
+        }
+
+        let dieselAlert = "";
+        if (eq.id === "ff-pump-diesel" || (eq.notes && eq.notes.includes("مراجعة فنية"))) {
+            dieselAlert = `
+            <div class="ff-review-note" style="margin:12px 0;padding:12px 14px;font-size:12px;">
+                ⚠️ <b>ملاحظة للمراجعة الفنية:</b> القدرة 75 kW والجهد 400 V والتردد 50 Hz مسجّلة حسب جدول التجهيز كما وردت دون تغيير، ومواصفات محرك الديزل الكهربائية تحتاج إلى مراجعة فنية قبل الاعتماد النهائي.
+            </div>`;
+        }
+
+        tabContent = `
+        <div style="background:#fff;border:1px solid var(--ff-border);border-radius:16px;padding:16px;text-align:right;">
+            <h4 style="margin:0 0 10px;font-size:15px;color:var(--ff-dark);">المواصفات والبيانات التشغيلية</h4>
+            <div class="ff-info-grid">
+                <div class="ff-info-item"><span class="ff-info-lbl">الجهة التابعة</span><span class="ff-info-val">${escapeHTML(ffFacilityMeta(MC.ffFacilityOf(eq)).name)} (${escapeHTML(ffFacilityMeta(MC.ffFacilityOf(eq)).nameEn)})</span></div>
+                <div class="ff-info-item"><span class="ff-info-lbl">التصنيف</span><span class="ff-info-val">${escapeHTML(eq.type || "—")} — ${escapeHTML(ffGroupMeta(MC.ffGroupOf(eq)).name)} (${escapeHTML(ffGroupMeta(MC.ffGroupOf(eq)).nameEn)})${ffModeBadge((ffCatalogOf(eq) || {}).ffMode)}</span></div>
+                <div class="ff-info-item"><span class="ff-info-lbl">الموقع</span><span class="ff-info-val">${eq.location ? escapeHTML(eq.location) : "<span style='color:var(--ff-muted);'>غير محدد بدقة</span>"}</span></div>
+                <div class="ff-info-item"><span class="ff-info-lbl">رقم المعدة (Tag)</span><span class="ff-info-val">${eq.tagNumber ? escapeHTML(eq.tagNumber) : "<span style='color:var(--ff-muted);'>غير متوفر</span>"}</span></div>
+                <div class="ff-info-item"><span class="ff-info-lbl">الرمز الداخلي</span><span class="ff-info-val">${eq.internalCode ? escapeHTML(eq.internalCode) + " <small style='color:var(--ff-muted);'>(رمز داخلي مؤقت غير رسمي)</small>" : "<span style='color:var(--ff-muted);'>—</span>"}</span></div>
+                <div class="ff-info-item"><span class="ff-info-lbl">الرقم التسلسلي (Serial)</span><span class="ff-info-val">${eq.serialNumber ? escapeHTML(eq.serialNumber) : "<span style='color:var(--ff-muted);'>غير مسجل</span>"}</span></div>
+                <div class="ff-info-item"><span class="ff-info-lbl">الشركة المصنعة / الموديل</span><span class="ff-info-val">${[eq.manufacturer, eq.model].filter(Boolean).join(" - ") || "<span style='color:var(--ff-muted);'>غير مسجل</span>"}</span></div>
+                <div class="ff-info-item"><span class="ff-info-lbl">آخر فحص موثق</span><span class="ff-info-val">${eq.lastInspectionDate ? MC.formatDateShort(eq.lastInspectionDate) : "<span style='color:var(--ff-muted);'>لم يُجرَ فحص موثق بعد</span>"}</span></div>
+                <div class="ff-info-item"><span class="ff-info-lbl">موعد الفحص القادم</span><span class="ff-info-val">${eq.nextInspectionDue ? MC.formatDateShort(eq.nextInspectionDue) : "<span style='color:var(--ff-muted);'>غير محدد</span>"}</span></div>
+            </div>
+            ${specsRows}
+            ${dieselAlert}
+            ${eq.notes ? `<div style="margin-top:10px;font-size:12.5px;color:var(--ff-muted);background:#f8fafc;padding:10px;border-radius:10px;"><b>ملاحظات فنية:</b> ${escapeHTML(eq.notes)}</div>` : ""}
+        </div>`;
+    }
+
+    // 2. تبويب سجل الفحوصات
+    else if (currentTab === "inspections") {
+        const inspList = logs.inspections.sort((a,b) => (MC.toDate(b.createdAt||b.performedAt)||0) - (MC.toDate(a.createdAt||a.performedAt)||0));
+        const items = inspList.map(i => {
+            const dateStr = MC.formatDateShort(i.completedAt || i.performedAt || i.createdAt);
+            const nextDueStr = i.nextDue ? MC.formatDateShort(i.nextDue) : "غير محدد";
+            return `
+            <div class="ff-row" style="cursor:default;">
+                <div class="ff-row-title">
+                    <span>🔍 فحص بتاريخ: ${dateStr}</span>
+                    <span class="ff-pill st-COMPLETE">${escapeHTML(i.inspectionResult || "سليم")}</span>
+                </div>
+                <div class="ff-row-meta">
+                    ${i.inspectorName || i.performedBy ? "الفاحص: <b>" + escapeHTML(i.inspectorName || i.performedBy) + "</b> · " : ""}
+                    موعد الفحص القادم: <b>${nextDueStr}</b>
+                    ${i.orderNumber ? " · أمر العمل: " + escapeHTML(i.orderNumber) : ""}
+                </div>
+                ${i.notes ? `<div style="font-size:12px;margin-top:5px;color:var(--ff-ink);"><b>الملاحظات:</b> ${escapeHTML(i.notes)}</div>` : ""}
+                ${i.requiredActions ? `<div style="font-size:12px;margin-top:3px;color:var(--ff-amber);"><b>الإجراءات المطلوبة:</b> ${escapeHTML(i.requiredActions)}</div>` : ""}
+            </div>`;
+        }).join("");
+
+        tabContent = `
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                <h4 style="margin:0;font-size:15px;color:var(--ff-dark);">سجلات الفحص الموثقة</h4>
+                <button type="button" class="ff-btn is-primary" onclick="ffOpenInspectionModal('${eq.id}')">➕ تسجيل فحص جديد</button>
+            </div>
+            ${inspList.length ? items : `<div class="ff-empty"><div class="ff-empty-icon">🔍</div>لم يتم توثيق أي فحص لهذه المعدة حتى الآن. المعدة لا تُعتبر مفحوصة ما لم يتوفر سجل يثبت ذلك.</div>`}`;
+    }
+
+    // 3. تبويب سجل الصيانة
+    else if (currentTab === "maintenance") {
+        const maintList = logs.maintenance.sort((a,b) => (MC.toDate(b.performedAt||b.createdAt)||0) - (MC.toDate(a.performedAt||a.createdAt)||0));
+        const items = maintList.map(m => {
+            const dateStr = MC.formatDateShort(m.performedAt || m.createdAt);
+            const partsStr = (m.parts && m.parts.length)
+                ? m.parts.map(p => `${p.name} (عدد ${p.quantity || p.qty || 1})`).join("، ")
+                : "لا توجد قطع مستبدلة";
+            return `
+            <div class="ff-row" style="cursor:default;">
+                <div class="ff-row-title">
+                    <span>🔧 صيانة (${escapeHTML(MC.pmTypeLabel ? MC.pmTypeLabel(m.type) : m.type)}) بتاريخ: ${dateStr}</span>
+                    <span class="ff-pill st-COMPLETE">${escapeHTML(m.status || "COMPLETE")}</span>
+                </div>
+                <div class="ff-row-meta">
+                    ${m.performedBy ? "الفني المسؤول: <b>" + escapeHTML(m.performedBy) + "</b> · " : ""}
+                    ${m.cost ? "التكلفة: <b>" + Number(m.cost).toLocaleString() + " د.ع</b> · " : ""}
+                    القطع: ${escapeHTML(partsStr)}
+                </div>
+                ${m.description ? `<div style="font-size:12px;margin-top:5px;color:var(--ff-ink);"><b>وصف العمل:</b> ${escapeHTML(m.description)}</div>` : ""}
+                ${m.notes ? `<div style="font-size:12px;margin-top:3px;color:var(--ff-muted);"><b>ملاحظات:</b> ${escapeHTML(m.notes)}</div>` : ""}
+            </div>`;
+        }).join("");
+
+        tabContent = `
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                <h4 style="margin:0;font-size:15px;color:var(--ff-dark);">سجلات الصيانة المنفذة</h4>
+                <button type="button" class="ff-btn is-primary" onclick="ffOpenMaintenanceModal('${eq.id}')">➕ تسجيل صيانة جديدة</button>
+            </div>
+            ${maintList.length ? items : `<div class="ff-empty"><div class="ff-empty-icon">🔧</div>لا توجد عمليات صيانة مسجلة لهذه المعدة بعد.</div>`}`;
+    }
+
+    // 4. تبويب سجل الأعطال
+    else if (currentTab === "faults") {
+        const faultList = logs.faults.sort((a,b) => (MC.toDate(b.createdAt)||0) - (MC.toDate(a.createdAt)||0));
+        const items = faultList.map(f => {
+            const dateStr = MC.formatDateShort(f.createdAt);
+            const isResolved = f.status === "COMPLETE";
+            const closeBtn = isResolved
+                ? `<span style="font-size:11.5px;color:var(--ff-green);font-weight:700;">تم الإغلاق بتاريخ: ${MC.formatDateShort(f.completedAt)}</span>`
+                : `<button type="button" class="ff-btn-sm is-primary" onclick="ffOpenResolveFaultModal('${f.id}')">معالجة وإغلاق العطل</button>`;
+            return `
+            <div class="ff-row" style="cursor:default;">
+                <div class="ff-row-title">
+                    <span>⚠️ ${escapeHTML(f.title || f.description || "عطل")}</span>
+                    <div>
+                        <span class="ff-pill p-${escapeHTML(f.priority || "MEDIUM")}">${escapeHTML(MC.priorityLabel(f.priority))}</span>
+                        <span class="ff-pill st-${escapeHTML(f.status || "NEW")}">${escapeHTML(MC.statusLabel(f.status))}</span>
+                    </div>
+                </div>
+                <div class="ff-row-meta">
+                    تاريخ التسجيل: <b>${dateStr}</b>
+                    ${f.orderNumber ? " · رقم الأمر: " + escapeHTML(f.orderNumber) : ""}
+                    ${f.assignedTo ? " · المسؤول: " + escapeHTML(f.assignedTo) : ""}
+                </div>
+                ${f.description ? `<div style="font-size:12px;margin-top:5px;color:var(--ff-ink);"><b>تفاصيل العطل:</b> ${escapeHTML(f.description)}</div>` : ""}
+                ${f.actionTaken ? `<div style="font-size:12px;margin-top:3px;color:var(--ff-muted);"><b>الإجراء المتخذ:</b> ${escapeHTML(f.actionTaken)}</div>` : ""}
+                ${f.resolution ? `<div style="font-size:12px;margin-top:3px;color:var(--ff-green);"><b>المعالجة:</b> ${escapeHTML(f.resolution)}</div>` : ""}
+                <div style="margin-top:8px;display:flex;justify-content:flex-end;">${closeBtn}</div>
+            </div>`;
+        }).join("");
+
+        tabContent = `
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                <h4 style="margin:0;font-size:15px;color:var(--ff-dark);">سجل الأعطال والمشاكل الفنية</h4>
+                <button type="button" class="ff-btn is-danger" onclick="ffOpenFaultModal('${eq.id}')">➕ تسجيل عطل جديد</button>
+            </div>
+            ${faultList.length ? items : `<div class="ff-empty"><div class="ff-empty-icon">✅</div>لا توجد أعطال مسجلة على هذه المعدة.</div>`}`;
+    }
+
+    // 5. تبويب أوامر العمل
+    else if (currentTab === "orders") {
+        const orderList = logs.workOrders.sort((a,b) => (MC.toDate(b.createdAt)||0) - (MC.toDate(a.createdAt)||0));
+        const items = orderList.map(o => {
+            const dateStr = MC.formatDateShort(o.createdAt);
+            const reqLabel = MC.requestTypeLabel ? MC.requestTypeLabel(o.type) : o.type;
+            return `
+            <div class="ff-row" style="cursor:default;">
+                <div class="ff-row-title">
+                    <span>📋 ${escapeHTML(o.orderNumber || "—")} — ${escapeHTML(o.title || "أمر عمل")}</span>
+                    <div>
+                        <span class="ff-pill st-NEW">${escapeHTML(reqLabel)}</span>
+                        <span class="ff-pill p-${escapeHTML(o.priority || "MEDIUM")}">${escapeHTML(MC.priorityLabel(o.priority))}</span>
+                        <span class="ff-pill st-${escapeHTML(o.status || "NEW")}">${escapeHTML(MC.statusLabel(o.status))}</span>
+                    </div>
+                </div>
+                <div class="ff-row-meta">
+                    تاريخ الإنشاء: <b>${dateStr}</b>
+                    ${o.assignedTo ? " · المسؤول: " + escapeHTML(o.assignedTo) : ""}
+                    ${o.dueDate ? " · الاستحقاق: " + MC.formatDateShort(o.dueDate) : ""}
+                </div>
+                ${o.description ? `<div style="font-size:12px;margin-top:4px;color:var(--ff-ink);">${escapeHTML(o.description)}</div>` : ""}
+            </div>`;
+        }).join("");
+
+        tabContent = `
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                <h4 style="margin:0;font-size:15px;color:var(--ff-dark);">أوامر العمل المرتبطة بهذه المعدة</h4>
+                <button type="button" class="ff-btn is-primary" onclick="ffOpenOrderModal('${eq.id}')">➕ أمر عمل جديد</button>
+            </div>
+            ${orderList.length ? items : `<div class="ff-empty"><div class="ff-empty-icon">📋</div>لا توجد أوامر عمل مرتبطة بهذه المعدة.</div>`}`;
+    }
+
+    // 6. تبويب سجل التغييرات (Audit / Change Log)
+    else if (currentTab === "changes") {
+        const changes = (eq.changeLog || []).slice().reverse();
+        const items = changes.map(c => `
+            <div class="ff-row" style="cursor:default;">
+                <div class="ff-row-title">
+                    <span>تعديل في حقل: <b>${escapeHTML(c.field)}</b></span>
+                    <span style="font-size:11px;color:var(--ff-muted);">${c.at ? MC.formatDateShort(c.at) : ""}</span>
+                </div>
+                <div class="ff-row-meta">
+                    بواسطة: <b>${escapeHTML(c.by || "مستخدم")}</b>
+                    <br>
+                    القيمة السابقة: <code style="background:#fee2e2;padding:2px 6px;border-radius:4px;">${escapeHTML(String(c.previous || "فارغ"))}</code>
+                    ←
+                    القيمة الجديدة: <code style="background:#d1fae5;padding:2px 6px;border-radius:4px;">${escapeHTML(String(c.current || "فارغ"))}</code>
+                </div>
+            </div>`).join("");
+
+        tabContent = `
+            <h4 style="margin:0 0 10px;font-size:15px;color:var(--ff-dark);">سجل تعديل المعلومات الحساسة والأثر الإداري</h4>
+            ${changes.length ? items : `<div class="ff-empty"><div class="ff-empty-icon">🕒</div>لم تسجل تعديلات على بيانات هذه المعدة بعد.</div>`}`;
+    }
+
+    return `
+    <div class="ff-detail-page">
+        <button type="button" class="ff-back" onclick="${backAction}">→ رجوع للقائمة</button>
+        <div class="ff-detail-hero">
+            <div class="ff-detail-hero-top">
+                <div>
+                    <h3 class="ff-detail-title">${isPump ? "⚡" : "🧯"} ${escapeHTML(eq.name || "—")}</h3>
+                    <div class="ff-detail-subtitle">
+                        ${eq.tagNumber ? "Tag: " + escapeHTML(eq.tagNumber) + " · " : ""}
+                        ${eq.type ? escapeHTML(eq.type) + " · " : ""}
+                        ${eq.location ? "الموقع: " + escapeHTML(eq.location) : "الموقع غير محدد"}
+                    </div>
+                </div>
+                ${stPill}
+            </div>
+            ${heroActions}
+        </div>
+        ${detailTabs}
+        <div style="margin-top:10px;">${tabContent}</div>
+    </div>`;
+}
+
+// ============================================================
+// العرض 4: صفحة تفاصيل نوع المعدة (مثل 6kg Dry Powder أو Fire Hydrant)
+// تعرض الكمية المعتمدة مقابل المسجل فردياً + قائمة الوحدات المسجلة تحته
+// ============================================================
+function renderFFTypeDetail(typeId) {
+    const data = ffFireData();
+    const typeObj = MC.FF_CATALOG_SEED.find(t => t.id === typeId) || data.types.find(t => t.id === typeId);
+    if (!typeObj) {
+        return `
+        <div class="ff-detail-page">
+            <button type="button" class="ff-back" onclick="ffCloseDetail()">→ عودة</button>
+            <div class="ff-empty">لم يتم العثور على هذا النوع في سجل الأنواع المعتمدة.</div>
+        </div>`;
+    }
+
+    const units = data.equipment.filter(e => e.catalogTypeId ? e.catalogTypeId === typeId : e.type === typeObj.name);
+    const approvedQty = typeObj.approvedQuantity;
+    const remaining = (approvedQty !== null && approvedQty !== undefined) ? Math.max(0, approvedQty - units.length) : "غير محدد";
+
+    const unitRows = units.map(u => {
+        const stCls = "st-" + (u.status || "UNVERIFIED");
+        return `
+        <div class="ff-row" onclick="ffOpenUnit('${u.id}')">
+            <div class="ff-row-title">
+                <span>🧯 ${escapeHTML(u.name || "وحدة")}</span>
+                <span class="ff-pill ${stCls}">${escapeHTML(MC.equipStatusLabel(u.status))}</span>
+            </div>
+            <div class="ff-row-meta">
+                <span class="ff-mi">${u.tagNumber ? "Tag: <b>" + escapeHTML(u.tagNumber) + "</b>" : (u.internalCode ? "رمز داخلي: " + escapeHTML(u.internalCode) : "بدون رمز")}</span>
+                <span class="ff-mi">الموقع: ${u.location ? escapeHTML(u.location) : "غير محدد"}</span>
+                <span class="ff-mi">آخر فحص: ${u.lastInspectionDate ? MC.formatDateShort(u.lastInspectionDate) : "غير مفحوصة"}</span>
+            </div>
+            <div style="font-size:11.5px;color:var(--ff-green);font-weight:700;margin-top:4px;">افتح تفاصيل الوحدة ←</div>
+        </div>`;
+    }).join("");
+
+    return `
+    <div class="ff-detail-page">
+        <button type="button" class="ff-back" onclick="ffCloseDetail()">→ عودة للمجموعات</button>
+        <div class="ff-detail-hero">
+            <div class="ff-detail-hero-top">
+                <div>
+                    <h3 class="ff-detail-title">📋 ${escapeHTML(typeObj.nameAr || typeObj.name)}${ffModeBadge(typeObj.ffMode)}</h3>
+                    <div class="ff-detail-subtitle">${escapeHTML(typeObj.name)} · ${escapeHTML(ffFacilityMeta(typeObj.facility || ffFacilityFilter).name)} — سجل النوع المعتمد في جدول التجهيز</div>
+                </div>
+            </div>
+            <div class="ff-qty-bar" style="margin-top:10px;">
+                <span><i>الكمية المعتمدة</i><b>${approvedQty !== null && approvedQty !== undefined ? approvedQty + " " + (typeObj.unit === "pcs" ? "قطعة" : (typeObj.unit || "")) : "—"}</b></span>
+                <span><i>المسجل فردياً</i><b>${units.length}</b></span>
+                <span><i>المتبقي للتسجيل</i><b>${remaining === "غير محدد" ? "—" : remaining}</b></span>
+            </div>
+            ${typeObj.sourceDescription ? `<div style="margin-top:8px;font-size:12px;color:#92400e;background:var(--ff-amber-bg);padding:8px 10px;border-radius:9px;"><b>وصف المصدر الأصلي:</b> «${escapeHTML(typeObj.sourceDescription)}» ${typeObj.notes ? `— ${escapeHTML(typeObj.notes)}` : ""}</div>` : ""}
+            <div class="ff-detail-actions" style="margin-top:12px;">
+                <button type="button" class="ff-btn is-primary" onclick="ffOpenUnitModal(null, '${typeObj.ffGroup}', '${typeObj.id}')">➕ تسجيل وحدة فردية جديدة من هذا النوع</button>
+            </div>
+        </div>
+
+        <h4 class="ff-section-title">الوحدات المسجلة فردياً تحت هذا النوع (${units.length})</h4>
+        ${units.length ? unitRows : `
+            <div class="ff-empty">
+                <div class="ff-empty-icon">🧯</div>
+                لم تُسجَّل وحدات فردية بهذا النوع بعد. الكمية المعتمدة (${approvedQty || 0}) محفوظة، ويمكن تسجيل أرقام Tag والمواقع تدريجياً عبر زر «تسجيل وحدة فردية جديدة».
+            </div>`}
+    </div>`;
+}
+
+// ============================================================
+// العرض 5: لوحة متابعة الفحص والصيانة (Inspection & Maintenance Tracker)
+// ============================================================
+function renderFFTrackerView() {
+    const data = ffFireData();
+    data.equipment = ffApplyFilters(data.equipment);
+    const now = new Date();
+    const in14Days = new Date(now.getTime() + 14 * 86400000);
+
+    const uninspected = data.equipment.filter(e => {
+        const hasInspection = data.orders.some(o => o.equipmentId === e.id && o.type === "INSPECTION" && o.status === "COMPLETE") || e.lastInspectionDate;
+        return !hasInspection || e.status === "UNVERIFIED";
+    });
+
+    const dueSoon = data.equipment.filter(e => {
+        const dueStr = e.nextInspectionDue || e.nextDue;
+        if (!dueStr) return false;
+        const d = MC.toDate(dueStr);
+        if (!d) return false;
+        return d > now && d <= in14Days;
+    });
+
+    const overdue = data.equipment.filter(e => {
+        const dueStr = e.nextInspectionDue || e.nextDue;
+        if (!dueStr) return false;
+        const d = MC.toDate(dueStr);
+        if (!d) return false;
+        return d <= now;
+    });
+
+    const withFaults = data.equipment.filter(e => {
+        return data.orders.some(o => o.equipmentId === e.id && o.type === "BREAKDOWN" && o.status !== "COMPLETE");
+    });
+
+    const ongoingMaint = data.orders.filter(o => o.status === "IN PROGRESS" || o.status === "AWAITING PARTS");
+    const completedMaint = data.orders.filter(o => o.status === "COMPLETE");
+
+    const activeF = ffTrackerFilter || "all";
+    const filterBtn = (id, label, count) => `
+        <button type="button" class="ff-detail-tab-btn ${activeF === id ? "is-active" : ""}" onclick="ffSetTrackerFilter('${id}')">
+            ${label} <b style="margin-right:4px;">(${count})</b>
+        </button>`;
+
+    const filtersHtml = `
+        <div class="ff-detail-tabs" style="padding:0 16px 8px;margin-bottom:8px;">
+            ${filterBtn("all", "نظرة عامة", data.equipment.length)}
+            ${filterBtn("uninspected", "لم تُفحص بعد", uninspected.length)}
+            ${filterBtn("due_soon", "اقترب موعد الفحص", dueSoon.length)}
+            ${filterBtn("overdue", "تجاوزت موعد الفحص", overdue.length)}
+            ${filterBtn("faults", "أعطال مفتوحة", withFaults.length)}
+            ${filterBtn("ongoing", "صيانة جارية", ongoingMaint.length)}
+            ${filterBtn("completed", "صيانة مكتملة", completedMaint.length)}
+        </div>`;
+
+    let contentHtml = "";
+
+    if (activeF === "uninspected") {
+        contentHtml = uninspected.length
+            ? uninspected.map(e => ffTrackerEquipRow(e, "لم يُجرَ فحص موثق بعد", "is-warn", "🔍 تسجيل فحص", `ffOpenInspectionModal('${e.id}')`)).join("")
+            : `<div class="ff-empty"><div class="ff-empty-icon">✅</div>جميع المعدات المسجلة تم فحصها وتوثيقها.</div>`;
+    } else if (activeF === "due_soon") {
+        contentHtml = dueSoon.length
+            ? dueSoon.map(e => ffTrackerEquipRow(e, "موعد الفحص: " + MC.formatDateShort(e.nextInspectionDue || e.nextDue), "is-warn", "🔍 فحص الآن", `ffOpenInspectionModal('${e.id}')`)).join("")
+            : `<div class="ff-empty"><div class="ff-empty-icon">🗓️</div>لا توجد معدات يقترب موعد فحصها خلال الـ 14 يوماً القادمة.</div>`;
+    } else if (activeF === "overdue") {
+        contentHtml = overdue.length
+            ? overdue.map(e => ffTrackerEquipRow(e, "تأخرت عن موعدها المحدد: " + MC.formatDateShort(e.nextInspectionDue || e.nextDue), "is-danger", "🔍 فحص عاجل", `ffOpenInspectionModal('${e.id}')`)).join("")
+            : `<div class="ff-empty"><div class="ff-empty-icon">✅</div>لا توجد معدات تجاوزت موعد الفحص المحدد.</div>`;
+    } else if (activeF === "faults") {
+        contentHtml = withFaults.length
+            ? withFaults.map(e => ffTrackerEquipRow(e, "يوجد عطل مفتوح بحاجة إلى معالجة", "is-danger", "⚠️ فتح السجل", `ffOpenUnit('${e.id}')`)).join("")
+            : `<div class="ff-empty"><div class="ff-empty-icon">✅</div>لا توجد معدات مسجل عليها أعطال مفتوحة حالياً.</div>`;
+    } else if (activeF === "ongoing") {
+        contentHtml = ongoingMaint.length
+            ? ongoingMaint.map(o => ffTrackerOrderRow(o)).join("")
+            : `<div class="ff-empty"><div class="ff-empty-icon">🔧</div>لا توجد أعمال صيانة قيد التنفيذ حالياً.</div>`;
+    } else if (activeF === "completed") {
+        contentHtml = completedMaint.length
+            ? completedMaint.map(o => ffTrackerOrderRow(o)).join("")
+            : `<div class="ff-empty"><div class="ff-empty-icon">✔️</div>لا توجد أعمال صيانة مكتملة مسجلة بعد.</div>`;
+    } else {
+        contentHtml = `
+            <div style="padding:0 16px;">
+                <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(240px, 1fr));gap:10px;margin-bottom:14px;">
+                    <div style="background:#fff;border:1px solid var(--ff-border);border-radius:14px;padding:12px;border-top:3px solid var(--ff-purple);">
+                        <div style="font-size:12px;color:var(--ff-muted);">معدات لم تُفحص بعد</div>
+                        <div style="font-size:22px;font-weight:850;color:var(--ff-purple);">${uninspected.length}</div>
+                        <div style="font-size:11px;color:var(--ff-muted);margin-top:2px;">بحاجة إلى أول فحص ميداني موثق</div>
+                    </div>
+                    <div style="background:#fff;border:1px solid var(--ff-border);border-radius:14px;padding:12px;border-top:3px solid var(--ff-amber);">
+                        <div style="font-size:12px;color:var(--ff-muted);">فحوصات مستحقة قريباً</div>
+                        <div style="font-size:22px;font-weight:850;color:var(--ff-amber);">${dueSoon.length}</div>
+                        <div style="font-size:11px;color:var(--ff-muted);margin-top:2px;">خلال الـ 14 يوماً القادمة</div>
+                    </div>
+                    <div style="background:#fff;border:1px solid var(--ff-border);border-radius:14px;padding:12px;border-top:3px solid var(--ff-red);">
+                        <div style="font-size:12px;color:var(--ff-muted);">تجاوزت موعد الفحص</div>
+                        <div style="font-size:22px;font-weight:850;color:var(--ff-red);">${overdue.length}</div>
+                        <div style="font-size:11px;color:var(--ff-muted);margin-top:2px;">بناءً على المواعيد المحددة</div>
+                    </div>
+                    <div style="background:#fff;border:1px solid var(--ff-border);border-radius:14px;padding:12px;border-top:3px solid var(--ff-blue);">
+                        <div style="font-size:12px;color:var(--ff-muted);">صيانة جارية</div>
+                        <div style="font-size:22px;font-weight:850;color:var(--ff-blue);">${ongoingMaint.length}</div>
+                        <div style="font-size:11px;color:var(--ff-muted);margin-top:2px;">مهام قيد التنفيذ أو انتظار قطع</div>
+                    </div>
+                </div>
+            </div>
+            <h4 class="ff-section-title">المعدات التي تحتاج إلى متابعة عاجلة</h4>
+            ${[...overdue, ...withFaults].length ? [...new Set([...overdue, ...withFaults])].map(e => ffTrackerEquipRow(e, e.status === "STOPPED" ? "المعدة متوقفة" : "تتطلب متابعة", "is-danger", "عرض التفاصيل", `ffOpenUnit('${e.id}')`)).join("") : `<div class="ff-empty"><div class="ff-empty-icon">✅</div>حالة المنظومة مستقرة ولا توجد تأخيرات حرجة مسجلة.</div>`}
+        `;
+    }
+
+    return `
+    <div>
+        <h3 class="ff-section-title">📊 لوحة متابعة الفحص والصيانة</h3>
+        <p class="ff-section-subtitle">متابعة الفحوصات المستحقة، المعدات المتأخرة، والأعطال الجارية وفق التواريخ المسجلة فعلياً.</p>
+        ${filtersHtml}
+        ${contentHtml}
+    </div>`;
+}
+
+function ffSetTrackerFilter(f) {
+    ffTrackerFilter = f || "all";
+    renderFFContent();
+}
+
+function ffTrackerEquipRow(e, alertText, alertCls, btnLabel, btnAction) {
+    const isPump = MC.FF_PUMP_SEED.some(p => p.id === e.id);
+    const eqIcon = isPump ? "⚡" : (e.type === "Fire Hydrants" ? "🚰" : ((e.type === "Fire Hose Cabinets" || e.type === "Fire Hose Cabinet") ? "🗄️" : "🧯"));
+    return `
+    <div class="ff-row" style="cursor:default;">
+        <div class="ff-row-title">
+            <span>${eqIcon} ${escapeHTML(e.name || "—")}</span>
+            <span class="ff-pill st-${escapeHTML(e.status || "UNVERIFIED")}">${escapeHTML(MC.equipStatusLabel(e.status))}</span>
+        </div>
+        <div class="ff-row-meta">
+            ${e.tagNumber ? "Tag: " + escapeHTML(e.tagNumber) + " · " : ""}
+            النوع: ${escapeHTML(e.type || "—")} ·
+            الموقع: ${e.location ? escapeHTML(e.location) : "غير محدد"}
+            <div style="color:${alertCls === 'is-danger' ? 'var(--ff-red)' : 'var(--ff-amber)'};font-weight:700;margin-top:3px;">
+                ${escapeHTML(alertText)}
+            </div>
+        </div>
+        <div style="margin-top:8px;display:flex;justify-content:flex-end;gap:6px;">
+            <button type="button" class="ff-btn-sm" onclick="ffOpenUnit('${e.id}')">التفاصيل الكاملة</button>
+            <button type="button" class="ff-btn-sm is-primary" onclick="${btnAction}">${escapeHTML(btnLabel)}</button>
+        </div>
+    </div>`;
+}
+
+function ffTrackerOrderRow(o) {
+    return `
+    <div class="ff-row" style="cursor:default;">
+        <div class="ff-row-title">
+            <span>📋 ${escapeHTML(o.orderNumber || "—")} — ${escapeHTML(o.title || "أمر عمل")}</span>
+            <span class="ff-pill st-${escapeHTML(o.status || "NEW")}">${escapeHTML(MC.statusLabel(o.status))}</span>
+        </div>
+        <div class="ff-row-meta">
+            المعدة: <b>${escapeHTML(o.equipmentName || "—")}</b> ·
+            النوع: ${escapeHTML(MC.requestTypeLabel ? MC.requestTypeLabel(o.type) : o.type)} ·
+            الأولوية: <span class="ff-pill p-${escapeHTML(o.priority || "MEDIUM")}">${escapeHTML(MC.priorityLabel(o.priority))}</span> ·
+            المسؤول: ${o.assignedTo ? escapeHTML(o.assignedTo) : "غير محدد"}
+        </div>
+        ${o.description ? `<div style="font-size:12px;margin-top:4px;color:var(--ff-ink);">${escapeHTML(o.description)}</div>` : ""}
+    </div>`;
+}
+
+// ============================================================
+// العرض 6: أوامر العمل (Fire Fighting Work Orders)
+// ============================================================
+function renderFFOrdersView() {
+    const data = ffFireData();
+    let list = data.orders.slice().sort((a,b) => (MC.toDate(b.createdAt)||0) - (MC.toDate(a.createdAt)||0));
+
+    if (ffOrderFilterStatus) list = list.filter(o => o.status === ffOrderFilterStatus);
+    if (ffOrderFilterPriority) list = list.filter(o => o.priority === ffOrderFilterPriority);
+    if (ffOrderFilterType) list = list.filter(o => o.type === ffOrderFilterType);
+
+    const q = (ffSearch || "").trim().toLowerCase();
+    if (q) {
+        list = list.filter(o => {
+            const hay = [o.orderNumber, o.title, o.description, o.equipmentName, o.assignedTo, o.type, o.status].join(" ").toLowerCase();
+            return hay.indexOf(q) !== -1;
+        });
+    }
+
+    const toolbar = `
+        <div style="display:flex;flex-wrap:wrap;gap:8px;padding:0 16px 12px;">
+            <select style="padding:8px 12px;border:1px solid #cbd5e1;border-radius:10px;font:inherit;font-size:12.5px;background:#fff;" onchange="ffOnOrderFilterStatus(this.value)">
+                <option value="">كل حالات الأوامر</option>
+                <option value="NEW" ${ffOrderFilterStatus==="NEW"?"selected":""}>NEW — جديد</option>
+                <option value="IN PROGRESS" ${ffOrderFilterStatus==="IN PROGRESS"?"selected":""}>IN PROGRESS — قيد التنفيذ</option>
+                <option value="AWAITING PARTS" ${ffOrderFilterStatus==="AWAITING PARTS"?"selected":""}>AWAITING PARTS — بانتظار القطع</option>
+                <option value="COMPLETE" ${ffOrderFilterStatus==="COMPLETE"?"selected":""}>COMPLETE — مكتمل</option>
+            </select>
+            <select style="padding:8px 12px;border:1px solid #cbd5e1;border-radius:10px;font:inherit;font-size:12.5px;background:#fff;" onchange="ffOnOrderFilterPriority(this.value)">
+                <option value="">كل الأولويات</option>
+                <option value="LOW" ${ffOrderFilterPriority==="LOW"?"selected":""}>منخفضة (LOW)</option>
+                <option value="MEDIUM" ${ffOrderFilterPriority==="MEDIUM"?"selected":""}>متوسطة (MEDIUM)</option>
+                <option value="HIGH" ${ffOrderFilterPriority==="HIGH"?"selected":""}>عالية (HIGH)</option>
+                <option value="CRITICAL" ${ffOrderFilterPriority==="CRITICAL"?"selected":""}>حرجة (CRITICAL)</option>
+            </select>
+            <select style="padding:8px 12px;border:1px solid #cbd5e1;border-radius:10px;font:inherit;font-size:12.5px;background:#fff;" onchange="ffOnOrderFilterType(this.value)">
+                <option value="">كل أنواع الطلبات</option>
+                <option value="INSPECTION" ${ffOrderFilterType==="INSPECTION"?"selected":""}>فحص (INSPECTION)</option>
+                <option value="PREVENTIVE" ${ffOrderFilterType==="PREVENTIVE"?"selected":""}>صيانة وقائية (PREVENTIVE)</option>
+                <option value="CORRECTIVE" ${ffOrderFilterType==="CORRECTIVE"?"selected":""}>صيانة تصحيحية (CORRECTIVE)</option>
+                <option value="BREAKDOWN" ${ffOrderFilterType==="BREAKDOWN"?"selected":""}>عطل (BREAKDOWN)</option>
+                <option value="TESTING" ${ffOrderFilterType==="TESTING"?"selected":""}>اختبار (TESTING)</option>
+            </select>
+            <button type="button" class="ff-btn is-primary" style="margin-right:auto;" onclick="ffOpenOrderModal(null)">➕ إنشاء أمر عمل جديد</button>
+        </div>`;
+
+    const items = list.map(o => {
+        const dateStr = MC.formatDateShort(o.createdAt);
+        const reqLabel = MC.requestTypeLabel ? MC.requestTypeLabel(o.type) : o.type;
+
+        let statusControls = "";
+        if (o.status === "NEW") {
+            statusControls = `
+                <button type="button" class="ff-btn-sm" onclick="ffUpdateOrderStatus('${o.id}', 'IN PROGRESS')">بدء التنفيذ</button>
+                <button type="button" class="ff-btn-sm" onclick="ffUpdateOrderStatus('${o.id}', 'AWAITING PARTS')">طلب قطع غيار</button>
+                <button type="button" class="ff-btn-sm is-primary" onclick="ffOpenResolveFaultModal('${o.id}')">إنجاز الأمر</button>`;
+        } else if (o.status === "IN PROGRESS") {
+            statusControls = `
+                <button type="button" class="ff-btn-sm" onclick="ffUpdateOrderStatus('${o.id}', 'AWAITING PARTS')">بانتظار قطع</button>
+                <button type="button" class="ff-btn-sm is-primary" onclick="ffOpenResolveFaultModal('${o.id}')">إنجاز الأمر</button>`;
+        } else if (o.status === "AWAITING PARTS") {
+            statusControls = `
+                <button type="button" class="ff-btn-sm" onclick="ffUpdateOrderStatus('${o.id}', 'IN PROGRESS')">استئناف العمل</button>
+                <button type="button" class="ff-btn-sm is-primary" onclick="ffOpenResolveFaultModal('${o.id}')">إنجاز الأمر</button>`;
+        }
+
+        return `
+        <div class="ff-row" style="cursor:default;">
+            <div class="ff-row-title">
+                <span>📋 ${escapeHTML(o.orderNumber || "—")} — ${escapeHTML(o.title || "بدون عنوان")}</span>
+                <div>
+                    <span class="ff-pill st-NEW">${escapeHTML(reqLabel)}</span>
+                    <span class="ff-pill p-${escapeHTML(o.priority || "MEDIUM")}">${escapeHTML(MC.priorityLabel(o.priority))}</span>
+                    <span class="ff-pill st-${escapeHTML(o.status || "NEW")}">${escapeHTML(MC.statusLabel(o.status))}</span>
+                </div>
+            </div>
+            <div class="ff-row-meta">
+                المعدة المرتبطة: <b>${escapeHTML(o.equipmentName || "غير محددة")}</b>
+                ${o.equipmentTag ? " (" + escapeHTML(o.equipmentTag) + ")" : ""} ·
+                تاريخ الإنشاء: <b>${dateStr}</b>
+                ${o.assignedTo ? " · المسؤول: <b>" + escapeHTML(o.assignedTo) + "</b>" : ""}
+                ${o.dueDate ? " · الاستحقاق: <b>" + MC.formatDateShort(o.dueDate) + "</b>" : ""}
+            </div>
+            ${o.description ? `<div style="font-size:12.5px;margin-top:6px;color:var(--ff-ink);line-height:1.6;">${escapeHTML(o.description)}</div>` : ""}
+            ${o.notes ? `<div style="font-size:11.5px;margin-top:3px;color:var(--ff-muted);">ملاحظات: ${escapeHTML(o.notes)}</div>` : ""}
+            ${o.resolution ? `<div style="font-size:12px;margin-top:4px;color:var(--ff-green);font-weight:700;">المعالجة: ${escapeHTML(o.resolution)} (${MC.formatDateShort(o.completedAt)})</div>` : ""}
+            ${statusControls ? `<div style="margin-top:10px;padding-top:8px;border-top:1px dashed #e2e8f0;display:flex;justify-content:flex-end;gap:6px;">${statusControls}</div>` : ""}
+        </div>`;
+    }).join("");
+
+    return `
+    <div>
+        <h3 class="ff-section-title">📋 أوامر العمل الخاصة بمكافحة الحريق</h3>
+        <p class="ff-section-subtitle">إدارة أوامر الفحص والصيانة الوقائية والتصحيحية والأعطال لحفظ الأثر التشغيلي.</p>
+        ${toolbar}
+        ${list.length ? items : `<div class="ff-empty"><div class="ff-empty-icon">📋</div>لا توجد أوامر عمل مطابقة للبحث أو التصفية الحالية.</div>`}
+    </div>`;
+}
+
+function ffOnOrderFilterStatus(v) { ffOrderFilterStatus = v || ""; renderFFContent(); }
+function ffOnOrderFilterPriority(v) { ffOrderFilterPriority = v || ""; renderFFContent(); }
+function ffOnOrderFilterType(v) { ffOrderFilterType = v || ""; renderFFContent(); }
+
+// ============================================================
+// توليد أرقام أوامر العمل متسلسلة عبر عداد Firestore
+// ============================================================
+async function getNextMechOrderNumber(db, prefix = "FF") {
+    try {
+        const fs = await import(MECH_FIRESTORE_URL);
+        const year = new Date().getFullYear();
+        const docId = `orders_${prefix.toLowerCase()}_${year}`;
+        const counterRef = fs.doc(db, MECH_COUNTERS_COLLECTION, docId);
+        return await fs.runTransaction(db, async (tx) => {
+            const snap = await tx.get(counterRef);
+            let nextNum = 1;
+            if (snap.exists()) {
+                const data = snap.data();
+                nextNum = (data.lastNumber || 0) + 1;
+            }
+            tx.set(counterRef, {
+                prefix: prefix,
+                year: year,
+                lastNumber: nextNum,
+                updatedAt: fs.serverTimestamp()
+            });
+            return MC.buildOrderNumber(prefix, nextNum, year);
+        });
+    } catch (e) {
+        console.warn("Counter transaction fallback:", e);
+        const year = new Date().getFullYear();
+        const fireOrders = (mechOrdersCache || []).filter(o => (o.orderNumber || "").startsWith(prefix));
+        return MC.buildOrderNumber(prefix, fireOrders.length + 1, year);
+    }
+}
+
+// ============================================================
+// تسجيل الأنواع والكميات المعتمدة (Idempotent - لا تكرار)
+// ============================================================
+async function ffRegisterApprovedCatalog() {
+    if (ffRegisterBusy) return;
+    if (!requireLoginForWrite(ffRegisterApprovedCatalog)) return;
+    ffRegisterBusy = true;
+    const btn = document.getElementById("ffRegisterBtn");
+    if (btn) btn.disabled = true;
+    try {
+        const db = getFirestoreDB();
+        const fs = await import(MECH_FIRESTORE_URL);
+        const who = mechWho();
+        let createdPumps = 0, createdTypes = 0, skipped = 0;
+
+        // 1. تسجيل المضخات الثلاث كسجلات فردية بحالة «غير مفحوصة»
+        for (const p of MC.FF_PUMP_SEED) {
+            const ref = fs.doc(db, MECH_EQUIPMENT_COLLECTION, p.id);
+            const snap = await fs.getDoc(ref);
+            if (snap.exists()) { skipped++; continue; }
+            await fs.setDoc(ref, {
+                name: p.name,
+                nameAr: p.id === "ff-pump-electric" ? "المضخة الكهربائية" : (p.id === "ff-pump-diesel" ? "مضخة الديزل" : "مضخة الجوكي"),
+                department: "fire-fighting",
+                type: p.type,
+                ffGroup: "pump-set",
+                facility: "hospital",
+                pumpSet: "main",
+                tagNumber: p.id === "ff-pump-electric" ? "FP-ELEC-01" : (p.id === "ff-pump-diesel" ? "FP-DSL-01" : "FP-JCK-01"),
+                location: "غرفة مضخات الحريق",
+                status: "UNVERIFIED",
+                techData: p.techData,
+                notes: p.notes || "",
+                createdBy: who.name,
+                createdAt: fs.serverTimestamp(),
+                changeLog: []
+            });
+            createdPumps++;
+        }
+
+        // 2. تسجيل كتالوج الأنواع والكميات المعتمدة
+        for (const t of MC.FF_CATALOG_SEED) {
+            const ref = fs.doc(db, MECH_TYPES_COLLECTION, t.id);
+            const snap = await fs.getDoc(ref);
+            if (snap.exists()) { skipped++; continue; }
+            const docData = {
+                department: "fire-fighting",
+                name: t.name,
+                facility: t.facility || "hospital",
+                ffGroup: t.ffGroup,
+                ffMode: t.ffMode || null,
+                approvedQuantity: t.approvedQuantity,
+                unit: t.unit,
+                sourceDescription: t.sourceDescription || "",
+                notes: t.notes || "",
+                createdBy: who.name,
+                createdAt: fs.serverTimestamp()
+            };
+            if (t.nameAr) docData.nameAr = t.nameAr;
+            await fs.setDoc(ref, docData);
+            createdTypes++;
+        }
+
+        showMessage(
+            `اكتمل التسجيل: ${createdPumps} مضخات و${createdTypes} أنواع معتمدة` +
+            (skipped ? ` — تم تخطي ${skipped} مستنداً مسجلاً مسبقاً.` : "."),
+            "success"
+        );
+        renderFFStats();
+        renderFFContent();
+    } catch (error) {
+        console.error("ff register error:", error);
+        showMessage("تعذّر إتمام التسجيل. تحقّق من الاتصال وصلاحياتك ثم أعد المحاولة.", "error");
+    } finally {
+        ffRegisterBusy = false;
+        const b = document.getElementById("ffRegisterBtn");
+        if (b) b.disabled = false;
+    }
+}
+
+// ============================================================
+// النوافذ المنبثقة (Modals) ونماذج الإدخال الموثوقة
+// ============================================================
+// عند تغيير الجهة في نموذج الوحدة: إظهار أنواع تلك الجهة فقط
+function ffOnUnitFacilityChange() {
+    const fac = (document.getElementById("ffUnitFacility") || {}).value || "";
+    const sel = document.getElementById("ffUnitTypeId");
+    if (!sel) return;
+    let firstOk = null;
+    Array.prototype.forEach.call(sel.options, function (o) {
+        const ok = !fac || o.getAttribute("data-facility") === fac;
+        o.hidden = !ok; o.disabled = !ok;
+        if (ok && !firstOk) firstOk = o;
+    });
+    const cur = sel.options[sel.selectedIndex];
+    if (!cur || cur.disabled) { if (firstOk) sel.value = firstOk.value; }
+}
+
+function ffCloseModal() {
+    const host = document.getElementById("ffModalHost");
+    if (host) host.innerHTML = "";
+}
+
+// ---------------- 1. تسجيل / تعديل وحدة فردية ----------------
+function ffOpenUnitModal(editUnitId, presetGroupId, presetTypeId) {
+    if (!requireLoginForWrite(() => ffOpenUnitModal(editUnitId, presetGroupId, presetTypeId))) return;
+    const host = document.getElementById("ffModalHost");
+    if (!host) return;
+
+    const data = ffFireDataAll();
+    const editUnit = editUnitId ? data.equipment.find(e => e.id === editUnitId) : null;
+
+    const groupTypes = MC.FF_CATALOG_SEED;
+    const presetType = presetTypeId ? groupTypes.find(t => t.id === presetTypeId) : null;
+    const startFacility = editUnit
+        ? (MC.ffFacilityOf(editUnit) === "unassigned" ? "" : MC.ffFacilityOf(editUnit))
+        : (presetType ? presetType.facility : ((ffFacilityFilter === "hospital" || ffFacilityFilter === "complex") ? ffFacilityFilter : ""));
+    const selectedGroup = presetGroupId || (editUnit ? MC.ffGroupOf(editUnit) : (presetType ? presetType.ffGroup : "extinguishers"));
+    const existingCodes = data.equipment.map(e => e.internalCode || e.tagNumber).filter(Boolean);
+    const prefixes = { "pump-set": "FF-PUMP", extinguishers: "FF-EXT", hydrants: "FF-HYD", "hose-cabinets": "FF-HOSE", foam: "FF-FOAM", fixed: "FF-FIX" };
+    const autoCode = MC.ffNextInternalCode(existingCodes, prefixes[selectedGroup] || "FF-UNIT", editUnit ? editUnit.internalCode : null);
+
+    const typeOptions = groupTypes.map(t => {
+        const isSel = (presetTypeId && t.id === presetTypeId) || (editUnit && (editUnit.catalogTypeId === t.id || (!editUnit.catalogTypeId && editUnit.type === t.name)));
+        const hide = startFacility && t.facility !== startFacility;
+        return `<option value="${t.id}" data-group="${t.ffGroup}" data-facility="${t.facility}" data-name="${escapeHTML(t.name)}" ${isSel ? "selected" : ""} ${hide ? "hidden disabled" : ""}>${escapeHTML(t.nameAr ? t.nameAr + " — " + t.name : t.name)}</option>`;
+    }).join("");
+
+    host.innerHTML = `
+    <div class="ff-modal-overlay" onclick="if(event.target===this) ffCloseModal()">
+        <div class="ff-modal">
+            <div class="ff-modal-head">
+                <h3 class="ff-modal-title">${editUnit ? "✏️ تعديل بيانات الوحدة" : "➕ تسجيل وحدة فردية جديدة"}</h3>
+                <button type="button" class="ff-modal-close" onclick="ffCloseModal()">✕</button>
+            </div>
+            <form id="ffUnitForm" onsubmit="ffSaveUnit(event, '${editUnit ? editUnit.id : ""}')">
+                <div class="ff-modal-body">
+                    <div class="ff-form-group">
+                        <label class="ff-form-label">الجهة التابعة (Facility) *</label>
+                        <select class="ff-form-select" id="ffUnitFacility" required onchange="ffOnUnitFacilityChange()">
+                            <option value="" ${startFacility ? "" : "selected"}>— اختر الجهة —</option>
+                            <option value="hospital" ${startFacility === "hospital" ? "selected" : ""}>المستشفى (Hospital)</option>
+                            <option value="complex" ${startFacility === "complex" ? "selected" : ""}>المجمع (Complex)</option>
+                        </select>
+                        <span class="ff-form-hint">تُفصل بيانات المستشفى عن المجمع ولا تُدمج أعدادهما.</span>
+                    </div>
+                    <div class="ff-form-group">
+                        <label class="ff-form-label">نوع المعدة المعتمد *</label>
+                        <select class="ff-form-select" id="ffUnitTypeId" required>
+                            ${typeOptions}
+                        </select>
+                        <span class="ff-form-hint">تظهر أنواع الجهة المختارة فقط، وهي مرتبطة بجدول التجهيز لحساب الكميات.</span>
+                    </div>
+                    <div class="ff-form-group">
+                        <label class="ff-form-label">اسم المعدة / التسمية الفردية</label>
+                        <input type="text" class="ff-form-input" id="ffUnitName" value="${editUnit ? escapeHTML(editUnit.name || "") : ""}" placeholder="مثال: مطفأة باودر رقم 1 - طابق أرضي">
+                    </div>
+                    <div class="ff-form-group">
+                        <label class="ff-form-label">رقم المعدة الرسمي (Tag Number)</label>
+                        <input type="text" class="ff-form-input" id="ffUnitTag" value="${editUnit ? escapeHTML(editUnit.tagNumber || "") : ""}" placeholder="مثال: FE-P-001 (إن وجد في الموقع)">
+                        <span class="ff-form-hint">يُسجل إذا توفر رقم Tag فعلي. يُمنع تكرار رقم Tag نفسه.</span>
+                    </div>
+                    <div class="ff-form-group">
+                        <label class="ff-form-label">الرمز الداخلي المؤقت</label>
+                        <input type="text" class="ff-form-input" id="ffUnitCode" value="${editUnit ? escapeHTML(editUnit.internalCode || "") : autoCode}" readonly style="background:#f8fafc;">
+                        <span class="ff-form-hint">رمز داخلي مؤقت (غير رسمي) لتتبع الوحدة قبل صدور رقم Tag الرسمي.</span>
+                    </div>
+                    <div class="ff-form-group">
+                        <label class="ff-form-label">الموقع الفعلي (Location)</label>
+                        <input type="text" class="ff-form-input" id="ffUnitLocation" value="${editUnit ? escapeHTML(editUnit.location || "") : ""}" placeholder="مثال: مبنى أ - الطابق الأول - ممر العمليات">
+                        <span class="ff-form-hint">لا تخترع موقعاً إن لم يكن معروفاً بدقة؛ اتركه فارغاً وسيظهر «غير محدد».</span>
+                    </div>
+                    <div class="ff-form-group">
+                        <label class="ff-form-label">الحالة التشغيلية الأولية</label>
+                        <select class="ff-form-select" id="ffUnitStatus">
+                            <option value="UNVERIFIED" ${(!editUnit || editUnit.status === "UNVERIFIED") ? "selected" : ""}>غير مفحوصة (UNVERIFIED) — الافتراضي</option>
+                            <option value="OPERATIONAL" ${(editUnit && editUnit.status === "OPERATIONAL") ? "selected" : ""}>عاملة (OPERATIONAL)</option>
+                            <option value="STOPPED" ${(editUnit && editUnit.status === "STOPPED") ? "selected" : ""}>متوقفة (STOPPED)</option>
+                            <option value="UNDER_MAINTENANCE" ${(editUnit && editUnit.status === "UNDER_MAINTENANCE") ? "selected" : ""}>تحت الصيانة (UNDER_MAINTENANCE)</option>
+                            <option value="OUT_OF_SERVICE" ${(editUnit && editUnit.status === "OUT_OF_SERVICE") ? "selected" : ""}>خارج الخدمة (OUT_OF_SERVICE)</option>
+                        </select>
+                        <span class="ff-form-hint">إنشاء السجل لا يُعتبر فحصاً للمعدة؛ تبقى بحالة «غير مفحوصة» حتى يوثَّق فحص فعلي.</span>
+                    </div>
+                    <div class="ff-form-group">
+                        <label class="ff-form-label">الرقم التسلسلي للقطعة (Serial Number)</label>
+                        <input type="text" class="ff-form-input" id="ffUnitSerial" value="${editUnit ? escapeHTML(editUnit.serialNumber || "") : ""}" placeholder="الرقم المصنعي إن وجد">
+                    </div>
+                    <div class="ff-form-group">
+                        <label class="ff-form-label">ملاحظات إضافية</label>
+                        <textarea class="ff-form-textarea" id="ffUnitNotes" placeholder="أي تفاصيل أو متطلبات فنية خاصة بالوحدة">${editUnit ? escapeHTML(editUnit.notes || "") : ""}</textarea>
+                    </div>
+                </div>
+                <div class="ff-modal-foot">
+                    <button type="button" class="ff-btn" onclick="ffCloseModal()">إلغاء</button>
+                    <button type="submit" class="ff-btn is-primary">حفظ الوحدة</button>
+                </div>
+            </form>
+        </div>
+    </div>`;
+}
+
+async function ffSaveUnit(e, editUnitId) {
+    e.preventDefault();
+    if (!requireLoginForWrite(() => {})) return;
+    const typeSelect = document.getElementById("ffUnitTypeId");
+    if (!typeSelect) return;
+
+    const typeId = typeSelect.value;
+    const selectedOption = typeSelect.options[typeSelect.selectedIndex];
+    const typeName = selectedOption ? selectedOption.getAttribute("data-name") : "";
+    const groupName = selectedOption ? selectedOption.getAttribute("data-group") : "extinguishers";
+    const typeFacility = selectedOption ? selectedOption.getAttribute("data-facility") : "";
+    const facility = (document.getElementById("ffUnitFacility").value || "").trim();
+    if (!facility) {
+        showMessage("اختر الجهة التابعة (المستشفى أو المجمع).", "error");
+        return;
+    }
+    if (typeFacility && typeFacility !== facility) {
+        showMessage("نوع المعدة المختار لا يتبع الجهة المحددة. اختر نوعاً من أنواع هذه الجهة.", "error");
+        return;
+    }
+
+    const name = (document.getElementById("ffUnitName").value || "").trim() || typeName;
+    const tag = (document.getElementById("ffUnitTag").value || "").trim();
+    const code = (document.getElementById("ffUnitCode").value || "").trim();
+    const location = (document.getElementById("ffUnitLocation").value || "").trim();
+    const status = document.getElementById("ffUnitStatus").value || "UNVERIFIED";
+    const serial = (document.getElementById("ffUnitSerial").value || "").trim();
+    const notes = (document.getElementById("ffUnitNotes").value || "").trim();
+
+    // التحقق من تكرار رقم Tag
+    if (tag) {
+        const dup = MC.ffFindDuplicateTag(mechEquipmentCache, tag, editUnitId);
+        if (dup) {
+            showMessage(`رقم الـ Tag «${tag}» مستخدم بالفعل في المعدة «${dup.name}». يرجى استخدام رقم فريد.`, "error");
+            return;
+        }
+    }
+
+    try {
+        const db = getFirestoreDB();
+        const fs = await import(MECH_FIRESTORE_URL);
+        const who = mechWho();
+
+        if (editUnitId) {
+            const ref = fs.doc(db, MECH_EQUIPMENT_COLLECTION, editUnitId);
+            const oldUnit = mechEquipmentCache.find(u => u.id === editUnitId) || {};
+            const changeRes = MC.ffLogEquipmentChange(editUnitId, {
+                name: name, name_old: oldUnit.name,
+                tagNumber: tag, tagNumber_old: oldUnit.tagNumber,
+                location: location, location_old: oldUnit.location,
+                status: status, status_old: oldUnit.status,
+                facility: facility, facility_old: MC.ffFacilityOf(oldUnit),
+                serialNumber: serial, serialNumber_old: oldUnit.serialNumber,
+                notes: notes, notes_old: oldUnit.notes,
+                by: who.name
+            });
+
+            const nextChanges = [...(oldUnit.changeLog || []), ...changeRes.changes];
+
+            await fs.updateDoc(ref, {
+                name: name,
+                tagNumber: tag || null,
+                location: location || null,
+                status: status,
+                serialNumber: serial || null,
+                facility: facility,
+                notes: notes || "",
+                updatedBy: who.name,
+                updatedAt: fs.serverTimestamp(),
+                changeLog: nextChanges
+            });
+            showMessage("تم تحديث بيانات المعدة بنجاح.", "success");
+        } else {
+            await fs.addDoc(fs.collection(db, MECH_EQUIPMENT_COLLECTION), {
+                name: name,
+                department: "fire-fighting",
+                type: typeName,
+                catalogTypeId: typeId,
+                ffGroup: groupName,
+                tagNumber: tag || null,
+                internalCode: code,
+                location: location || null,
+                status: status,
+                serialNumber: serial || null,
+                facility: facility,
+                notes: notes || "",
+                createdBy: who.name,
+                createdAt: fs.serverTimestamp(),
+                changeLog: []
+            });
+            showMessage("تم تسجيل الوحدة الفردية بنجاح وحفظها في قاعدة البيانات.", "success");
+        }
+        ffCloseModal();
+        renderFFStats();
+        renderFFContent();
+    } catch (err) {
+        console.error("Save unit error:", err);
+        showMessage("تعذّر حفظ بيانات المعدة. يرجى التحقق من الاتصال والمحاولة مجدداً.", "error");
+    }
+}
+
+// ---------------- 2. نافذة تسجيل فحص جديد ----------------
+function ffOpenInspectionModal(equipmentId) {
+    if (!requireLoginForWrite(() => ffOpenInspectionModal(equipmentId))) return;
+    const host = document.getElementById("ffModalHost");
+    if (!host) return;
+    const data = ffFireDataAll();
+    const eq = data.equipment.find(e => e.id === equipmentId);
+    if (!eq) return;
+
+    const who = mechWho();
+    const todayStr = new Date().toISOString().slice(0, 10);
+
+    host.innerHTML = `
+    <div class="ff-modal-overlay" onclick="if(event.target===this) ffCloseModal()">
+        <div class="ff-modal">
+            <div class="ff-modal-head">
+                <h3 class="ff-modal-title">🔍 تسجيل فحص جديد — ${escapeHTML(eq.name)}</h3>
+                <button type="button" class="ff-modal-close" onclick="ffCloseModal()">✕</button>
+            </div>
+            <form onsubmit="ffSaveInspection(event, '${eq.id}')">
+                <div class="ff-modal-body">
+                    <div class="ff-form-group">
+                        <label class="ff-form-label">المعدة المستهدفة</label>
+                        <input type="text" class="ff-form-input" value="${escapeHTML(eq.name)} (${eq.tagNumber || eq.internalCode || 'بدون رمز'})" readonly style="background:#f8fafc;">
+                    </div>
+                    <div class="ff-form-group">
+                        <label class="ff-form-label">تاريخ الفحص *</label>
+                        <input type="date" class="ff-form-input" id="ffInspDate" value="${todayStr}" required>
+                    </div>
+                    <div class="ff-form-group">
+                        <label class="ff-form-label">اسم الفاحص / المهندس المسؤول *</label>
+                        <input type="text" class="ff-form-input" id="ffInspInspector" value="${escapeHTML(who.name || '')}" required placeholder="اسم من قام بالفحص">
+                    </div>
+                    <div class="ff-form-group">
+                        <label class="ff-form-label">نتيجة الفحص الفني *</label>
+                        <select class="ff-form-select" id="ffInspResult" required>
+                            <option value="سليم ومطابق للمواصفات">سليم ومطابق للمواصفات (PASS)</option>
+                            <option value="ملاحظات طفيفة لا تمنع التشغيل">ملاحظات طفيفة لا تمنع التشغيل (MINOR NOTES)</option>
+                            <option value="يحتاج إلى صيانة ومعالجة">يحتاج إلى صيانة ومعالجة (NEEDS MAINTENANCE)</option>
+                            <option value="فاشل - متوقف عن العمل">فاشل - متوقف عن العمل (FAIL)</option>
+                        </select>
+                    </div>
+                    <div class="ff-form-group">
+                        <label class="ff-form-label">تحديث الحالة التشغيلية للمعدة</label>
+                        <select class="ff-form-select" id="ffInspNewStatus">
+                            <option value="OPERATIONAL">عاملة (OPERATIONAL) — سليم</option>
+                            <option value="STOPPED">متوقفة (STOPPED) — عاطلة</option>
+                            <option value="UNDER_MAINTENANCE">تحت الصيانة (UNDER_MAINTENANCE)</option>
+                            <option value="UNVERIFIED">إبقاء الحالة الحالية (${escapeHTML(MC.equipStatusLabel(eq.status))})</option>
+                        </select>
+                    </div>
+                    <div class="ff-form-group">
+                        <label class="ff-form-label">الملاحظات الفنية وتقرير الفحص *</label>
+                        <textarea class="ff-form-textarea" id="ffInspNotes" required placeholder="سجل قراءات الضغط، سلامة الصمامات، فحص الأختام، الخرطوم، المانوميتر..."></textarea>
+                    </div>
+                    <div class="ff-form-group">
+                        <label class="ff-form-label">الإجراءات والتدابير المطلوبة</label>
+                        <input type="text" class="ff-form-input" id="ffInspActions" placeholder="مثال: إعادة تعبئة، استبدال مانوميتر، اختبار ضغط، لا توجد إجراءات">
+                    </div>
+                    <div class="ff-form-group">
+                        <label class="ff-form-label">موعد الفحص القادم المقترح</label>
+                        <input type="date" class="ff-form-input" id="ffInspNextDue">
+                        <span class="ff-form-hint">يُحدد وفقاً لمعايير المنشأة وتعليمات المصنع المعتمدة دون افتراض فترات تلقائية.</span>
+                    </div>
+                </div>
+                <div class="ff-modal-foot">
+                    <button type="button" class="ff-btn" onclick="ffCloseModal()">إلغاء</button>
+                    <button type="submit" class="ff-btn is-primary">حفظ وتوثيق الفحص</button>
+                </div>
+            </form>
+        </div>
+    </div>`;
+}
+
+async function ffSaveInspection(e, equipmentId) {
+    e.preventDefault();
+    if (!requireLoginForWrite(() => {})) return;
+    const date = document.getElementById("ffInspDate").value;
+    const inspector = (document.getElementById("ffInspInspector").value || "").trim();
+    const result = document.getElementById("ffInspResult").value;
+    const newStatusChoice = document.getElementById("ffInspNewStatus").value;
+    const notes = (document.getElementById("ffInspNotes").value || "").trim();
+    const actions = (document.getElementById("ffInspActions").value || "").trim();
+    const nextDue = document.getElementById("ffInspNextDue").value || null;
+
+    try {
+        const db = getFirestoreDB();
+        const fs = await import(MECH_FIRESTORE_URL);
+        const who = mechWho();
+        const eqRef = fs.doc(db, MECH_EQUIPMENT_COLLECTION, equipmentId);
+        const eqSnap = await fs.getDoc(eqRef);
+        const eqData = eqSnap.exists() ? eqSnap.data() : {};
+
+        const orderNum = await getNextMechOrderNumber(db, "FF-INSP");
+
+        await fs.addDoc(fs.collection(db, MECH_ORDERS_COLLECTION), {
+            department: "fire-fighting",
+            equipmentId: equipmentId,
+            equipmentName: eqData.name || "معدة مكافحة حريق",
+            equipmentTag: eqData.tagNumber || eqData.internalCode || null,
+            orderNumber: orderNum,
+            type: "INSPECTION",
+            title: `فحص دوري: ${result}`,
+            description: notes,
+            inspectionResult: result,
+            inspectorName: inspector,
+            requiredActions: actions || null,
+            priority: result.includes("فاشل") ? "HIGH" : "MEDIUM",
+            status: "COMPLETE",
+            nextDue: nextDue,
+            performedAt: date,
+            completedAt: date,
+            createdBy: who.name,
+            createdAt: fs.serverTimestamp()
+        });
+
+        const finalStatus = (newStatusChoice === "UNVERIFIED" && eqData.status) ? eqData.status : newStatusChoice;
+        const changeRes = MC.ffLogEquipmentChange(equipmentId, {
+            status: finalStatus, status_old: eqData.status,
+            lastInspectionDate: date, lastInspectionDate_old: eqData.lastInspectionDate,
+            nextInspectionDue: nextDue, nextInspectionDue_old: eqData.nextInspectionDue,
+            by: who.name
+        });
+
+        await fs.updateDoc(eqRef, {
+            status: finalStatus,
+            lastInspectionDate: date,
+            lastInspectionResult: result,
+            nextInspectionDue: nextDue,
+            updatedBy: who.name,
+            updatedAt: fs.serverTimestamp(),
+            changeLog: [...(eqData.changeLog || []), ...changeRes.changes]
+        });
+
+        showMessage("تم تسجيل وتوثيق الفحص بنجاح، وتحديث حالة المعدة.", "success");
+        ffCloseModal();
+        renderFFStats();
+        renderFFContent();
+    } catch (err) {
+        console.error("Save inspection error:", err);
+        showMessage("تعذّر حفظ سجل الفحص. تحقّق من الاتصال وحاول مجدداً.", "error");
+    }
+}
+
+// ---------------- 3. نافذة تسجيل صيانة جديدة ----------------
+function ffOpenMaintenanceModal(equipmentId) {
+    if (!requireLoginForWrite(() => ffOpenMaintenanceModal(equipmentId))) return;
+    const host = document.getElementById("ffModalHost");
+    if (!host) return;
+    const data = ffFireDataAll();
+    const eq = data.equipment.find(e => e.id === equipmentId);
+    if (!eq) return;
+
+    const who = mechWho();
+    const todayStr = new Date().toISOString().slice(0, 10);
+
+    host.innerHTML = `
+    <div class="ff-modal-overlay" onclick="if(event.target===this) ffCloseModal()">
+        <div class="ff-modal">
+            <div class="ff-modal-head">
+                <h3 class="ff-modal-title">🔧 تسجيل صيانة — ${escapeHTML(eq.name)}</h3>
+                <button type="button" class="ff-modal-close" onclick="ffCloseModal()">✕</button>
+            </div>
+            <form onsubmit="ffSaveMaintenance(event, '${eq.id}')">
+                <div class="ff-modal-body">
+                    <div class="ff-form-group">
+                        <label class="ff-form-label">المعدة</label>
+                        <input type="text" class="ff-form-input" value="${escapeHTML(eq.name)} (${eq.tagNumber || eq.internalCode || 'بدون رمز'})" readonly style="background:#f8fafc;">
+                    </div>
+                    <div class="ff-form-group">
+                        <label class="ff-form-label">تاريخ الصيانة *</label>
+                        <input type="date" class="ff-form-input" id="ffMaintDate" value="${todayStr}" required>
+                    </div>
+                    <div class="ff-form-group">
+                        <label class="ff-form-label">نوع الصيانة *</label>
+                        <select class="ff-form-select" id="ffMaintType" required>
+                            <option value="ROUTINE">دورية (ROUTINE)</option>
+                            <option value="PREVENTIVE">وقائية (PREVENTIVE)</option>
+                            <option value="CORRECTIVE">تصحيحية (CORRECTIVE)</option>
+                            <option value="EMERGENCY">طارئة (EMERGENCY)</option>
+                        </select>
+                    </div>
+                    <div class="ff-form-group">
+                        <label class="ff-form-label">الفني / الجهة المنفذة *</label>
+                        <input type="text" class="ff-form-input" id="ffMaintTech" value="${escapeHTML(who.name || '')}" required placeholder="اسم الفني أو الشركة المنفذة">
+                    </div>
+                    <div class="ff-form-group">
+                        <label class="ff-form-label">وصف أعمال الصيانة المنفذة *</label>
+                        <textarea class="ff-form-textarea" id="ffMaintDesc" required placeholder="تفاصيل الأعمال: تغيير زيوت، فحص سدادات، تبديل بطاريات، تشحيم، معايرة ضغط..."></textarea>
+                    </div>
+                    <div class="ff-form-group">
+                        <label class="ff-form-label">القطع المستبدلة (اسم القطعة والكمية)</label>
+                        <div id="ffMaintPartsHost" style="display:flex;flex-direction:column;gap:6px;">
+                            <div class="ff-part-row" style="display:flex;gap:6px;">
+                                <input type="text" class="ff-form-input ff-part-name" placeholder="اسم القطعة المستبدلة">
+                                <input type="number" class="ff-form-input ff-part-qty" style="max-width:80px;" placeholder="العدد" min="1" value="1">
+                            </div>
+                        </div>
+                        <button type="button" class="ff-btn-sm" style="margin-top:4px;align-self:flex-start;" onclick="ffAddPartRow()">➕ إضافة قطعة أخرى</button>
+                    </div>
+                    <div class="ff-form-group">
+                        <label class="ff-form-label">التكلفة المالية (إن وجدت)</label>
+                        <input type="number" class="ff-form-input" id="ffMaintCost" placeholder="المبلغ بالدينار العراقي (اختياري)">
+                    </div>
+                    <div class="ff-form-group">
+                        <label class="ff-form-label">تحديث حالة المعدة بعد الصيانة</label>
+                        <select class="ff-form-select" id="ffMaintStatus">
+                            <option value="OPERATIONAL">عاملة وجاهزة للخدمة (OPERATIONAL)</option>
+                            <option value="UNDER_MAINTENANCE">تحت الصيانة (UNDER_MAINTENANCE)</option>
+                            <option value="STOPPED">متوقفة (STOPPED)</option>
+                        </select>
+                    </div>
+                    <div class="ff-form-group">
+                        <label class="ff-form-label">ملاحظات إضافية</label>
+                        <input type="text" class="ff-form-input" id="ffMaintNotes" placeholder="أي توصيات أو مواعيد صيانة لاحقة">
+                    </div>
+                </div>
+                <div class="ff-modal-foot">
+                    <button type="button" class="ff-btn" onclick="ffCloseModal()">إلغاء</button>
+                    <button type="submit" class="ff-btn is-primary">حفظ سجل الصيانة</button>
+                </div>
+            </form>
+        </div>
+    </div>`;
+}
+
+function ffAddPartRow() {
+    const host = document.getElementById("ffMaintPartsHost");
+    if (!host) return;
+    const div = document.createElement("div");
+    div.className = "ff-part-row";
+    div.style = "display:flex;gap:6px;";
+    div.innerHTML = `
+        <input type="text" class="ff-form-input ff-part-name" placeholder="اسم القطعة المستبدلة">
+        <input type="number" class="ff-form-input ff-part-qty" style="max-width:80px;" placeholder="العدد" min="1" value="1">
+        <button type="button" class="ff-btn-sm is-danger" onclick="this.parentElement.remove()">✕</button>`;
+    host.appendChild(div);
+}
+
+async function ffSaveMaintenance(e, equipmentId) {
+    e.preventDefault();
+    if (!requireLoginForWrite(() => {})) return;
+    const date = document.getElementById("ffMaintDate").value;
+    const type = document.getElementById("ffMaintType").value;
+    const tech = (document.getElementById("ffMaintTech").value || "").trim();
+    const desc = (document.getElementById("ffMaintDesc").value || "").trim();
+    const cost = document.getElementById("ffMaintCost").value;
+    const status = document.getElementById("ffMaintStatus").value;
+    const notes = (document.getElementById("ffMaintNotes").value || "").trim();
+
+    const parts = [];
+    document.querySelectorAll("#ffMaintPartsHost .ff-part-row").forEach(row => {
+        const nameEl = row.querySelector(".ff-part-name");
+        const qtyEl = row.querySelector(".ff-part-qty");
+        if (nameEl && nameEl.value.trim()) {
+            parts.push({
+                name: nameEl.value.trim(),
+                quantity: Number(qtyEl ? qtyEl.value : 1) || 1
+            });
+        }
+    });
+
+    try {
+        const db = getFirestoreDB();
+        const fs = await import(MECH_FIRESTORE_URL);
+        const who = mechWho();
+        const eqRef = fs.doc(db, MECH_EQUIPMENT_COLLECTION, equipmentId);
+        const eqSnap = await fs.getDoc(eqRef);
+        const eqData = eqSnap.exists() ? eqSnap.data() : {};
+
+        await fs.addDoc(fs.collection(db, MECH_PM_LOGS_COLLECTION), {
+            department: "fire-fighting",
+            equipmentId: equipmentId,
+            equipmentName: eqData.name || "معدة مكافحة حريق",
+            type: type,
+            description: desc,
+            performedBy: tech,
+            parts: parts,
+            cost: cost ? Number(cost) : null,
+            status: "COMPLETE",
+            notes: notes || "",
+            performedAt: date,
+            createdBy: who.name,
+            createdAt: fs.serverTimestamp()
+        });
+
+        const orderNum = await getNextMechOrderNumber(db, "FF-MAINT");
+        await fs.addDoc(fs.collection(db, MECH_ORDERS_COLLECTION), {
+            department: "fire-fighting",
+            equipmentId: equipmentId,
+            equipmentName: eqData.name || "معدة مكافحة حريق",
+            orderNumber: orderNum,
+            type: type === "CORRECTIVE" ? "CORRECTIVE" : "PREVENTIVE",
+            title: `صيانة: ${desc.slice(0, 40)}`,
+            description: desc,
+            assignedTo: tech,
+            status: "COMPLETE",
+            priority: "MEDIUM",
+            completedAt: date,
+            createdBy: who.name,
+            createdAt: fs.serverTimestamp()
+        });
+
+        const changeRes = MC.ffLogEquipmentChange(equipmentId, {
+            status: status, status_old: eqData.status,
+            by: who.name
+        });
+        await fs.updateDoc(eqRef, {
+            status: status,
+            lastMaintenanceDate: date,
+            updatedBy: who.name,
+            updatedAt: fs.serverTimestamp(),
+            changeLog: [...(eqData.changeLog || []), ...changeRes.changes]
+        });
+
+        showMessage("تم حفظ وتوثيق سجل الصيانة بنجاح.", "success");
+        ffCloseModal();
+        renderFFStats();
+        renderFFContent();
+    } catch (err) {
+        console.error("Save maintenance error:", err);
+        showMessage("تعذّر حفظ سجل الصيانة. تحقّق من الاتصال وحاول مجدداً.", "error");
+    }
+}
+
+// ---------------- 4. نافذة تسجيل عطل جديد ----------------
+function ffOpenFaultModal(equipmentId) {
+    if (!requireLoginForWrite(() => ffOpenFaultModal(equipmentId))) return;
+    const host = document.getElementById("ffModalHost");
+    if (!host) return;
+    const data = ffFireDataAll();
+    const eq = data.equipment.find(e => e.id === equipmentId);
+    if (!eq) return;
+
+    host.innerHTML = `
+    <div class="ff-modal-overlay" onclick="if(event.target===this) ffCloseModal()">
+        <div class="ff-modal">
+            <div class="ff-modal-head">
+                <h3 class="ff-modal-title">⚠️ تسجيل عطل — ${escapeHTML(eq.name)}</h3>
+                <button type="button" class="ff-modal-close" onclick="ffCloseModal()">✕</button>
+            </div>
+            <form onsubmit="ffSaveFault(event, '${eq.id}')">
+                <div class="ff-modal-body">
+                    <div class="ff-form-group">
+                        <label class="ff-form-label">المعدة المعطلة</label>
+                        <input type="text" class="ff-form-input" value="${escapeHTML(eq.name)} (${eq.tagNumber || eq.internalCode || 'بدون رمز'})" readonly style="background:#f8fafc;">
+                    </div>
+                    <div class="ff-form-group">
+                        <label class="ff-form-label">عنوان العطل أو المشكلة *</label>
+                        <input type="text" class="ff-form-input" id="ffFaultTitle" required placeholder="مثال: تسريب ماء من الصمام الرئيسي، هبوط مفاجئ في الضغط...">
+                    </div>
+                    <div class="ff-form-group">
+                        <label class="ff-form-label">درجة الأولوية والخطورة *</label>
+                        <select class="ff-form-select" id="ffFaultPriority" required>
+                            <option value="CRITICAL">حرجة (CRITICAL) — توقف كلي للنظام</option>
+                            <option value="HIGH">عالية (HIGH) — خطر على منظومة الإطفاء</option>
+                            <option value="MEDIUM" selected>متوسطة (MEDIUM) — عطل جزئي</option>
+                            <option value="LOW">منخفضة (LOW) — ملاحظة صيانة</option>
+                        </select>
+                    </div>
+                    <div class="ff-form-group">
+                        <label class="ff-form-label">وصف تفصيلي للعطل والأعراض *</label>
+                        <textarea class="ff-form-textarea" id="ffFaultDesc" required placeholder="اشرح ما حدث بدقة وكيف تم اكتشاف العطل..."></textarea>
+                    </div>
+                    <div class="ff-form-group">
+                        <label class="ff-form-label">الإجراء المتخذ فورياً</label>
+                        <input type="text" class="ff-form-input" id="ffFaultAction" placeholder="مثال: تم إغلاق المحبس، تم عزل المضخة، قيد الفحص">
+                    </div>
+                    <div class="ff-form-group">
+                        <label class="ff-form-label">تحديث حالة المعدة</label>
+                        <select class="ff-form-select" id="ffFaultNewStatus">
+                            <option value="STOPPED">متوقفة عن العمل (STOPPED)</option>
+                            <option value="UNDER_MAINTENANCE">تحت الصيانة (UNDER_MAINTENANCE)</option>
+                            <option value="OUT_OF_SERVICE">خارج الخدمة (OUT_OF_SERVICE)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="ff-modal-foot">
+                    <button type="button" class="ff-btn" onclick="ffCloseModal()">إلغاء</button>
+                    <button type="submit" class="ff-btn is-danger">تسجيل العطل وإنشاء أمر العمل</button>
+                </div>
+            </form>
+        </div>
+    </div>`;
+}
+
+async function ffSaveFault(e, equipmentId) {
+    e.preventDefault();
+    if (!requireLoginForWrite(() => {})) return;
+    const title = (document.getElementById("ffFaultTitle").value || "").trim();
+    const priority = document.getElementById("ffFaultPriority").value || "MEDIUM";
+    const desc = (document.getElementById("ffFaultDesc").value || "").trim();
+    const action = (document.getElementById("ffFaultAction").value || "").trim();
+    const newStatus = document.getElementById("ffFaultNewStatus").value;
+
+    try {
+        const db = getFirestoreDB();
+        const fs = await import(MECH_FIRESTORE_URL);
+        const who = mechWho();
+        const eqRef = fs.doc(db, MECH_EQUIPMENT_COLLECTION, equipmentId);
+        const eqSnap = await fs.getDoc(eqRef);
+        const eqData = eqSnap.exists() ? eqSnap.data() : {};
+
+        const orderNum = await getNextMechOrderNumber(db, "FF-FLT");
+
+        await fs.addDoc(fs.collection(db, MECH_ORDERS_COLLECTION), {
+            department: "fire-fighting",
+            equipmentId: equipmentId,
+            equipmentName: eqData.name || "معدة مكافحة حريق",
+            equipmentTag: eqData.tagNumber || eqData.internalCode || null,
+            orderNumber: orderNum,
+            type: "BREAKDOWN",
+            title: title,
+            description: desc,
+            actionTaken: action || null,
+            priority: priority,
+            status: "NEW",
+            createdBy: who.name,
+            createdAt: fs.serverTimestamp()
+        });
+
+        const changeRes = MC.ffLogEquipmentChange(equipmentId, {
+            status: newStatus, status_old: eqData.status,
+            by: who.name
+        });
+        await fs.updateDoc(eqRef, {
+            status: newStatus,
+            updatedBy: who.name,
+            updatedAt: fs.serverTimestamp(),
+            changeLog: [...(eqData.changeLog || []), ...changeRes.changes]
+        });
+
+        showMessage(`تم تسجيل العطل برقم الأمر ${orderNum} وتحديث حالة المعدة.`, "success");
+        ffCloseModal();
+        renderFFStats();
+        renderFFContent();
+    } catch (err) {
+        console.error("Save fault error:", err);
+        showMessage("تعذّر تسجيل العطل. يرجى التحقق من الاتصال والمحاولة مجدداً.", "error");
+    }
+}
+
+// ---------------- 5. نافذة معالجة وإغلاق العطل / أمر العمل ----------------
+function ffOpenResolveFaultModal(orderId) {
+    if (!requireLoginForWrite(() => ffOpenResolveFaultModal(orderId))) return;
+    const host = document.getElementById("ffModalHost");
+    if (!host) return;
+    const data = ffFireDataAll();
+    const order = data.orders.find(o => o.id === orderId);
+    if (!order) return;
+
+    host.innerHTML = `
+    <div class="ff-modal-overlay" onclick="if(event.target===this) ffCloseModal()">
+        <div class="ff-modal">
+            <div class="ff-modal-head">
+                <h3 class="ff-modal-title">✔️ معالجة وإغلاق أمر العمل — ${escapeHTML(order.orderNumber || "")}</h3>
+                <button type="button" class="ff-modal-close" onclick="ffCloseModal()">✕</button>
+            </div>
+            <form onsubmit="ffSaveResolveFault(event, '${order.id}')">
+                <div class="ff-modal-body">
+                    <div class="ff-form-group">
+                        <label class="ff-form-label">المشكلة / العطل</label>
+                        <input type="text" class="ff-form-input" value="${escapeHTML(order.title || order.description || '')}" readonly style="background:#f8fafc;">
+                    </div>
+                    <div class="ff-form-group">
+                        <label class="ff-form-label">الإجراء المتخذ وتفاصيل الحل *</label>
+                        <textarea class="ff-form-textarea" id="ffResolveText" required placeholder="اشرح بالتفصيل كيف تمت المعالجة، والقطع المستبدلة، ونتيجة الاختبار بعد الإصلاح..."></textarea>
+                    </div>
+                    <div class="ff-form-group">
+                        <label class="ff-form-label">إعادة تشغيل المعدة المرتبطة؟</label>
+                        <select class="ff-form-select" id="ffResolveEquipStatus">
+                            <option value="OPERATIONAL">إعادة المعدة للخدمة (OPERATIONAL — عاملة)</option>
+                            <option value="KEEP">إبقاء حالة المعدة كما هي دون تغيير</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="ff-modal-foot">
+                    <button type="button" class="ff-btn" onclick="ffCloseModal()">إلغاء</button>
+                    <button type="submit" class="ff-btn is-primary">إغلاق الأمر بنجاح</button>
+                </div>
+            </form>
+        </div>
+    </div>`;
+}
+
+async function ffSaveResolveFault(e, orderId) {
+    e.preventDefault();
+    if (!requireLoginForWrite(() => {})) return;
+    const resolution = (document.getElementById("ffResolveText").value || "").trim();
+    const equipStatusChoice = document.getElementById("ffResolveEquipStatus").value;
+
+    try {
+        const db = getFirestoreDB();
+        const fs = await import(MECH_FIRESTORE_URL);
+        const who = mechWho();
+        const orderRef = fs.doc(db, MECH_ORDERS_COLLECTION, orderId);
+        const orderSnap = await fs.getDoc(orderRef);
+        const orderData = orderSnap.exists() ? orderSnap.data() : {};
+
+        await fs.updateDoc(orderRef, {
+            status: "COMPLETE",
+            resolution: resolution,
+            completedAt: new Date().toISOString().slice(0, 10),
+            closedBy: who.name,
+            updatedAt: fs.serverTimestamp()
+        });
+
+        await fs.addDoc(fs.collection(db, MECH_ORDER_HISTORY_COLLECTION), {
+            orderId: orderId,
+            fromStatus: orderData.status || "NEW",
+            toStatus: "COMPLETE",
+            by: who.name,
+            notes: resolution,
+            at: fs.serverTimestamp()
+        });
+
+        if (equipStatusChoice === "OPERATIONAL" && orderData.equipmentId) {
+            const eqRef = fs.doc(db, MECH_EQUIPMENT_COLLECTION, orderData.equipmentId);
+            const eqSnap = await fs.getDoc(eqRef);
+            if (eqSnap.exists()) {
+                const oldEq = eqSnap.data();
+                const changeRes = MC.ffLogEquipmentChange(orderData.equipmentId, {
+                    status: "OPERATIONAL", status_old: oldEq.status,
+                    by: who.name
+                });
+                await fs.updateDoc(eqRef, {
+                    status: "OPERATIONAL",
+                    updatedBy: who.name,
+                    updatedAt: fs.serverTimestamp(),
+                    changeLog: [...(oldEq.changeLog || []), ...changeRes.changes]
+                });
+            }
+        }
+
+        showMessage("تم إغلاق أمر العمل ومعالجة العطل بنجاح.", "success");
+        ffCloseModal();
+        renderFFStats();
+        renderFFContent();
+    } catch (err) {
+        console.error("Resolve fault error:", err);
+        showMessage("تعذّر إغلاق أمر العمل. تحقّق من الاتصال وحاول مجدداً.", "error");
+    }
+}
+
+// ---------------- 6. نافذة إنشاء أمر عمل جديد ----------------
+function ffOpenOrderModal(equipmentId) {
+    if (!requireLoginForWrite(() => ffOpenOrderModal(equipmentId))) return;
+    const host = document.getElementById("ffModalHost");
+    if (!host) return;
+    const data = ffFireDataAll();
+
+    const equipOptions = data.equipment.filter(e => e.id === equipmentId || MC.ffFacilityOf(e) === ffFacilityFilter).map(e => {
+        const isSel = equipmentId && e.id === equipmentId;
+        return `<option value="${e.id}" ${isSel ? "selected" : ""}>${escapeHTML(e.name)} (${e.tagNumber || e.internalCode || 'بدون رمز'})</option>`;
+    }).join("");
+
+    host.innerHTML = `
+    <div class="ff-modal-overlay" onclick="if(event.target===this) ffCloseModal()">
+        <div class="ff-modal">
+            <div class="ff-modal-head">
+                <h3 class="ff-modal-title">📋 إنشاء أمر عمل جديد — مكافحة الحريق</h3>
+                <button type="button" class="ff-modal-close" onclick="ffCloseModal()">✕</button>
+            </div>
+            <form onsubmit="ffSaveOrder(event)">
+                <div class="ff-modal-body">
+                    <div class="ff-form-group">
+                        <label class="ff-form-label">المعدة المرتبطة</label>
+                        <select class="ff-form-select" id="ffOrderEquipId">
+                            <option value="">— غير مرتبطة بمعدة محددة (أمر عام) —</option>
+                            ${equipOptions}
+                        </select>
+                    </div>
+                    <div class="ff-form-group">
+                        <label class="ff-form-label">نوع الطلب *</label>
+                        <select class="ff-form-select" id="ffOrderType" required>
+                            <option value="INSPECTION">فحص دوري (INSPECTION)</option>
+                            <option value="PREVENTIVE">صيانة وقائية (PREVENTIVE)</option>
+                            <option value="CORRECTIVE">صيانة تصحيحية (CORRECTIVE)</option>
+                            <option value="BREAKDOWN">عطل وتوقف (BREAKDOWN)</option>
+                            <option value="TESTING">اختبار وتشغيل تجريبي (TESTING)</option>
+                        </select>
+                    </div>
+                    <div class="ff-form-group">
+                        <label class="ff-form-label">عنوان أمر العمل *</label>
+                        <input type="text" class="ff-form-input" id="ffOrderTitle" required placeholder="مثال: فحص صمامات سيت المضخات، تبديل مانوميتر...">
+                    </div>
+                    <div class="ff-form-group">
+                        <label class="ff-form-label">درجة الأولوية *</label>
+                        <select class="ff-form-select" id="ffOrderPriority" required>
+                            <option value="LOW">منخفضة (LOW)</option>
+                            <option value="MEDIUM" selected>متوسطة (MEDIUM)</option>
+                            <option value="HIGH">عالية (HIGH)</option>
+                            <option value="CRITICAL">حرجة (CRITICAL)</option>
+                        </select>
+                    </div>
+                    <div class="ff-form-group">
+                        <label class="ff-form-label">وصف العمل المطلوب *</label>
+                        <textarea class="ff-form-textarea" id="ffOrderDesc" required placeholder="اكتب تفاصيل ومحددات العمل المطلوب تنفيذه..."></textarea>
+                    </div>
+                    <div class="ff-form-group">
+                        <label class="ff-form-label">المسؤول عن التنفيذ (الفني أو الجهة)</label>
+                        <input type="text" class="ff-form-input" id="ffOrderAssignee" placeholder="اسم الفني أو المقاول المسند إليه العمل">
+                    </div>
+                    <div class="ff-form-group">
+                        <label class="ff-form-label">تاريخ الاستحقاق المستهدف</label>
+                        <input type="date" class="ff-form-input" id="ffOrderDueDate">
+                    </div>
+                </div>
+                <div class="ff-modal-foot">
+                    <button type="button" class="ff-btn" onclick="ffCloseModal()">إلغاء</button>
+                    <button type="submit" class="ff-btn is-primary">إنشاء أمر العمل</button>
+                </div>
+            </form>
+        </div>
+    </div>`;
+}
+
+async function ffSaveOrder(e) {
+    e.preventDefault();
+    if (!requireLoginForWrite(() => {})) return;
+    const equipId = document.getElementById("ffOrderEquipId").value || null;
+    const type = document.getElementById("ffOrderType").value;
+    const title = (document.getElementById("ffOrderTitle").value || "").trim();
+    const priority = document.getElementById("ffOrderPriority").value;
+    const desc = (document.getElementById("ffOrderDesc").value || "").trim();
+    const assignee = (document.getElementById("ffOrderAssignee").value || "").trim();
+    const dueDate = document.getElementById("ffOrderDueDate").value || null;
+
+    try {
+        const db = getFirestoreDB();
+        const fs = await import(MECH_FIRESTORE_URL);
+        const who = mechWho();
+
+        let equipName = null;
+        let equipTag = null;
+        let orderFacility = (ffFacilityFilter === "hospital" || ffFacilityFilter === "complex") ? ffFacilityFilter : null;
+        if (equipId) {
+            const eq = (mechEquipmentCache || []).find(x => x.id === equipId);
+            if (eq) {
+                equipName = eq.name;
+                equipTag = eq.tagNumber || eq.internalCode || null;
+                const f = MC.ffFacilityOf(eq);
+                orderFacility = f === "unassigned" ? null : f;
+            }
+        }
+
+        const prefix = type === "INSPECTION" ? "FF-INSP" : (type === "BREAKDOWN" ? "FF-FLT" : "FF-ORD");
+        const orderNum = await getNextMechOrderNumber(db, prefix);
+
+        await fs.addDoc(fs.collection(db, MECH_ORDERS_COLLECTION), {
+            department: "fire-fighting",
+            facility: orderFacility,
+            equipmentId: equipId,
+            equipmentName: equipName,
+            equipmentTag: equipTag,
+            orderNumber: orderNum,
+            type: type,
+            title: title,
+            description: desc,
+            priority: priority,
+            assignedTo: assignee || null,
+            dueDate: dueDate,
+            status: "NEW",
+            createdBy: who.name,
+            createdAt: fs.serverTimestamp()
+        });
+
+        showMessage(`تم إنشاء أمر العمل برقم ${orderNum} بنجاح.`, "success");
+        ffCloseModal();
+        renderFFStats();
+        renderFFContent();
+    } catch (err) {
+        console.error("Save order error:", err);
+        showMessage("تعذّر إنشاء أمر العمل. تحقّق من الاتصال وحاول مجدداً.", "error");
+    }
+}
+
+async function ffUpdateOrderStatus(orderId, newStatus) {
+    if (!requireLoginForWrite(() => ffUpdateOrderStatus(orderId, newStatus))) return;
+    try {
+        const db = getFirestoreDB();
+        const fs = await import(MECH_FIRESTORE_URL);
+        const who = mechWho();
+        const ref = fs.doc(db, MECH_ORDERS_COLLECTION, orderId);
+        const snap = await fs.getDoc(ref);
+        const oldStatus = snap.exists() ? snap.data().status : "NEW";
+
+        await fs.updateDoc(ref, {
+            status: newStatus,
+            updatedBy: who.name,
+            updatedAt: fs.serverTimestamp()
+        });
+
+        await fs.addDoc(fs.collection(db, MECH_ORDER_HISTORY_COLLECTION), {
+            orderId: orderId,
+            fromStatus: oldStatus,
+            toStatus: newStatus,
+            by: who.name,
+            at: fs.serverTimestamp()
+        });
+
+        showMessage(`تم تحديث حالة أمر العمل إلى ${MC.statusLabel(newStatus)}.`, "success");
+        renderFFContent();
+        renderFFStats();
+    } catch (err) {
+        console.error("Update order status error:", err);
+        showMessage("تعذّر تحديث حالة أمر العمل.", "error");
+    }
+}
+
+// ---------------- 7. نافذة تعديل بيانات المعدة الأساسية ----------------
+function ffOpenEditEquipmentModal(equipmentId) {
+    if (!requireLoginForWrite(() => ffOpenEditEquipmentModal(equipmentId))) return;
+    const host = document.getElementById("ffModalHost");
+    if (!host) return;
+    const data = ffFireDataAll();
+    const eq = data.equipment.find(e => e.id === equipmentId);
+    if (!eq) return;
+
+    host.innerHTML = `
+    <div class="ff-modal-overlay" onclick="if(event.target===this) ffCloseModal()">
+        <div class="ff-modal">
+            <div class="ff-modal-head">
+                <h3 class="ff-modal-title">✏️ تعديل بيانات المعدة — ${escapeHTML(eq.name)}</h3>
+                <button type="button" class="ff-modal-close" onclick="ffCloseModal()">✕</button>
+            </div>
+            <form onsubmit="ffSaveEditEquipment(event, '${eq.id}')">
+                <div class="ff-modal-body">
+                    <div class="ff-form-group">
+                        <label class="ff-form-label">اسم المعدة *</label>
+                        <input type="text" class="ff-form-input" id="ffEditName" value="${escapeHTML(eq.name || '')}" required>
+                    </div>
+                    <div class="ff-form-group">
+                        <label class="ff-form-label">رقم المعدة الرسمي (Tag Number)</label>
+                        <input type="text" class="ff-form-input" id="ffEditTag" value="${escapeHTML(eq.tagNumber || '')}" placeholder="Tag Number إن وجد">
+                    </div>
+                    <div class="ff-form-group">
+                        <label class="ff-form-label">الموقع (Location)</label>
+                        <input type="text" class="ff-form-input" id="ffEditLocation" value="${escapeHTML(eq.location || '')}" placeholder="الموقع الفعلي في المبنى">
+                    </div>
+                    <div class="ff-form-group">
+                        <label class="ff-form-label">الحالة التشغيلية *</label>
+                        <select class="ff-form-select" id="ffEditStatus" required>
+                            <option value="OPERATIONAL" ${eq.status==='OPERATIONAL'?'selected':''}>عاملة (OPERATIONAL)</option>
+                            <option value="STOPPED" ${eq.status==='STOPPED'?'selected':''}>متوقفة (STOPPED)</option>
+                            <option value="UNDER_MAINTENANCE" ${eq.status==='UNDER_MAINTENANCE'?'selected':''}>تحت الصيانة (UNDER_MAINTENANCE)</option>
+                            <option value="OUT_OF_SERVICE" ${eq.status==='OUT_OF_SERVICE'?'selected':''}>خارج الخدمة (OUT_OF_SERVICE)</option>
+                            <option value="UNVERIFIED" ${eq.status==='UNVERIFIED'?'selected':''}>غير مفحوصة (UNVERIFIED)</option>
+                        </select>
+                    </div>
+                    <div class="ff-form-group">
+                        <label class="ff-form-label">الجهة التابعة (Facility)</label>
+                        <select class="ff-form-select" id="ffEditFacility">
+                            <option value="" ${MC.ffFacilityOf(eq) === "unassigned" ? "selected" : ""}>غير محددة</option>
+                            <option value="hospital" ${MC.ffFacilityOf(eq) === "hospital" ? "selected" : ""}>المستشفى (Hospital)</option>
+                            <option value="complex" ${MC.ffFacilityOf(eq) === "complex" ? "selected" : ""}>المجمع (Complex)</option>
+                        </select>
+                    </div>
+                    <div class="ff-form-group">
+                        <label class="ff-form-label">الرقم التسلسلي (Serial Number)</label>
+                        <input type="text" class="ff-form-input" id="ffEditSerial" value="${escapeHTML(eq.serialNumber || '')}">
+                    </div>
+                    <div class="ff-form-group">
+                        <label class="ff-form-label">الشركة المصنعة (Manufacturer)</label>
+                        <input type="text" class="ff-form-input" id="ffEditManufacturer" value="${escapeHTML(eq.manufacturer || '')}">
+                    </div>
+                    <div class="ff-form-group">
+                        <label class="ff-form-label">الطراز (Model)</label>
+                        <input type="text" class="ff-form-input" id="ffEditModel" value="${escapeHTML(eq.model || '')}">
+                    </div>
+                    <div class="ff-form-group">
+                        <label class="ff-form-label">الملاحظات الفنية</label>
+                        <textarea class="ff-form-textarea" id="ffEditNotes">${escapeHTML(eq.notes || '')}</textarea>
+                    </div>
+                </div>
+                <div class="ff-modal-foot">
+                    <button type="button" class="ff-btn" onclick="ffCloseModal()">إلغاء</button>
+                    <button type="submit" class="ff-btn is-primary">حفظ التعديلات</button>
+                </div>
+            </form>
+        </div>
+    </div>`;
+}
+
+async function ffSaveEditEquipment(e, equipmentId) {
+    e.preventDefault();
+    if (!requireLoginForWrite(() => {})) return;
+    const name = (document.getElementById("ffEditName").value || "").trim();
+    const tag = (document.getElementById("ffEditTag").value || "").trim();
+    const location = (document.getElementById("ffEditLocation").value || "").trim();
+    const status = document.getElementById("ffEditStatus").value;
+    const notes = (document.getElementById("ffEditNotes").value || "").trim();
+    const facility = (document.getElementById("ffEditFacility").value || "").trim();
+    const serial = (document.getElementById("ffEditSerial").value || "").trim();
+    const manufacturer = (document.getElementById("ffEditManufacturer").value || "").trim();
+    const model = (document.getElementById("ffEditModel").value || "").trim();
+
+    if (tag) {
+        const dup = MC.ffFindDuplicateTag(mechEquipmentCache, tag, equipmentId);
+        if (dup) {
+            showMessage(`رقم الـ Tag «${tag}» مستخدم بالفعل في المعدة «${dup.name}». يرجى استخدام رقم فريد.`, "error");
+            return;
+        }
+    }
+
+    try {
+        const db = getFirestoreDB();
+        const fs = await import(MECH_FIRESTORE_URL);
+        const who = mechWho();
+        const ref = fs.doc(db, MECH_EQUIPMENT_COLLECTION, equipmentId);
+        const snap = await fs.getDoc(ref);
+        const old = snap.exists() ? snap.data() : {};
+
+        const changeRes = MC.ffLogEquipmentChange(equipmentId, {
+            name: name, name_old: old.name,
+            tagNumber: tag, tagNumber_old: old.tagNumber,
+            location: location, location_old: old.location,
+            status: status, status_old: old.status,
+            facility: facility, facility_old: MC.ffFacilityOf(Object.assign({ id: equipmentId }, old)) === "unassigned" ? "" : MC.ffFacilityOf(Object.assign({ id: equipmentId }, old)),
+            serialNumber: serial, serialNumber_old: old.serialNumber || "",
+            manufacturer: manufacturer, manufacturer_old: old.manufacturer || "",
+            model: model, model_old: old.model || "",
+            notes: notes, notes_old: old.notes,
+            by: who.name
+        });
+
+        await fs.updateDoc(ref, {
+            name: name,
+            tagNumber: tag || null,
+            location: location || null,
+            facility: facility || null,
+            serialNumber: serial || null,
+            manufacturer: manufacturer || null,
+            model: model || null,
+            status: status,
+            notes: notes || "",
+            updatedBy: who.name,
+            updatedAt: fs.serverTimestamp(),
+            changeLog: [...(old.changeLog || []), ...changeRes.changes]
+        });
+
+        showMessage("تم تحديث بيانات المعدة وتسجيل أثر التعديل بنجاح.", "success");
+        ffCloseModal();
+        renderFFStats();
+        renderFFContent();
+    } catch (err) {
+        console.error("Save edit equipment error:", err);
+        showMessage("تعذّر حفظ التعديلات على المعدة.", "error");
+    }
+}
+
+// ---------- رجوع إلى لوحة الميكانيك الرئيسية ----------
+function ffBack() {
+    openMechanics();
+    mechGoDashboard();
+}
+
+// ---------- إعادة رسم الواجهة عند تحديث Firestore الحي ----------
+function renderFireFightingIfVisible() {
+    const page = document.getElementById("fireFightingPage");
+    if (!page || getComputedStyle(page).display === "none") return;
+    renderFFStats();
+    renderFFContent();
+}
+
+// ============================================================
+// ابنية المستشفى (Hospital Buildings)
+// الطوابق والبنايات ثابتة في الكود؛ الحالة والملاحظات تُحفظ في Firestore
+// (مجموعة hospital_buildings، المعرّف = <floor>_<kind>_<num>)
+// ============================================================
+const HB_COLLECTION = "hospital_buildings";
+const HB_RANGE = (a, b) => Array.from({ length: b - a + 1 }, (_, i) => a + i);
+// أسماء البنايات في الطابق الأرضي (التي لم يُذكر لها اسم تبقى بلا اسم)
+const HB_GROUND_NAMES = {
+    3: "الممر الرئيسي",
+    4: "باطنية طوارئ",
+    5: "العلاج الطبعي",
+    7: "المخزن",
+    8: "الإحصاء",
+    9: "اللاندري",
+    10: "المطبخ",
+    11: "صالة الطعام",
+    12: "الصيدلية المركزية",
+    13: "الإدارة",
+    15: "دار الأطباء نساء",
+    16: "دار الأطباء رجال"
+};
+const HB_FIRST_NAMES = {
+    4: "أطفال خدج",
+    5: "نسائية وتوليد",
+    7: "جراحية نساء",
+    8: "جراحية نساء",
+    9: "جراحية رجال",
+    10: "جراحية رجال",
+    11: "ردهة الأطفال",
+    13: "الإدارة"
+};
+const HB_SECOND_NAMES = {
+    8: "غسيل الكلى",
+    11: "باطنية نساء",
+    12: "باطنية رجال",
+    13: "الناضور"
+};
+const HB_B = (nums, names) => nums.map(n => ({ num: n, kind: "b", name: (names && names[n]) || "" }));
+const HB_R = (nums) => nums.map(n => ({ num: n, kind: "r" }));
+const HB_FLOORS = [
+    { key: "ground", nameAr: "الطابق الأرضي", nameEn: "Ground Floor",
+      items: HB_B(["1A", "1B", "1C"].concat(HB_RANGE(2, 17)), HB_GROUND_NAMES) },
+    { key: "first", nameAr: "الطابق الأول", nameEn: "First Floor",
+      items: HB_B(["1A", "1B", "1C"].concat(HB_RANGE(2, 16)), HB_FIRST_NAMES) },
+    { key: "second", nameAr: "الطابق الثاني", nameEn: "Second Floor",
+      items: HB_B(["1B", "1C", 2, 3], HB_SECOND_NAMES)
+          .concat(HB_R(["1A", 4, 5, 6, 7]))
+          .concat(HB_B(HB_RANGE(8, 14), HB_SECOND_NAMES))
+          .concat(HB_R([15, 16])) },
+    { key: "roof", nameAr: "السطح", nameEn: "Roof",
+      items: HB_R(["1B", "1C", "1D", 2, 3, 8, 9, 10, 11, 12, 13, 14]) }
+];
+const HB_PUMP_LABEL = { label: "مخدومة من قبل دافعة رقم", en: "Served by Pump No." };
+const HB_STATUS_LABEL = { label: "الحالة", en: "Status" };
+const HB_NOTES_LABEL = { label: "ملاحظات", en: "Notes" };
+const HB_STATUSES = {
+    "": "غير محددة",
+    ok: "جيدة",
+    maint: "قيد الصيانة",
+    issue: "بها مشكلة"
+};
+// الحقول العددية داخل كل بناية (فارغ = لم يُدخل بعد)
+// سجل الفان كويلات (CF) — على السطوح. loc = موقعها على البناية (null = غير محدد في المصدر)
+const HB_FC_UNITS = [
+    { id: "CF-1.1", duct: "250x300", air: 1300, loc: "1B" },
+    { id: "CF-1.2", duct: "250x200", air: 740, loc: "1C" },
+    { id: "CF-1.3", duct: "250x200", air: 1140, loc: "1C" },
+    { id: "CF-1.4", duct: "300x350", air: 2030, loc: "1A" },
+    { id: "CF-1.5", duct: "400x400", air: 2700, loc: "1A" },
+    { id: "CF-1.6", duct: "400x300", air: 2180, loc: "1B" },
+    { id: "CF-1.7", duct: "450x400", air: 3350, loc: "1D" },
+    { id: "CF-4.1", duct: "500x300", air: 2540, loc: "4" },
+    { id: "CF-5.1", duct: "350x250", air: 1460, loc: "5" },
+    { id: "CF-6.1", duct: "150x150", air: 370, loc: "6" },
+    { id: "CF-6.2", duct: "300x250", air: 1200, loc: "6" },
+    { id: "CF-7.1", duct: "200x250", air: 870, loc: "7" },
+    { id: "CF-8.1", duct: "400x300", air: 2280, loc: "8" },
+    { id: "CF-9.1", duct: "450x450", air: 3420, loc: "9" },
+    { id: "CF-10.1", duct: "450x300", air: 2330, loc: "10" },
+    { id: "CF-10.4", duct: "1000x600", air: 16800, loc: null, notes: "(دفع للمطبخ) sand trap with filter" },
+    { id: "CF-10.6", duct: "1300x1000", air: 23900, loc: "11", notes: "سحب للمطبخ" },
+    { id: "CF-11.1", duct: "300x250", air: 1340, loc: "11" },
+    { id: "CF-12.1", duct: "250x200", air: 920, loc: "12" },
+    { id: "CF-13.1", duct: "400x300", air: 2130, loc: "13" },
+    { id: "CF-15.1", duct: "800x400", air: 5430, loc: "15" },
+    { id: "CF-16.1", duct: "800x400", air: 5430, loc: "16" }
+];
+const HB_UNIT_STATUSES = { "": "غير محددة", working: "شغال", faulty: "عاطل" };
+function hbUnitStatus(floorKey, item, unitId) {
+    const rec = hbData[hbId(floorKey, item)] || {};
+    return (rec.unitStatus && rec.unitStatus[unitId]) || "";
+}
+// وحدات مناولة الهواء (AHU / FAHU) على السطوح — من مخططات HVAC (طابق ثانٍ/ثالث). AHU = هواء مختلط، FAHU = هواء نقي
+const HB_AHU_UNITS = [
+    { id: "AHU-9", loc: "4" }, { id: "FAHU-10", loc: "4" },
+    { id: "AHU-4", loc: "5" }, { id: "FAHU-8", loc: "5" },
+    { id: "FAHU-7", loc: "6" },
+    { id: "FAHU-6", loc: "7" },
+    { id: "FAHU-5", loc: "8" }, { id: "FAHU-41", loc: "8" }, { id: "AHU-12", loc: "8" },
+    { id: "AHU-47", loc: "9" }, { id: "AHU-14", loc: "9" }, { id: "FAHU-3", loc: "9" },
+    { id: "AHU-49", loc: "10" }, { id: "AHU-50", loc: "10" }, { id: "FAHU-11", loc: "10" },
+    { id: "FAHU-13", loc: "11" }, { id: "AHU-51", loc: "11" },
+    { id: "FAHU-15", loc: "12" }, { id: "AHU-46", loc: "12" }, { id: "FAHU-48", loc: "12" },
+    { id: "FAHU-16", loc: "13" }, { id: "AHU-20", loc: "13" },
+    // جناح E2 (المخطط يغطي 1C و1D و2): التوزيع بين الأسطح الثلاثة حسب موقع الوحدات على المخطط، يحتاج تأكيد
+    { id: "AHU-21", loc: "1C" }, { id: "AHU-22", loc: "1C" }, { id: "AHU-33", loc: "1C" }, { id: "FAHU-43", loc: "1C" }, { id: "AHU-17", loc: "1C" },
+    { id: "FAHU-19", loc: "1D" }, { id: "FAHU-2", loc: "1D" },
+    { id: "AHU-34", loc: "1D" }, { id: "AHU-38", loc: "1D" },
+    // جناح E3 (سطح 1B): من مخطط E3، وحدتا AHU-34 وAHU-38 تظهران فيه أيضاً عند ملتقى الجناحين (سطح 2)
+    { id: "FAHU-18", loc: "1B" }, { id: "FAHU-23", loc: "1B" }, { id: "FAHU-1", loc: "1B" }, { id: "AHU-28", loc: "1B" },
+    // سطح 1A: من مخطط E1 (الطابق الثاني)
+    { id: "AHU-24", loc: "1A" }, { id: "AHU-25", loc: "1A" }, { id: "AHU-26", loc: "1A" }, { id: "AHU-27", loc: "1A" },
+    { id: "AHU-30", loc: "1A" }, { id: "AHU-31", loc: "1A" }, { id: "AHU-32", loc: "1A" }, { id: "AHU-35", loc: "1A" },
+    { id: "AHU-36", loc: "1A" }, { id: "AHU-37", loc: "1A" }, { id: "AHU-39", loc: "1A" }
+];
+// مواصفات الدافعات (AHU/FAHU) — من ملف المورّد SEM (Offer 22-0860، مشروع Fathila Hospital، 460 صفحة).
+// m الموديل، sa/ra هواء التغذية/الراجع m³/h، w/l/h/kg الأبعاد mm والوزن، sf/rf مروحة التغذية/الراجع (z الحجم، q التدفق، p الضغط الستاتيكي الخارجي Pa، k القدرة المركّبة kW، a القدرة الممتصة kW)،
+// hc/cc قدرات ملفات التسخين/التبريد kW، hr استرجاع الحرارة (t النوع، e الكفاءة %، k القدرة kW)، ps التغذية الكهربائية
+const HB_AHU_SPECS = {"AHU-17":{"m":"MYHC 2.5","sa":6300,"ra":5700,"w":1617,"l":3735,"h":1616,"kg":909,"rf":{"z":"TE 355 S4","q":5700,"p":230,"k":2.2,"a":1.5},"ps":"400V/3ph/50Hz","sf":{"z":"TE 355 S4","q":6300,"p":260,"k":3.0,"a":2.4},"hc":[11.5],"cc":[41.4],"hr":{"t":"cross flow","e":64.52,"k":7.67}},"FAHU-18":{"m":"MYHC 4.5","sa":10600,"ra":7015,"w":1923,"l":4600,"h":2216,"kg":1600,"rf":{"z":"TE 355 S4","q":7015,"p":360,"k":3.0,"a":2.5},"ps":"400V/3ph/50Hz","sf":{"z":"NPA450S4","q":10600,"p":370,"k":7.5,"a":4.6},"hc":[80.8],"cc":[137.1],"hr":{"t":"cross flow","e":67.66,"k":43.53}},"FAHU-19":{"m":"MYHC 2.5","sa":5700,"ra":2800,"w":1617,"l":3820,"h":1616,"kg":954,"rf":{"z":"TE 280 S4","q":2800,"p":410,"k":1.1,"a":0.8},"ps":"400V/3ph/50Hz","sf":{"z":"TE 355 S4","q":5700,"p":390,"k":3.0,"a":2.7},"hc":[42.1],"cc":[71.8],"hr":{"t":"cross flow","e":63.86,"k":18.09}},"AHU-21":{"m":"MYHC 2","sa":4610,"ra":4450,"w":1314,"l":4190,"h":1616,"kg":911,"rf":{"z":"GR40I 116895/A01","q":4450,"p":290,"k":2.1,"a":1.2},"ps":"400V/3ph/50Hz","sf":{"z":"GR31I 116890/A01","q":4610,"p":670,"k":3.0,"a":2.5},"hc":[22.6,8.2],"cc":[59.3],"hr":{"t":"cross flow","e":60.82,"k":19.22}},"AHU-22":{"m":"MYHC 5","sa":13000,"ra":10400,"w":1617,"l":4940,"h":2828,"kg":1943,"rf":{"z":"NPA450S4","q":10400,"p":300,"k":4.0,"a":3.1},"ps":"400V/3ph/50Hz","sf":{"z":"NPA500S4","q":13000,"p":290,"k":7.5,"a":5.6},"hc":[55.1],"cc":[168.8],"hr":{"t":"cross flow","e":67.96,"k":57.45}},"FAHU-23":{"m":"MYHC 2","sa":4900,"ra":3410,"w":1314,"l":3820,"h":1616,"kg":822,"rf":{"z":"TE 280 S4","q":3410,"p":280,"k":1.1,"a":1.0},"ps":"400V/3ph/50Hz","sf":{"z":"TE 355 S4","q":4900,"p":300,"k":3.0,"a":2.1},"hc":[34.4],"cc":[58.6],"hr":{"t":"cross flow","e":64.4,"k":19.94}},"AHU-24":{"m":"MYHC 3","sa":7115,"ra":6350,"w":1314,"l":5060,"h":2216,"kg":1273,"rf":{"z":"GR35I 116892/A01","q":6350,"p":300,"k":2.5,"a":1.9},"ps":"400V/3ph/50Hz","sf":{"z":"GR45I 116903/A01","q":7115,"p":660,"k":5.0,"a":4.3},"hc":[34.5,17.2],"cc":[105.7],"hr":{"t":"cross flow","e":64.29,"k":30.68}},"AHU-25":{"m":"MYHC 3","sa":6655,"ra":6655,"w":1314,"l":4560,"h":2216,"kg":1199,"rf":{"z":"GR35I 116893/A01","q":6655,"p":260,"k":3.3,"a":2.2},"ps":"400V/3ph/50Hz","sf":{"z":"GR45I 116903/A01","q":6655,"p":670,"k":5.0,"a":3.9},"hc":[31.0,16.7],"cc":[99.1],"hr":{"t":"cross flow","e":63.86,"k":30.18}},"AHU-26":{"m":"MYHC 1.5","sa":3435,"ra":3050,"w":1008,"l":4400,"h":1616,"kg":819,"rf":{"z":"GR35I 116892/A01","q":3050,"p":270,"k":2.5,"a":0.8},"ps":"400V/3ph/50Hz","sf":{"z":"GR35I 116892/A01","q":3435,"p":380,"k":2.5,"a":1.7},"hc":[15.7,8.8],"cc":[50.5],"hr":{"t":"cross flow","e":63.93,"k":15.01}},"AHU-27":{"m":"MYHC 2","sa":3895,"ra":3550,"w":1314,"l":4400,"h":1616,"kg":926,"rf":{"z":"GR35I 116892/A01","q":3550,"p":280,"k":2.5,"a":0.9},"ps":"400V/3ph/50Hz","sf":{"z":"GR35I 116892/A01","q":3895,"p":370,"k":2.5,"a":1.7},"hc":[18.7,8.8],"cc":[58.2],"hr":{"t":"cross flow","e":63.82,"k":17.1}},"AHU-28":{"m":"MYHC 1.5","sa":3000,"ra":2600,"w":1008,"l":4370,"h":1616,"kg":790,"rf":{"z":"GR25I 116883/A01","q":2600,"p":270,"k":0.78,"a":0.7},"ps":"400V/3ph/50Hz","sf":{"z":"GR35I 116892/A01","q":3000,"p":280,"k":2.5,"a":1.2},"hc":[13.9,4.0],"cc":[40.1],"hr":{"t":"cross flow","e":63.94,"k":12.99}},"AHU-30":{"m":"MYHC 1.5","sa":2220,"ra":1400,"w":1008,"l":3580,"h":1616,"kg":667,"rf":{"z":"TE 225 S4","q":1400,"p":220,"k":0.75,"a":0.3},"ps":"400V/3ph/50Hz","sf":{"z":"TE 250 S4","q":2220,"p":210,"k":1.1,"a":0.8},"hc":[12.3],"cc":[29.1],"hr":{"t":"cross flow","e":66.59,"k":8.97}},"AHU-31":{"m":"MYHC 3.5","sa":9200,"ra":6350,"w":1617,"l":4870,"h":2216,"kg":1412,"rf":{"z":"TE 355 S4","q":6350,"p":310,"k":3.0,"a":2.0},"ps":"400V/3ph/50Hz","sf":{"z":"NPA450S4","q":9200,"p":300,"k":4.0,"a":3.5},"hc":[46.6],"cc":[122.6],"hr":{"t":"cross flow","e":65.19,"k":37.16}},"AHU-32":{"m":"MYHC 3.5","sa":7850,"ra":6500,"w":1617,"l":4470,"h":2216,"kg":1302,"rf":{"z":"TE 355 S4","q":6500,"p":320,"k":3.0,"a":2.2},"ps":"400V/3ph/50Hz","sf":{"z":"NPA450S4","q":7850,"p":290,"k":4.0,"a":2.8},"hc":[35.4],"cc":[93.7],"hr":{"t":"cross flow","e":67.15,"k":34.36}},"AHU-33":{"m":"MYHC 6","sa":14150,"ra":10830,"w":1923,"l":4750,"h":2828,"kg":2152,"rf":{"z":"GR50I 116906/A01","q":10830,"p":220,"k":4.8,"a":2.4},"ps":"400V/3ph/50Hz","sf":{"z":"GR56C 116180/A01","q":14150,"p":220,"k":6.0,"a":5.5},"hc":[68.6,7.3],"cc":[183.7],"hr":{"t":"cross flow","e":68.77,"k":62.7}},"AHU-34":{"m":"MYHC 2","sa":3900,"ra":3100,"w":1314,"l":3620,"h":1616,"kg":815,"rf":{"z":"GR28I 116885/A01","q":3100,"p":230,"k":0.78,"a":0.7},"ps":"400V/3ph/50Hz","sf":{"z":"GR35I 116892/A01","q":3900,"p":270,"k":2.5,"a":1.2},"hc":[18.0,2.0],"cc":[50.2],"hr":{"t":"cross flow","e":65.15,"k":16.73}},"AHU-35":{"m":"MYHC 3","sa":6655,"ra":5850,"w":1314,"l":4940,"h":2216,"kg":1241,"rf":{"z":"GR31I 116889/A01","q":5850,"p":280,"k":2.4,"a":1.9},"ps":"400V/3ph/50Hz","sf":{"z":"GR40I 116897/A01","q":6655,"p":660,"k":3.7,"a":3.5},"hc":[31.1,18.4],"cc":[100.3],"hr":{"t":"cross flow","e":64.64,"k":28.69}},"AHU-36":{"m":"MYHC 2","sa":3600,"ra":3270,"w":1314,"l":3720,"h":1616,"kg":795,"rf":{"z":"TE 280 S4","q":3270,"p":260,"k":1.1,"a":0.9},"ps":"400V/3ph/50Hz","sf":{"z":"TE 280 S4","q":3600,"p":270,"k":2.2,"a":1.5},"hc":[16.6],"cc":[52.6],"hr":{"t":"cross flow","e":64.49,"k":15.96}},"AHU-37":{"m":"MYHC 1.5","sa":3100,"ra":3150,"w":1008,"l":3690,"h":1616,"kg":688,"rf":{"z":"TE 280 S4","q":3150,"p":240,"k":1.1,"a":0.9},"ps":"400V/3ph/50Hz","sf":{"z":"TE 280 S4","q":3100,"p":270,"k":1.5,"a":1.2},"hc":[14.1],"cc":[41.0],"hr":{"t":"cross flow","e":60.52,"k":13.39}},"AHU-38":{"m":"MYHC 1.5","sa":2300,"ra":2070,"w":1008,"l":3490,"h":1616,"kg":690,"rf":{"z":"GR28I 116884/A01","q":2070,"p":260,"k":0.5,"a":0.5},"ps":"230V/1ph/50Hz","sf":{"z":"GR25I 116883/A01","q":2300,"p":280,"k":0.78,"a":0.8},"hc":[10.6,5.2],"cc":[34.3],"hr":{"t":"cross flow","e":64.34,"k":10.17}},"AHU-39":{"m":"MYHC 5","sa":10200,"ra":6200,"w":1617,"l":4510,"h":2828,"kg":1761,"rf":{"z":"TE 355 S4","q":6200,"p":310,"k":2.2,"a":1.8},"ps":"400V/3ph/50Hz","sf":{"z":"NPA400S4","q":10200,"p":310,"k":5.5,"a":4.5},"hc":[50.6],"cc":[136.4],"hr":{"t":"cross flow","e":67.95,"k":40.05}},"FAHU-43":{"m":"MYHC 2","sa":3800,"ra":2950,"w":1314,"l":3660,"h":1616,"kg":791,"rf":{"z":"TE 250 S4","q":2950,"p":260,"k":1.5,"a":1.1},"ps":"400V/3ph/50Hz","sf":{"z":"TE 280 S4","q":3800,"p":270,"k":2.2,"a":1.8},"hc":[27.7],"cc":[47.2],"hr":{"t":"cross flow","e":66.01,"k":16.36}},"FAHU-1":{"m":"MYHC 5","sa":12000,"ra":6000,"w":1617,"l":5260,"h":2828,"kg":2079,"rf":{"z":"NPA400S4","q":6000,"p":480,"k":2.2,"a":1.6},"ps":"400V/3ph/50Hz","sf":{"z":"NPA500S4","q":12000,"p":430,"k":7.5,"a":5.5},"hc":[87.9],"cc":[149.4],"hr":{"t":"cross flow","e":73.58,"k":48.04}},"FAHU-2":{"m":"MYHC 4","sa":10000,"ra":8900,"w":1314,"l":4630,"h":2828,"kg":1607,"rf":{"z":"NPA450S4","q":8900,"p":460,"k":4.0,"a":2.9},"ps":"400V/3ph/50Hz","sf":{"z":"NPA450S4","q":10000,"p":450,"k":7.5,"a":4.8},"hc":[73.2],"cc":[124.5],"hr":{"t":"cross flow","e":64.16,"k":43.51}},"AHU-4":{"m":"MYHC 1","sa":1930,"ra":1960,"w":708,"l":3330,"h":1616,"kg":559,"rf":{"z":"NPL280S4","q":1960,"p":240,"k":0.75,"a":0.5},"ps":"400V/3ph/50Hz","sf":{"z":"TE 250 S4","q":1930,"p":180,"k":1.1,"a":0.7},"hc":[9.3],"cc":[23.1],"hr":{"t":"cross flow","e":61.28,"k":8.44}},"FAHU-8":{"m":"MYHC 2","sa":4680,"ra":3240,"w":1314,"l":4110,"h":1616,"kg":870,"rf":{"z":"TE 280 S4","q":3240,"p":310,"k":1.1,"a":0.9},"ps":"400V/3ph/50Hz","sf":{"z":"TE 355 S4","q":4680,"p":310,"k":3.0,"a":1.9},"hc":[33.2],"cc":[56.2],"hr":{"t":"cross flow","e":70.55,"k":20.25}},"AHU-9":{"m":"MYHC 4.5","sa":11840,"ra":8570,"w":1923,"l":4780,"h":2216,"kg":1712,"rf":{"z":"GR45I 116901/A01","q":8570,"p":320,"k":2.4,"a":2.2},"ps":"400V/3ph/50Hz","sf":{"z":"GR56C 116180/A01","q":11840,"p":300,"k":6.0,"a":4.9},"hc":[61.3,7.1],"cc":[153.7],"hr":{"t":"cross flow","e":70.52,"k":51.88}},"FAHU-10":{"m":"MYHC 1.5","sa":2170,"ra":1070,"w":1008,"l":3610,"h":1616,"kg":690,"rf":{"z":"TE 250 S4","q":1070,"p":220,"k":0.75,"a":0.2},"ps":"400V/3ph/50Hz","sf":{"z":"TE 250 S4","q":2170,"p":260,"k":1.1,"a":0.8},"hc":[20.8],"cc":[33.1],"hr":{"t":"cross flow","e":67.34,"k":6.91}},"FAHU-7":{"m":"MYHC 1.5","sa":2660,"ra":1965,"w":1008,"l":3610,"h":1616,"kg":671,"rf":{"z":"TE 225 S4","q":1965,"p":270,"k":0.75,"a":0.7},"ps":"400V/3ph/50Hz","sf":{"z":"TE 250 S4","q":2660,"p":250,"k":1.5,"a":1.2},"hc":[19.1],"cc":[32.5],"hr":{"t":"cross flow","e":64.42,"k":9.6}},"FAHU-6":{"m":"MYHC 2","sa":4630,"ra":3290,"w":1314,"l":3820,"h":1616,"kg":841,"rf":{"z":"TE 280 S4","q":3290,"p":270,"k":1.1,"a":0.9},"ps":"400V/3ph/50Hz","sf":{"z":"TE 355 S4","q":4630,"p":310,"k":3.0,"a":2.0},"hc":[34.3],"cc":[58.3],"hr":{"t":"cross flow","e":68.32,"k":19.96}},"FAHU-5":{"m":"MYHC 1.5","sa":2770,"ra":1700,"w":1008,"l":3700,"h":1616,"kg":702,"rf":{"z":"TE 225 S4","q":1700,"p":350,"k":0.75,"a":0.5},"ps":"400V/3ph/50Hz","sf":{"z":"NPL315S4","q":2770,"p":350,"k":1.5,"a":1.0},"hc":[20.1],"cc":[35.5],"hr":{"t":"cross flow","e":68.66,"k":10.98}},"AHU-12":{"m":"MYHC 1","sa":780,"ra":730,"w":708,"l":3130,"h":1616,"kg":507,"rf":{"z":"ER22C-2DN.A7.1R","q":730,"p":230,"k":0.55,"a":0.1},"ps":"400V/3ph/50Hz","sf":{"z":"ER22C-2DN.A7.1R","q":780,"p":230,"k":0.55,"a":0.2},"hc":[2.9],"cc":[8.0],"hr":{"t":"cross flow","e":57.28,"k":3.1}},"FAHU-41":{"m":"MYHC 2","sa":4500,"ra":3700,"w":1314,"l":3730,"h":1616,"kg":816,"rf":{"z":"TE 280 S4","q":3700,"p":280,"k":1.5,"a":1.2},"ps":"400V/3ph/50Hz","sf":{"z":"NPL315S4","q":4500,"p":340,"k":2.2,"a":1.9},"hc":[32.1],"cc":[56.1],"hr":{"t":"cross flow","e":64.64,"k":19.42}},"FAHU-3":{"m":"MYHC 2.25","sa":5300,"ra":3900,"w":1008,"l":4710,"h":2216,"kg":1033,"rf":{"z":"TE 315 S4","q":3900,"p":300,"k":1.5,"a":1.0},"ps":"400V/3ph/50Hz","sf":{"z":"TE 355 S4","q":5300,"p":360,"k":3.0,"a":2.4},"hc":[40.7],"cc":[69.3],"hr":{"t":"cross flow","e":69.13,"k":23.05}},"AHU-14":{"m":"MYHC 1","sa":1460,"ra":1560,"w":708,"l":3110,"h":1616,"kg":513,"rf":{"z":"TE 225 S4","q":1560,"p":320,"k":0.75,"a":0.5},"ps":"400V/3ph/50Hz","sf":{"z":"TE 225 S4","q":1460,"p":330,"k":0.75,"a":0.5},"hc":[6.1],"cc":[16.1],"hr":{"t":"cross flow","e":52.63,"k":4.76}},"AHU-47":{"m":"MYHC 3","sa":6400,"ra":6200,"w":1314,"l":3790,"h":2216,"kg":1021,"rf":{"z":"TE 355 S4","q":6200,"p":230,"k":3.0,"a":1.9},"ps":"400V/3ph/50Hz","sf":{"z":"TE 355 S4","q":6400,"p":270,"k":3.0,"a":2.6},"hc":[46.7],"cc":[69.0],"hr":{"t":"cross flow","e":59.07,"k":26.56}},"FAHU-11":{"m":"MYHC 2","sa":4800,"ra":3130,"w":1314,"l":3820,"h":1616,"kg":837,"rf":{"z":"TE 280 S4","q":3130,"p":290,"k":1.1,"a":0.8},"ps":"400V/3ph/50Hz","sf":{"z":"TE 355 S4","q":4800,"p":280,"k":3.0,"a":2.0},"hc":[35.2],"cc":[61.6],"hr":{"t":"cross flow","e":66.69,"k":19.71}},"AHU-49":{"m":"MYHC 7","sa":17805,"ra":10935,"w":2224,"l":5230,"h":2828,"kg":2478,"rf":{"z":"NPA500S4","q":10935,"p":350,"k":4.0,"a":2.7},"ps":"400V/3ph/50Hz","sf":{"z":"NPL560S4","q":17805,"p":380,"k":11.0,"a":8.6},"hc":[168.3],"cc":[230.5],"hr":{"t":"cross flow","e":68.8,"k":70.9}},"AHU-50":{"m":"MYHC 2","sa":4200,"ra":4500,"w":1314,"l":3720,"h":1616,"kg":793,"rf":{"z":"TE 315 S4","q":4500,"p":220,"k":2.2,"a":1.4},"ps":"400V/3ph/50Hz","sf":{"z":"TE 355 S4","q":4200,"p":250,"k":2.2,"a":1.4},"hc":[37.7],"cc":[31.4],"hr":{"t":"cross flow","e":59.47,"k":18.19}},"FAHU-13":{"m":"MYHC 2","sa":4190,"ra":3050,"w":1314,"l":3690,"h":1616,"kg":799,"rf":{"z":"TE 250 S4","q":3050,"p":290,"k":1.5,"a":1.1},"ps":"400V/3ph/50Hz","sf":{"z":"TE 280 S4","q":4190,"p":330,"k":2.2,"a":1.9},"hc":[30.7],"cc":[53.6],"hr":{"t":"cross flow","e":64.73,"k":17.27}},"AHU-51":{"m":"MYHC 3.5","sa":7700,"ra":6720,"w":1617,"l":4230,"h":2216,"kg":1250,"rf":{"z":"TE 355 S4","q":6720,"p":260,"k":3.0,"a":2.1},"ps":"400V/3ph/50Hz","sf":{"z":"TE 450 S4","q":7700,"p":270,"k":3.0,"a":2.6},"hc":[16.0],"cc":[64.7],"hr":{"t":"cross flow","e":64.84,"k":33.21}},"FAHU-15":{"m":"MYHC 2.25","sa":5290,"ra":4000,"w":1008,"l":4430,"h":2216,"kg":963,"rf":{"z":"TE 315 S4","q":4000,"p":340,"k":1.5,"a":1.1},"ps":"400V/3ph/50Hz","sf":{"z":"TE 355 S4","q":5290,"p":360,"k":3.0,"a":2.4},"hc":[41.6],"cc":[71.1],"hr":{"t":"cross flow","e":67.94,"k":22.56}},"AHU-46":{"m":"MYHC 1.5","sa":2190,"ra":2340,"w":1008,"l":3410,"h":1616,"kg":647,"rf":{"z":"TE 250 S4","q":2340,"p":380,"k":1.1,"a":0.8},"ps":"400V/3ph/50Hz","sf":{"z":"TE 250 S4","q":2190,"p":340,"k":1.1,"a":0.9},"hc":[9.1],"cc":[24.7],"hr":{"t":"cross flow","e":55.2,"k":8.77}},"FAHU-48":{"m":"MYHC 1","sa":1885,"ra":1690,"w":708,"l":3670,"h":1616,"kg":579,"rf":{"z":"TE 225 S4","q":1690,"p":280,"k":0.75,"a":0.5},"ps":"400V/3ph/50Hz","sf":{"z":"NPL280S4","q":1885,"p":330,"k":1.1,"a":0.7},"hc":[17.2],"cc":[29.2],"hr":{"t":"cross flow","e":60.63,"k":7.83}},"FAHU-16":{"m":"MYHC 2.5","sa":5520,"ra":4350,"w":1617,"l":3820,"h":1616,"kg":980,"rf":{"z":"TE 280 S4","q":4350,"p":430,"k":2.2,"a":1.8},"ps":"400V/3ph/50Hz","sf":{"z":"TE 355 S4","q":5520,"p":380,"k":3.0,"a":2.4},"hc":[40.4],"cc":[69.1],"hr":{"t":"cross flow","e":64.58,"k":23.38}},"AHU-20":{"m":"MYHC 3","sa":6840,"ra":5290,"w":1314,"l":4520,"h":2216,"kg":1191,"rf":{"z":"GR35I 116892/A01","q":5290,"p":300,"k":2.5,"a":1.3},"ps":"400V/3ph/50Hz","sf":{"z":"GR35I 116893/A01","q":6840,"p":280,"k":3.3,"a":2.9},"hc":[34.5,4.3],"cc":[89.5],"hr":{"t":"cross flow","e":61.67,"k":27.11}}};
+function hbSpecHtml(id) {
+    const d = HB_AHU_SPECS[id];
+    if (!d) return "";
+    const row = (ar, en, v) => `<div class="hb-spec-row"><span>${escapeHTML(ar)}<small>${escapeHTML(en)}</small></span><b class="hb-ltr">${escapeHTML(String(v))}</b></div>`;
+    const fan = (f) => `${f.z} · ${f.q} m³/h · ${f.p} Pa · ${f.k} kW`;
+    const kw = (arr) => arr.join(" + ") + " kW";
+    // طن تبريد (TR) = kW ÷ 3.517
+    const tr = (arr) => arr.map(v => (v / 3.517).toFixed(1)).join(" + ") + "\u00a0TR";
+    return `<details class="hb-specs"><summary>المواصفات · Specifications</summary>
+        ${row("الموديل", "Model", d.m)}
+        ${row("مروحة التغذية", "Supply Fan", fan(d.sf))}
+        ${row("مروحة الراجع", "Return Fan", fan(d.rf))}
+        ${row("ملف التبريد", "Cooling Coil", kw(d.cc) + " · " + tr(d.cc))}
+        ${row("ملف التسخين", "Heating Coil", kw(d.hc))}
+        ${d.hr ? row("استرجاع الحرارة", "Heat Recovery", d.hr.t + (d.hr.e != null ? " · " + d.hr.e + "%" : "") + (d.hr.k != null ? " · " + d.hr.k + " kW" : "")) : ""}
+        ${row("الأبعاد (عرض×طول×ارتفاع)", "Dimensions W×L×H", d.w + " × " + d.l + " × " + d.h + "\u00a0mm")}
+        ${row("الوزن", "Weight", d.kg + " kg")}
+        ${row("التغذية الكهربائية", "Power Supply", d.ps)}
+    </details>`;
+}
+function hbUnitPump(floorKey, item, unitId) {
+    const rec = hbData[hbId(floorKey, item)] || {};
+    return (rec.unitPump && rec.unitPump[unitId]) || "";
+}
+function hbAhuUnits(item) {
+    if (item.kind !== "r") return [];
+    return HB_AHU_UNITS.filter(u => String(u.loc).toUpperCase() === String(item.num).toUpperCase());
+}
+function hbFanUnits(floorKey, item) {
+    // الفان كويلات منصوبة على السطوح: تظهر مع السطح الذي يحمل رقم/حرف موقعها (في الطابق الثاني أو قسم السطح)
+    if (item.kind !== "r") return [];
+    return HB_FC_UNITS.filter(u => u.loc != null && String(u.loc).toUpperCase() === String(item.num).toUpperCase());
+}
+const HB_COUNT_FIELDS = [
+    { key: "fanCoils", label: "الفان كويلات", en: "Fan Coils" },
+    { key: "extinguishers", label: "الطفايات", en: "Extinguishers" },
+    { key: "hoseCabinets", label: "الكابينات", en: "Hose Cabinets" },
+    { key: "washbasins", label: "المغاسل", en: "Washbasins" },
+    { key: "sinks", label: "السنك", en: "Sinks" },
+    { key: "toilets", label: "التواليت", en: "Toilets" }
+];
+let hbActiveFloor = "ground";
+let hbActiveItem = null;
+let hbEditing = false;
+let hbData = {};
+
+function hbLabel(item) {
+    return (item.kind === "r" ? "سطح " : "بناية ") + item.num;
+}
+function hbId(floorKey, item) {
+    return floorKey + "_" + item.kind + "_" + item.num;
+}
+
+async function openHospitalBuildings() {
+    showPage("hospitalBuildingsPage");
+    hbActiveItem = null;
+    renderHospitalBuildings();
+    await hbLoad();
+}
+
+async function hbLoad() {
+    const state = document.getElementById("hbState");
+    const db = getFirestoreDB();
+    if (!db) return;
+    try {
+        const fs = await import(MECH_FIRESTORE_URL);
+        const snap = await fs.getDocs(fs.collection(db, HB_COLLECTION));
+        hbData = {};
+        snap.docs.forEach(d => { hbData[d.id] = d.data(); });
+        if (state) state.hidden = true;
+        renderHospitalBuildings();
+    } catch (e) {
+        console.error("hospital_buildings:", e);
+        if (state) {
+            state.hidden = false;
+            state.textContent = "تعذّر تحميل حالة البنايات (" + (e && e.code ? e.code : "خطأ") + "). القائمة معروضة بدون الحالات المحفوظة.";
+        }
+    }
+}
+
+function hbSetFloor(key) {
+    hbActiveFloor = key;
+    hbEditing = false;
+    hbActiveItem = null;
+    renderHospitalBuildings();
+}
+
+function renderHospitalBuildings() {
+    const floorsEl = document.getElementById("hbFloors");
+    const gridEl = document.getElementById("hbGrid");
+    const subEl = document.getElementById("hbSub");
+    const detailEl = document.getElementById("hbDetail");
+    if (!floorsEl || !gridEl) return;
+
+    floorsEl.innerHTML = HB_FLOORS.map(f => `
+        <button type="button" class="hb-floor${f.key === hbActiveFloor ? " is-active" : ""}" onclick="hbSetFloor('${f.key}')">
+            <b>${escapeHTML(f.nameAr)}</b>
+            <span>${escapeHTML(f.nameEn)} · ${f.items.length}</span>
+        </button>`).join("");
+
+    const floor = HB_FLOORS.find(f => f.key === hbActiveFloor) || HB_FLOORS[0];
+    subEl.textContent = floor.nameAr + " — " + floor.items.length + " " + (floor.key === "roof" ? "سطح" : "بناية/سطح");
+    gridEl.innerHTML = floor.items.map(it => {
+        const st = (hbData[hbId(floor.key, it)] || {}).status || "";
+        const cls = st ? " st-" + st : "";
+        return `<button type="button" class="hb-bld${cls}" onclick="hbOpenItem('${it.kind}','${it.num}')">
+            <span class="hb-ico">${it.kind === "r" ? "🏠" : "🏢"}</span>
+            <b>${escapeHTML(hbLabel(it))}</b>
+            ${it.name ? `<span class="hb-name">${escapeHTML(it.name)}</span>` : ""}
+            <small>${escapeHTML(HB_STATUSES[st] || HB_STATUSES[""])}</small>
+        </button>`;
+    }).join("");
+
+    if (!hbActiveItem) { detailEl.hidden = true; return; }
+    const rec = hbData[hbId(floor.key, hbActiveItem)] || {};
+    detailEl.hidden = false;
+    if (!hbEditing) {
+        const row = (f, value) => `<div class="hb-row"><span class="hb-k">${escapeHTML(f.label)}<small>${escapeHTML(f.en)}</small></span><span class="hb-v${value ? "" : " is-empty"}">${value ? escapeHTML(value) : "—"}</span></div>`;
+        const rows = [];
+        if (hbActiveItem.kind !== "r") {
+            const units = hbFanUnits(floor.key, hbActiveItem);
+            HB_COUNT_FIELDS.forEach(f => {
+                let v = rec[f.key] == null ? "" : String(rec[f.key]);
+                if (f.key === "fanCoils" && v === "" && units.length) v = String(units.length);
+                rows.push(row(f, v));
+            });
+            rows.push(row(HB_PUMP_LABEL, rec.pump || ""));
+        }
+        rows.push(row(HB_STATUS_LABEL, rec.status ? HB_STATUSES[rec.status] : ""));
+        rows.push(row(HB_NOTES_LABEL, rec.notes || ""));
+        detailEl.innerHTML = `
+            <h3>${escapeHTML(hbLabel(hbActiveItem))}${hbActiveItem.name ? " — " + escapeHTML(hbActiveItem.name) : ""} — ${escapeHTML(floor.nameAr)}</h3>
+            <div class="hb-rows">${rows.join("")}</div>
+            ${hbFanUnits(floor.key, hbActiveItem).length ? `
+            <div class="hb-units-title">الفان كويلات المسجلة <small>Fan Coil Units</small></div>
+            <div class="hb-units">${hbFanUnits(floor.key, hbActiveItem).map(u => `
+                <div class="hb-unit${hbUnitStatus(floor.key, hbActiveItem, u.id) ? " us-" + hbUnitStatus(floor.key, hbActiveItem, u.id) : ""}">
+                    <b class="hb-ltr">${escapeHTML(u.id)}</b>
+                    <span><em>الحالة · Status</em><select class="hb-unit-status" onchange="hbSetUnitStatus('${u.id}', this.value)">${Object.keys(HB_UNIT_STATUSES).map(k =>
+                        `<option value="${k}"${hbUnitStatus(floor.key, hbActiveItem, u.id) === k ? " selected" : ""}>${escapeHTML(HB_UNIT_STATUSES[k])}</option>`).join("")}</select></span>
+                    <span><em>الدكت الخارجي · Duct</em><i class="hb-ltr">${escapeHTML(u.duct)}</i></span>
+                    <span><em>كمية الهواء · Air Flow</em><i class="hb-ltr">${escapeHTML(String(u.air))} m³/h</i></span>
+                    ${u.notes ? `<span class="hb-unit-note"><em>ملاحظات · Notes</em><i>${escapeHTML(u.notes)}</i></span>` : ""}
+                </div>`).join("")}</div>` : ""}
+            ${hbAhuUnits(hbActiveItem).length ? `
+            <div class="hb-units-title">وحدات مناولة الهواء <small>Air Handling Units</small></div>
+            <div class="hb-units">${hbAhuUnits(hbActiveItem).map(u => {
+                return `<div class="hb-unit">
+                    <b class="hb-ltr">${escapeHTML(u.id)}</b>
+                    ${HB_AHU_SPECS[u.id] ? `<span><em>هواء التغذية · Supply Air</em><i class="hb-ltr">${HB_AHU_SPECS[u.id].sa} m³/h</i></span>
+                    <span><em>هواء الراجع · Return Air</em><i class="hb-ltr">${HB_AHU_SPECS[u.id].ra} m³/h</i></span>` : ""}
+                    <span><em>مخدومة من قبل دافعة رقم · Served by Pump No.</em><input type="text" class="hb-unit-pump" value="${escapeHTML(hbUnitPump(floor.key, hbActiveItem, u.id))}" placeholder="—" onchange="hbSetUnitPump('${u.id}', this.value)"></span>
+                    ${hbSpecHtml(u.id)}
+                </div>`;
+            }).join("")}</div>` : ""}
+            <div class="hb-actions">
+                <button type="button" class="hb-save" onclick="hbStartEdit()">تعديل</button>
+                <button type="button" onclick="hbCloseItem()">إغلاق</button>
+            </div>`;
+        return;
+    }
+    detailEl.innerHTML = `
+        <h3>${escapeHTML(hbLabel(hbActiveItem))}${hbActiveItem.name ? " — " + escapeHTML(hbActiveItem.name) : ""} — ${escapeHTML(floor.nameAr)}</h3>
+        ${hbActiveItem.kind === "r" ? "" : `<div class="hb-fields">
+            ${HB_COUNT_FIELDS.map(f => `<div><label for="hbf_${f.key}">${escapeHTML(f.label)} · ${escapeHTML(f.en)}</label>
+                <input type="number" min="0" step="1" inputmode="numeric" id="hbf_${f.key}" value="${rec[f.key] == null ? "" : escapeHTML(String(rec[f.key]))}"></div>`).join("")}
+            <div class="hb-wide"><label for="hbf_pump">${escapeHTML(HB_PUMP_LABEL.label)} · ${escapeHTML(HB_PUMP_LABEL.en)}</label>
+                <input type="text" id="hbf_pump" value="${escapeHTML(rec.pump || "")}" placeholder="مثال: 1 أو 1 و2"></div>
+        </div>`}
+        <label for="hbStatus">الحالة · Status</label>
+        <select id="hbStatus">${Object.keys(HB_STATUSES).map(k =>
+            `<option value="${k}"${(rec.status || "") === k ? " selected" : ""}>${escapeHTML(HB_STATUSES[k])}</option>`).join("")}</select>
+        <label for="hbNotes">ملاحظات · Notes</label>
+        <textarea id="hbNotes" rows="3">${escapeHTML(rec.notes || "")}</textarea>
+        <div class="hb-actions">
+            <button type="button" class="hb-save" onclick="hbSave()">حفظ</button>
+            <button type="button" onclick="hbEditing=false;renderHospitalBuildings()">إلغاء</button>
+        </div>`;
+}
+
+function hbOpenItem(kind, num) {
+    const fl = HB_FLOORS.find(f => f.key === hbActiveFloor);
+    hbEditing = false;
+    hbActiveItem = (fl && fl.items.find(i => i.kind === kind && String(i.num) === String(num))) || { kind, num };
+    renderHospitalBuildings();
+    const el = document.getElementById("hbDetail");
+    if (el && el.scrollIntoView) el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+async function hbSetUnitPump(unitId, value) {
+    if (!hbActiveItem) return;
+    if (!requireLoginForWrite()) { renderHospitalBuildings(); return; }
+    const db = getFirestoreDB();
+    if (!db) { renderHospitalBuildings(); return; }
+    const id = hbId(hbActiveFloor, hbActiveItem);
+    const v = String(value || "").trim();
+    try {
+        const fs = await import(MECH_FIRESTORE_URL);
+        await fs.setDoc(fs.doc(db, HB_COLLECTION, id), {
+            floor: hbActiveFloor, kind: hbActiveItem.kind, number: hbActiveItem.num,
+            unitPump: { [unitId]: v },
+            updatedAt: new Date().toISOString()
+        }, { merge: true });
+        const rec = hbData[id] || (hbData[id] = {});
+        rec.unitPump = Object.assign({}, rec.unitPump, { [unitId]: v });
+        renderHospitalBuildings();
+    } catch (e) {
+        console.error("hbSetUnitPump:", e);
+        showMessage("تعذّر حفظ رقم الدافعة: " + (e && e.code ? e.code : "خطأ"), "error");
+        renderHospitalBuildings();
+    }
+}
+
+async function hbSetUnitStatus(unitId, value) {
+    if (!hbActiveItem) return;
+    if (!requireLoginForWrite()) { renderHospitalBuildings(); return; }
+    const db = getFirestoreDB();
+    if (!db) { renderHospitalBuildings(); return; }
+    const id = hbId(hbActiveFloor, hbActiveItem);
+    try {
+        const fs = await import(MECH_FIRESTORE_URL);
+        await fs.setDoc(fs.doc(db, HB_COLLECTION, id), {
+            floor: hbActiveFloor, kind: hbActiveItem.kind, number: hbActiveItem.num,
+            unitStatus: { [unitId]: value },
+            updatedAt: new Date().toISOString()
+        }, { merge: true });
+        const rec = hbData[id] || (hbData[id] = {});
+        rec.unitStatus = Object.assign({}, rec.unitStatus, { [unitId]: value });
+        renderHospitalBuildings();
+    } catch (e) {
+        console.error("hbSetUnitStatus:", e);
+        showMessage("تعذّر حفظ حالة الوحدة: " + (e && e.code ? e.code : "خطأ"), "error");
+        renderHospitalBuildings();
+    }
+}
+
+function hbStartEdit() {
+    hbEditing = true;
+    renderHospitalBuildings();
+}
+
+function hbCloseItem() {
+    hbActiveItem = null;
+    hbEditing = false;
+    renderHospitalBuildings();
+}
+
+async function hbSave() {
+    if (!hbActiveItem) return;
+    if (!requireLoginForWrite(hbSave)) return;
+    const db = getFirestoreDB();
+    if (!db) return;
+    const id = hbId(hbActiveFloor, hbActiveItem);
+    const payload = {
+        floor: hbActiveFloor,
+        kind: hbActiveItem.kind,
+        number: hbActiveItem.num,
+        status: document.getElementById("hbStatus").value,
+        notes: document.getElementById("hbNotes").value.trim(),
+        updatedAt: new Date().toISOString()
+    };
+    // السطوح بلا حقول عددية ولا دافعة (الحالة والملاحظات فقط)
+    if (hbActiveItem.kind !== "r") payload.pump = document.getElementById("hbf_pump").value.trim();
+    for (const f of (hbActiveItem.kind === "r" ? [] : HB_COUNT_FIELDS)) {
+        const raw = document.getElementById("hbf_" + f.key).value.trim();
+        if (raw === "") { payload[f.key] = null; continue; }
+        const n = Number(raw);
+        if (!Number.isInteger(n) || n < 0) {
+            showMessage(f.label + ": أدخل عدداً صحيحاً صفراً أو أكثر.", "error");
+            return;
+        }
+        payload[f.key] = n;
+    }
+    try {
+        const fs = await import(MECH_FIRESTORE_URL);
+        await fs.setDoc(fs.doc(db, HB_COLLECTION, id), payload, { merge: true });
+        hbData[id] = Object.assign({}, hbData[id], payload);
+        hbEditing = false;
+        renderHospitalBuildings();
+        showMessage("تم حفظ بيانات البناية.", "success");
+    } catch (e) {
+        console.error("hbSave:", e);
+        showMessage("تعذّر الحفظ: " + (e && e.code ? e.code : "خطأ") + (e && e.code === "permission-denied" ? " — أضف قاعدة hospital_buildings في Firestore ثم Publish." : ""), "error");
+    }
 }

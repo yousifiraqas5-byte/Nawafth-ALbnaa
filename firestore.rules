@@ -26,6 +26,13 @@ service cloud.firestore {
       return request.auth != null && request.auth.uid != null;
     }
 
+    // المحرّر الوحيد لقسم خزانات الكاز (الباقون قراءة فقط)
+    function isFuelEditor() {
+      return isSignedIn()
+        && request.auth.token.email != null
+        && request.auth.token.email.lower() == 'yousif.altaee9@gmail.com';
+    }
+
     // المشتريات
     match /purchases/{documentId} {
       allow read: if true;
@@ -80,21 +87,89 @@ service cloud.firestore {
       allow write: if isSignedIn();
     }
 
-    // كميات خزانات الكاز (Fuel Tanks)
+    // كميات خزانات الكاز (Fuel Tanks) — الكتابة للمحرّر الوحيد فقط
     match /fuelTanks/{documentId} {
       allow read: if true;
-      allow write: if isSignedIn();
+      allow write: if isFuelEditor();
     }
 
     // سجل قراءات خزانات الكاز (إضافة فقط: لا تعديل ولا حذف حتى يبقى السجل التاريخي سليماً)
     match /fuelTankReadings/{documentId} {
       allow read: if true;
-      allow create: if isSignedIn();
+      allow create: if isFuelEditor();
       allow update, delete: if false;
+    }
+
+    // جدول توريد الكاز (الحمولات الواصلة) — الكتابة للمحرّر الوحيد فقط
+    match /fuelDeliveries/{documentId} {
+      allow read: if true;
+      allow write: if isFuelEditor();
     }
 
     // مواقع الأجهزة الطبية (Location) — تُنشأ تلقائياً عند أول حفظ
     match /medical_locations/{documentId} {
+      allow read: if true;
+      allow write: if isSignedIn();
+    }
+
+    // ==========================================================
+    // قسم الميكانيك — قراءة مفتوحة، كتابة للمستخدم المسجّل فقط
+    // (نفس سياسة بقية الأقسام: الحماية الفعلية requireLoginForWrite
+    //  في script.js، وهنا تُقيَّد الكتابة على request.auth != null)
+    // ==========================================================
+
+    // سجل المعدات والأصول الميكانيكية
+    match /mechanical_equipment/{documentId} {
+      allow read: if true;
+      allow write: if isSignedIn();
+    }
+
+    // أوامر العمل والأعطال
+    match /mechanical_work_orders/{documentId} {
+      allow read: if true;
+      allow write: if isSignedIn();
+    }
+
+    // سجل تغيّر حالات أوامر العمل (إضافة فقط لضمان سلامة الأثر)
+    match /mechanical_work_order_history/{documentId} {
+      allow read: if true;
+      allow create: if isSignedIn();
+      allow update, delete: if false;
+    }
+
+    // خطط الصيانة الوقائية
+    match /mechanical_pm_plans/{documentId} {
+      allow read: if true;
+      allow write: if isSignedIn();
+    }
+
+    // سجل تنفيذ عمليات الصيانة الوقائية (إضافة فقط)
+    match /mechanical_pm_logs/{documentId} {
+      allow read: if true;
+      allow create: if isSignedIn();
+      allow update, delete: if false;
+    }
+
+    // قطع الغيار المطلوبة والمستخدمة
+    match /mechanical_spares/{documentId} {
+      allow read: if true;
+      allow write: if isSignedIn();
+    }
+
+    // عدّاد أرقام أوامر العمل
+    match /mechanical_counters/{documentId} {
+      allow read: if true;
+      allow write: if isSignedIn();
+    }
+
+    // سجل أنواع المعدات والكميات المعتمدة (بما فيها مكافحة الحريق)
+    match /mechanical_equipment_types/{documentId} {
+      allow read: if true;
+      allow write: if isSignedIn();
+    }
+
+    // ابنية المستشفى (الطوابق والبنايات: حالة وملاحظات)
+    match /hospital_buildings/{documentId} {
       allow read: if true;
       allow write: if isSignedIn();
     }

@@ -19,7 +19,6 @@
         lowPercent: 20,          // تنبيه "انخفاض" عند نسبة امتلاء أقل من هذه القيمة
         highPercent: 90,         // تنبيه "قرب الامتلاء" عند نسبة أكبر من أو تساوي هذه القيمة
         staleDays: 7,            // تنبيه "لم تُحدَّث القراءة" بعد هذا العدد من الأيام
-        geometryDiffPercent: 2   // تنبيه عند اختلاف السعة الهندسية عن الاسمية بأكثر من هذه النسبة
     };
 
     // ---------- طرق القياس ----------
@@ -405,14 +404,6 @@
             if (s.stale) {
                 out.push({ level: "warn", tankId: s.id, code: "stale",
                     text: label + ": لم تُحدَّث القراءة منذ " + Math.floor(s.ageDays) + " يوماً" });
-            }
-            if (s.geomCapacityL) {
-                var diff = Math.abs(s.geomCapacityL - s.nominalL) / s.nominalL * 100;
-                if (diff > settings.geometryDiffPercent) {
-                    out.push({ level: "info", tankId: s.id, code: "geom_diff",
-                        text: label + ": السعة الهندسية (" + Math.round(s.geomCapacityL).toLocaleString("en-US") +
-                            " لتر) تختلف عن الاسمية بنسبة " + diff.toFixed(1) + "%" });
-                }
             }
         });
         return out;

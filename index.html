@@ -1861,6 +1861,10 @@ content="default"
 
     #fuelTanksPage { container-type: inline-size; --fuel-green: #14724e; --fuel-text: #1f2937; --fuel-muted: #6b7280; --fuel-border: #e5e7eb; }
 
+    /* "الأقسام الرئيسية" في الهيدر: ضغطة واحدة تعيد إلى القائمة الرئيسية */
+    .header-welcome #headerHomeLink { cursor: pointer; }
+    .header-welcome #headerHomeLink:focus-visible { outline: 2px solid rgba(255,255,255,.85); outline-offset: 3px; border-radius: 6px; }
+
     #fuelTanksPage .fuel-muted { color: var(--fuel-muted); font-size: 13px; }
     #fuelTanksPage .fuel-section { margin: 18px 4px 0; }
     #fuelTanksPage .fuel-section-title { font-size: 17px; font-weight: 800; color: var(--fuel-text); margin: 0 0 10px; }
@@ -1900,6 +1904,7 @@ content="default"
     /* ---- شريط التنبيه العام والتنبيهات ---- */
     #fuelTanksPage .fuel-banner { margin: 12px 4px 0; padding: 10px 14px; border-radius: 12px; font-size: 13.5px; line-height: 1.6; }
     #fuelTanksPage .fuel-banner[hidden] { display: none; }
+    #fuelTanksPage .fuel-banner.is-info { background: #e0f2fe; color: #075985; border: 1px solid #bae6fd; }
     #fuelTanksPage .fuel-banner.is-warn { background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
     #fuelTanksPage .fuel-alerts[hidden] { display: none; }
     #fuelTanksPage .fuel-alerts { margin: 16px 4px 0; }
@@ -2006,6 +2011,30 @@ content="default"
 
     #fuelTanksPage details.fuel-section > summary { cursor: pointer; font-size: 17px; font-weight: 800; color: var(--fuel-text); margin-bottom: 10px; }
 
+    /* ---- جدول توريد الكاز ---- */
+    #fuelTanksPage .fuel-dl-toggle { margin-inline-start: auto; align-self: center; border: 0; border-radius: 12px; padding: 9px 14px; background: var(--fuel-green); color: #fff; font: inherit; font-weight: 700; cursor: pointer; white-space: nowrap; }
+    #fuelTanksPage .intro { flex-wrap: wrap; }
+    #fuelTanksPage .fuel-dl-form-title { margin: 0; font-size: 15px; color: var(--fuel-text); }
+    #fuelTanksPage .fuel-dl-form-top { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    #fuelTanksPage .fuel-dl-qty-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+    #fuelTanksPage .fuel-dl-form-top input, #fuelTanksPage .fuel-dl-qty-grid input { font: inherit; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 10px; width: 100%; box-sizing: border-box; }
+    #fuelTanksPage .fuel-dl-total { font-size: 15px; font-weight: 700; color: var(--fuel-text); }
+    #fuelTanksPage .fuel-dl-total strong { color: var(--fuel-green); font-size: 18px; }
+    #fuelTanksPage .fuel-dl-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+    #fuelTanksPage .fuel-dl-actions .fuel-btn.is-secondary { margin-top: 0; }
+    #fuelTanksPage #fuelDlForm { margin-bottom: 14px; }
+    #fuelTanksPage .fuel-dl-wrap { overflow-x: auto; background: #fff; border: 1px solid var(--fuel-border); border-radius: 14px; }
+    #fuelTanksPage .fuel-dl-table { width: 100%; min-width: 760px; border-collapse: collapse; font-size: 13.5px; text-align: center; }
+    #fuelTanksPage .fuel-dl-table th, #fuelTanksPage .fuel-dl-table td { border: 1px solid #d5e3d3; padding: 8px 8px; }
+    #fuelTanksPage .fuel-dl-table thead th { background: #d9ead3; color: #1f2937; font-weight: 800; white-space: nowrap; }
+    #fuelTanksPage .fuel-dl-tankhead span { display: block; font-size: 12px; font-weight: 700; color: #14532d; }
+    #fuelTanksPage .fuel-dl-table tbody tr:nth-child(even) td { background: #fafcf9; }
+    #fuelTanksPage .fuel-dl-total-cell { background: #f1f5f9; font-weight: 700; }
+    #fuelTanksPage .fuel-dl-driver { white-space: nowrap; }
+    #fuelTanksPage .fuel-dl-table tfoot td { background: #f0fdf4; font-weight: 800; border-top: 2px solid #86efac; }
+    #fuelTanksPage .fuel-dl-row-actions { white-space: nowrap; }
+    #fuelTanksPage .fuel-dl-row-actions button { border: 0; background: transparent; cursor: pointer; font-size: 16px; padding: 2px 6px; }
+
     /* ---- الهاتف: الجداول كبطاقات مكدّسة ---- */
     @container (max-width: 640px) {
       #fuelTanksPage .fuel-tanks-grid { grid-template-columns: minmax(0, 1fr); }
@@ -2055,7 +2084,14 @@ content="default"
 
   <span>لوحة الشركة</span>
 
-  <strong>الأقسام الرئيسية</strong>
+  <strong
+    id="headerHomeLink"
+    role="button"
+    tabindex="0"
+    title="العودة إلى القائمة الرئيسية"
+    onclick="goHome()"
+    onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); goHome(); }"
+  >الأقسام الرئيسية</strong>
 
   <div class="header-user-wrap" id="headerUserWrap" style="display:none;">
 
@@ -2303,12 +2339,12 @@ content="default"
   <button
     type="button"
     class="main-card"
-    onclick="openKitchen()"
+    onclick="openFuelTanks()"
   >
 
     <div class="card-top">
 
-      <div class="main-icon gray">🍽️</div>
+      <div class="main-icon gray">🛢️</div>
 
       <div class="card-arrow">←</div>
 
@@ -2316,9 +2352,9 @@ content="default"
 
     <div class="card-text">
 
-      <h3>المطبخ</h3>
+      <h3>خزانات الكاز</h3>
 
-      <p>إدارة ومتابعة المطبخ</p>
+      <p>متابعة مستوى الكاز والكميات المطلوبة</p>
 
     </div>
 
@@ -2344,6 +2380,56 @@ content="default"
       <h3>الأجهزة الطبية</h3>
 
       <p>متابعة الأجهزة والمعدات الطبية</p>
+
+    </div>
+
+  </button>
+
+
+  <button
+    type="button"
+    class="main-card"
+    onclick="openMechanics()"
+  >
+
+    <div class="card-top">
+
+      <div class="main-icon green">⚙️</div>
+
+      <div class="card-arrow">←</div>
+
+    </div>
+
+    <div class="card-text">
+
+      <h3>الميكانيك</h3>
+
+      <p>إدارة الأنظمة الميكانيكية والصيانة والأعطال</p>
+
+    </div>
+
+  </button>
+
+
+  <button
+    type="button"
+    class="main-card"
+    onclick="openHospitalBuildings()"
+  >
+
+    <div class="card-top">
+
+      <div class="main-icon green">🏥</div>
+
+      <div class="card-arrow">←</div>
+
+    </div>
+
+    <div class="card-text">
+
+      <h3>ابنية المستشفى</h3>
+
+      <p>الطوابق والبنايات والسطوح</p>
 
     </div>
 
@@ -2432,12 +2518,12 @@ content="default"
   <button
     type="button"
     class="main-card"
-    onclick="openFuelTanks()"
+    onclick="openKitchen()"
   >
 
     <div class="card-top">
 
-      <div class="main-icon gray">🛢️</div>
+      <div class="main-icon gray">🍽️</div>
 
       <div class="card-arrow">←</div>
 
@@ -2445,9 +2531,9 @@ content="default"
 
     <div class="card-text">
 
-      <h3>خزانات الكاز</h3>
+      <h3>المطبخ</h3>
 
-      <p>متابعة مستوى الكاز والكميات المطلوبة</p>
+      <p>إدارة ومتابعة المطبخ</p>
 
     </div>
 
@@ -2497,7 +2583,7 @@ content="default"
   <button
     type="button"
     class="storage-card"
-    onclick="openWarehouse('containers')"
+    onclick="openContainers()"
   >
 
     <div class="storage-icon">🚢</div>
@@ -2506,7 +2592,7 @@ content="default"
 
       <h3>الحاويات</h3>
 
-      <p>مخزن الحاويات</p>
+      <p>6 حاويات (حاوية رقم 1 … حاوية رقم 6)</p>
 
     </div>
 
@@ -2556,6 +2642,192 @@ content="default"
 
   </button>
 
+
+</section>
+
+  </main>
+
+  <!-- CONTAINERS (حاويات المخازن: 1 إلى 6) -->
+
+  <main
+    id="containersPage"
+    class="page"
+  >
+
+<div class="navigation">
+
+  <button
+    type="button"
+    onclick="openStorage()"
+  >
+    → المخازن
+  </button>
+
+</div>
+
+<section class="intro">
+
+  <div class="intro-icon">🚢</div>
+
+  <div>
+
+    <h2>الحاويات</h2>
+
+    <p>اختر الحاوية المطلوبة</p>
+
+  </div>
+
+</section>
+
+<section class="storage-list">
+
+  <button
+    type="button"
+    class="storage-card"
+    onclick="openWarehouse('container1')"
+  >
+
+    <div class="storage-icon">🚢</div>
+
+    <div class="storage-text">
+
+      <h3>حاوية رقم 1</h3>
+
+      <p>مخزن حاوية رقم 1</p>
+
+    </div>
+
+    <div class="storage-arrow">←</div>
+
+  </button>
+
+
+  <button
+    type="button"
+    class="storage-card"
+    onclick="openWarehouse('container2')"
+  >
+
+    <div class="storage-icon">🚢</div>
+
+    <div class="storage-text">
+
+      <h3>حاوية رقم 2</h3>
+
+      <p>مخزن حاوية رقم 2</p>
+
+    </div>
+
+    <div class="storage-arrow">←</div>
+
+  </button>
+
+
+  <button
+    type="button"
+    class="storage-card"
+    onclick="openWarehouse('container3')"
+  >
+
+    <div class="storage-icon">🚢</div>
+
+    <div class="storage-text">
+
+      <h3>حاوية رقم 3</h3>
+
+      <p>مخزن حاوية رقم 3</p>
+
+    </div>
+
+    <div class="storage-arrow">←</div>
+
+  </button>
+
+
+  <button
+    type="button"
+    class="storage-card"
+    onclick="openWarehouse('container4')"
+  >
+
+    <div class="storage-icon">🚢</div>
+
+    <div class="storage-text">
+
+      <h3>حاوية رقم 4</h3>
+
+      <p>مخزن حاوية رقم 4</p>
+
+    </div>
+
+    <div class="storage-arrow">←</div>
+
+  </button>
+
+
+  <button
+    type="button"
+    class="storage-card"
+    onclick="openWarehouse('container5')"
+  >
+
+    <div class="storage-icon">🚢</div>
+
+    <div class="storage-text">
+
+      <h3>حاوية رقم 5</h3>
+
+      <p>مخزن حاوية رقم 5</p>
+
+    </div>
+
+    <div class="storage-arrow">←</div>
+
+  </button>
+
+
+  <button
+    type="button"
+    class="storage-card"
+    onclick="openWarehouse('container6')"
+  >
+
+    <div class="storage-icon">🚢</div>
+
+    <div class="storage-text">
+
+      <h3>حاوية رقم 6</h3>
+
+      <p>مخزن حاوية رقم 6</p>
+
+    </div>
+
+    <div class="storage-arrow">←</div>
+
+  </button>
+
+
+  <button
+    type="button"
+    class="storage-card"
+    id="legacyContainersCard"
+    style="display:none;"
+    onclick="openWarehouse('containers')"
+  >
+
+    <div class="storage-icon">🗂️</div>
+
+    <div class="storage-text">
+
+      <h3>سجلات الحاويات السابقة</h3>
+
+      <p>حركات مسجلة قبل ترقيم الحاويات</p>
+
+    </div>
+
+    <div class="storage-arrow">←</div>
+
+  </button>
 
 </section>
 
@@ -4259,6 +4531,1222 @@ content="default"
 
   </main>
 
+  <!-- =====================================================
+  MECHANICS (قسم الميكانيك)
+  ====================================================== -->
+
+  <main
+    id="mechanicsPage"
+    class="page"
+  >
+
+  <style>
+    #mechanicsPage { --mech-green:#14724e; --mech-dark:#25312b; --mech-muted:#89928d; --mech-border:#e1e6e3; --mech-ink:#1f2937; }
+    #mechanicsPage .mech-back { display:inline-block; margin:14px 16px 4px; padding:8px 14px; border:1px solid var(--mech-border); border-radius:12px; background:#fff; color:var(--mech-green); font:inherit; font-weight:700; cursor:pointer; }
+    #mechanicsPage .mech-head { display:flex; align-items:center; gap:14px; padding:12px 18px 16px; }
+    #mechanicsPage .mech-head-icon { width:54px; height:54px; flex-shrink:0; display:flex; align-items:center; justify-content:center; border-radius:17px; background:#e2f0e9; font-size:28px; }
+    #mechanicsPage .mech-head h2 { margin:0; font-size:23px; font-weight:850; color:var(--mech-dark); letter-spacing:-.4px; }
+    #mechanicsPage .mech-head p { margin:4px 0 0; font-size:12px; color:var(--mech-muted); }
+
+    #mechanicsPage .mech-stat-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; padding:0 16px; }
+    @media (min-width:760px){ #mechanicsPage .mech-stat-grid{ grid-template-columns:repeat(4,minmax(0,1fr)); } }
+    #mechanicsPage .mech-stat { display:flex; flex-direction:column; align-items:flex-start; gap:4px; padding:13px 12px; border:1px solid var(--mech-border); border-top:4px solid #cbd5e1; border-radius:15px; background:#fff; text-align:right; font:inherit; cursor:pointer; box-shadow:0 2px 10px rgba(0,0,0,.05); transition:transform .12s ease; }
+    #mechanicsPage .mech-stat:active { transform:scale(.97); }
+    #mechanicsPage .mech-stat.is-active { outline:2px solid var(--mech-green); }
+    #mechanicsPage .mech-stat-top { display:flex; align-items:center; gap:7px; color:var(--mech-muted); font-size:12px; font-weight:700; }
+    #mechanicsPage .mech-stat-icon { font-size:17px; }
+    #mechanicsPage .mech-stat-val { font-size:25px; font-weight:850; color:var(--mech-dark); line-height:1; }
+    #mechanicsPage .mech-stat.is-danger { border-top-color:#dc2626; } #mechanicsPage .mech-stat.is-danger .mech-stat-val { color:#dc2626; }
+    #mechanicsPage .mech-stat.is-warn { border-top-color:#b56a05; } #mechanicsPage .mech-stat.is-warn .mech-stat-val { color:#b56a05; }
+    #mechanicsPage .mech-stat.is-ok { border-top-color:var(--mech-green); } #mechanicsPage .mech-stat.is-ok .mech-stat-val { color:var(--mech-green); }
+
+    #mechanicsPage .mech-section { margin:20px 16px 0; padding:15px; background:#fff; border:1px solid var(--mech-border); border-radius:18px; box-shadow:0 2px 10px rgba(0,0,0,.05); }
+    #mechanicsPage .mech-section-title { margin:0 0 4px; font-size:16px; font-weight:800; color:var(--mech-dark); }
+    #mechanicsPage .mech-section-sub { margin:0 0 12px; font-size:12px; color:var(--mech-muted); }
+    #mechanicsPage .mech-followup-item { padding:11px 0; border-bottom:1px solid var(--mech-border); }
+    #mechanicsPage .mech-followup-item:last-child { border-bottom:0; }
+    #mechanicsPage .mech-followup-title { font-weight:700; color:var(--mech-ink); font-size:14px; }
+    #mechanicsPage .mech-followup-meta { margin-top:4px; font-size:12px; color:var(--mech-muted); }
+    #mechanicsPage .mech-pill { display:inline-block; padding:2px 9px; border-radius:999px; font-size:11px; font-weight:700; }
+    #mechanicsPage .mech-pill.p-CRITICAL { background:#fee2e2; color:#b91c1c; }
+    #mechanicsPage .mech-pill.p-HIGH { background:#ffedd5; color:#b56a05; }
+    #mechanicsPage .mech-pill.p-MEDIUM { background:#e0e7ff; color:#3730a3; }
+    #mechanicsPage .mech-pill.p-LOW { background:#e5e7eb; color:#374151; }
+
+    #mechanicsPage .mech-dept-grid { display:grid; grid-template-columns:minmax(0,1fr); gap:12px; padding:0 16px; }
+    @media (min-width:640px){ #mechanicsPage .mech-dept-grid{ grid-template-columns:repeat(2,minmax(0,1fr)); } }
+    @media (min-width:1000px){ #mechanicsPage .mech-dept-grid{ grid-template-columns:repeat(3,minmax(0,1fr)); } }
+    #mechanicsPage .mech-dept { display:flex; flex-direction:column; gap:8px; padding:16px; border:1px solid var(--mech-border); border-top:4px solid var(--mech-green); border-radius:18px; background:#fff; text-align:right; font:inherit; cursor:pointer; box-shadow:0 4px 14px rgba(30,45,37,.06); transition:transform .14s ease; }
+    #mechanicsPage .mech-dept:active { transform:scale(.98); }
+    #mechanicsPage .mech-dept-top { display:flex; align-items:center; gap:12px; }
+    #mechanicsPage .mech-dept-icon { width:48px; height:48px; flex-shrink:0; display:flex; align-items:center; justify-content:center; border-radius:15px; background:#e2f0e9; font-size:25px; }
+    #mechanicsPage .mech-dept-name { font-size:16px; font-weight:800; color:var(--mech-dark); }
+    #mechanicsPage .mech-dept-en { font-size:11px; color:var(--mech-muted); font-weight:600; letter-spacing:.3px; }
+    #mechanicsPage .mech-dept-counts { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px 10px; margin-top:2px; }
+    #mechanicsPage .mech-count { display:flex; justify-content:space-between; font-size:12px; color:var(--mech-muted); }
+    #mechanicsPage .mech-count b { color:var(--mech-ink); font-weight:800; }
+    #mechanicsPage .mech-count.is-danger b { color:#dc2626; }
+    #mechanicsPage .mech-count.is-warn b { color:#b56a05; }
+    #mechanicsPage .mech-empty { padding:34px 16px; text-align:center; color:var(--mech-muted); }
+    #mechanicsPage .mech-empty-icon { font-size:40px; margin-bottom:8px; }
+    #mechanicsPage .mech-state { padding:12px 16px; margin:0 16px; border-radius:12px; font-size:13px; text-align:center; }
+    #mechanicsPage .mech-state.is-error { background:#fee2e2; color:#b91c1c; }
+    #mechanicsPage .mech-state.is-loading { background:#eef2f0; color:var(--mech-muted); }
+
+    #mechanicsPage .mech-tabs { display:flex; gap:8px; flex-wrap:wrap; padding:0 16px; margin:6px 0 12px; }
+    #mechanicsPage .mech-tab { flex:1 1 auto; min-width:110px; padding:10px 12px; border:1px solid var(--mech-border); border-radius:12px; background:#fff; color:var(--mech-dark); font:inherit; font-weight:700; font-size:13px; cursor:pointer; }
+    #mechanicsPage .mech-tab.is-active { background:var(--mech-green); border-color:var(--mech-green); color:#fff; }
+
+    #mechanicsPage .mech-toolbar { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin:0 16px 12px; }
+    #mechanicsPage .mech-toolbar select, #mechanicsPage .mech-toolbar input[type="search"], #mechanicsPage .mech-toolbar input[type="text"] { font:inherit; padding:9px 11px; border:1px solid #cbd5e1; border-radius:10px; background:#fff; color:var(--mech-ink); }
+    #mechanicsPage .mech-toolbar .mech-btn { width:auto; }
+    #mechanicsPage .mech-btn { border:0; border-radius:12px; padding:11px 16px; background:var(--mech-green); color:#fff; font:inherit; font-weight:700; cursor:pointer; }
+    #mechanicsPage .mech-btn.is-secondary { background:#e5e7eb; color:#374151; }
+    #mechanicsPage .mech-btn:disabled { opacity:.6; cursor:not-allowed; }
+
+    #mechanicsPage .mech-card { padding:13px 14px; border:1px solid var(--mech-border); border-radius:15px; background:#fff; margin:0 16px 10px; box-shadow:0 2px 8px rgba(0,0,0,.04); }
+    #mechanicsPage .mech-card-title { margin:0; font-size:15px; font-weight:800; color:var(--mech-dark); }
+    #mechanicsPage .mech-card-meta { margin-top:5px; font-size:12px; color:var(--mech-muted); line-height:1.7; }
+    #mechanicsPage .mech-card-actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+    #mechanicsPage .mech-card-actions .mech-btn { padding:8px 12px; font-size:13px; }
+    #mechanicsPage .mech-tagline { display:flex; gap:6px; flex-wrap:wrap; margin-top:7px; }
+
+    #mechanicsPage .mech-form-grid { display:grid; grid-template-columns:minmax(0,1fr); gap:11px; }
+    @media (min-width:640px){ #mechanicsPage .mech-form-grid{ grid-template-columns:repeat(2,minmax(0,1fr)); } }
+    #mechanicsPage .mech-form-grid .full { grid-column:1/-1; }
+    #mechanicsPage .mech-form-grid label { display:flex; flex-direction:column; gap:5px; font-size:12px; font-weight:700; color:var(--mech-dark); }
+    #mechanicsPage .mech-form-grid input, #mechanicsPage .mech-form-grid select, #mechanicsPage .mech-form-grid textarea { font:inherit; font-weight:500; padding:9px 11px; border:1px solid #cbd5e1; border-radius:10px; background:#fff; color:var(--mech-ink); width:100%; }
+    #mechanicsPage .mech-form-grid textarea { resize:vertical; }
+    #mechanicsPage .mech-actions { display:flex; gap:10px; flex-wrap:wrap; margin-top:12px; }
+
+    #mechanicsPage .mech-kv { display:grid; grid-template-columns:auto 1fr; gap:4px 10px; margin-top:8px; font-size:12.5px; }
+    #mechanicsPage .mech-kv dt { color:var(--mech-muted); font-weight:600; }
+    #mechanicsPage .mech-kv dd { margin:0; color:var(--mech-ink); font-weight:600; }
+
+    #mechanicsPage .mech-section { container-type: inline-size; }
+    #mechanicsPage .mech-hist-item { padding:9px 0; border-bottom:1px solid var(--mech-border); font-size:13px; }
+    #mechanicsPage .mech-hist-item:last-child { border-bottom:0; }
+    #mechanicsPage .mech-hist-status { font-weight:800; color:var(--mech-ink); }
+    #mechanicsPage .mech-hist-meta { font-size:11.5px; color:var(--mech-muted); margin-top:3px; }
+    #mechanicsPage .mech-field-error { color:#b91c1c; font-size:11.5px; margin-top:3px; }
+
+    /* ===== تنسيق احترافي للوحة المعلومات والأنظمة ===== */
+    #mechanicsPage #mechStats.mech-stat-grid { display:block; padding:0; }
+    #mechanicsPage .mech-stat-groups { display:flex; flex-direction:column; gap:14px; }
+    #mechanicsPage .mech-stat-group-title { display:flex; align-items:center; gap:8px; margin:0 0 8px; font-size:12.5px; font-weight:800; color:var(--mech-muted); letter-spacing:.2px; }
+    #mechanicsPage .mech-stat-group-title::after { content:""; flex:1; height:1px; background:var(--mech-border); }
+    #mechanicsPage .mech-stat-grid { padding:0; gap:10px; grid-template-columns:repeat(2,minmax(0,1fr)); }
+    #mechanicsPage .mech-stat-grid.is-three > .mech-stat:first-child { grid-column:1 / -1; }
+    #mechanicsPage .mech-stat { display:grid; grid-template-columns:auto minmax(0,1fr); grid-template-areas:"icon val" "label label"; align-items:center; column-gap:8px; row-gap:8px; padding:12px; border:1px solid var(--mech-border); border-top:3px solid #cbd5e1; border-radius:14px; box-shadow:0 1px 6px rgba(0,0,0,.04); min-width:0; text-align:right; }
+    #mechanicsPage .mech-stat.is-danger { border-top-color:#dc2626; }
+    #mechanicsPage .mech-stat.is-warn { border-top-color:#b56a05; }
+    #mechanicsPage .mech-stat.is-ok { border-top-color:var(--mech-green); }
+    #mechanicsPage .mech-stat-top { display:contents; }
+    #mechanicsPage .mech-stat-icon { grid-area:icon; width:32px; height:32px; display:flex; align-items:center; justify-content:center; border-radius:10px; background:#f1f5f3; font-size:16px; }
+    #mechanicsPage .mech-stat-val { grid-area:val; justify-self:end; font-size:28px; font-weight:850; line-height:1; }
+    #mechanicsPage .mech-stat-label { grid-area:label; display:flex; flex-direction:column; gap:1px; line-height:1.35; min-width:0; font-size:12.5px; font-weight:700; color:var(--mech-muted); overflow-wrap:anywhere; }
+    #mechanicsPage .mech-stat-label small { font-size:10.5px; font-weight:600; color:#a3aaa6; direction:ltr; text-align:right; unicode-bidi:plaintext; }
+
+    #mechanicsPage .mech-dept-grid { grid-template-columns:minmax(0,1fr); }
+    #mechanicsPage .mech-dept { position:relative; gap:12px; }
+    #mechanicsPage .mech-dept-top { align-items:center; }
+    #mechanicsPage .mech-dept-top > div:nth-child(2) { flex:1 1 auto; min-width:0; }
+    #mechanicsPage .mech-dept::after { content:"←"; color:var(--mech-muted); font-size:18px; position:absolute; inset-inline-end:16px; top:24px; }
+    #mechanicsPage .mech-dept-en { direction:ltr; text-align:right; unicode-bidi:plaintext; }
+    #mechanicsPage .mech-dept-counts { grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; margin-top:0; }
+    #mechanicsPage .mech-count { flex-direction:column; justify-content:flex-start; align-items:flex-start; gap:3px; padding:8px 10px; background:#f6f8f7; border-radius:10px; font-size:11px; line-height:1.3; }
+    #mechanicsPage .mech-count b { font-size:19px; line-height:1.1; }
+    #mechanicsPage .mech-subhead { margin:22px 16px 10px; display:flex; flex-direction:column; gap:2px; }
+    #mechanicsPage .mech-subhead h3 { margin:0; font-size:16px; font-weight:800; color:var(--mech-dark); }
+    #mechanicsPage .mech-subhead span { font-size:12px; color:var(--mech-muted); }
+    #mechanicsPage .mech-followup-title { display:flex; flex-wrap:wrap; align-items:center; gap:6px; line-height:1.5; }
+    #mechanicsPage .mech-followup-meta { line-height:1.7; overflow-wrap:anywhere; }
+  </style>
+
+    <button type="button" class="mech-back" onclick="goHome()">→ الرئيسية</button>
+
+    <header class="mech-head">
+      <div class="mech-head-icon">⚙️</div>
+      <div>
+        <h2>الميكانيك</h2>
+        <p>إدارة ومتابعة الأنظمة الميكانيكية والصيانة والأعطال</p>
+      </div>
+    </header>
+
+    <div id="mechState" class="mech-state is-loading" hidden></div>
+
+    <div id="mechDashboardView">
+
+    <!-- لوحة الإحصائيات -->
+    <section class="mech-section" style="margin-bottom:4px;">
+      <h3 class="mech-section-title">لوحة المعلومات</h3>
+      <p class="mech-section-sub">اضغط على أي إحصائية لعرض السجلات المرتبطة بها</p>
+      <div class="mech-stat-grid" id="mechStats"></div>
+    </section>
+
+    <!-- الأعمال التي تحتاج إلى متابعة -->
+    <section class="mech-section">
+      <h3 class="mech-section-title">الأعمال التي تحتاج إلى متابعة</h3>
+      <p class="mech-section-sub">الأولويات العالية والأعمال المتأخرة أولاً</p>
+      <div id="mechFollowUp"></div>
+    </section>
+
+    <!-- الأقسام الفرعية الخمسة -->
+    <div class="mech-subhead"><h3>الأنظمة الميكانيكية</h3><span>Mechanical Systems — اضغط على النظام لفتحه</span></div>
+    <div class="mech-dept-grid" id="mechDepts"></div>
+
+    </div><!-- /mechDashboardView -->
+
+    <!-- عرض تفصيلي لإحصائية مختارة -->
+    <div id="mechStatView" hidden></div>
+
+    <!-- استعراض قسم: تبويبات + محتوى + نموذج -->
+    <div id="mechTabHost" hidden>
+      <section class="mech-section" style="margin-bottom:4px;">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+          <button type="button" class="mech-back" style="margin:0;" onclick="mechGoDashboard()">→ رجوع</button>
+          <h3 class="mech-section-title" style="margin:0;" id="mechTabTitle"></h3>
+        </div>
+      </section>
+      <div class="mech-tabs" id="mechTabs">
+        <button type="button" class="mech-tab is-active" data-tab="equipment" onclick="mechSwitchTab('equipment')">المعدات</button>
+        <button type="button" class="mech-tab" data-tab="orders" onclick="mechSwitchTab('orders')">أوامر العمل</button>
+        <button type="button" class="mech-tab" data-tab="pm" onclick="mechSwitchTab('pm')">الصيانة الوقائية</button>
+        <button type="button" class="mech-tab" data-tab="reports" onclick="mechSwitchTab('reports')">التقارير</button>
+      </div>
+      <div id="mechTabContent"></div>
+      <div id="mechFormHost" data-form="" data-open="0" style="padding:0 16px;"></div>
+    </div>
+
+  </main>
+
+  <!-- ابنية المستشفى -->
+  <main id="hospitalBuildingsPage" class="page">
+  <style>
+    #hospitalBuildingsPage { --hb-green:#14724e; --hb-dark:#25312b; --hb-muted:#89928d; --hb-border:#e1e6e3; }
+    #hospitalBuildingsPage .hb-back { display:inline-block; margin:14px 16px 4px; padding:8px 14px; border:1px solid var(--hb-border); border-radius:12px; background:#fff; color:var(--hb-green); font:inherit; font-weight:700; cursor:pointer; }
+    #hospitalBuildingsPage .hb-head { display:flex; align-items:center; gap:14px; padding:12px 18px 14px; }
+    #hospitalBuildingsPage .hb-head-icon { width:54px; height:54px; flex-shrink:0; display:flex; align-items:center; justify-content:center; border-radius:17px; background:#e2f0e9; font-size:28px; }
+    #hospitalBuildingsPage .hb-head h2 { margin:0; font-size:23px; font-weight:850; color:var(--hb-dark); }
+    #hospitalBuildingsPage .hb-head p { margin:4px 0 0; font-size:12px; color:var(--hb-muted); }
+    #hospitalBuildingsPage .hb-floors { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; padding:0 16px 12px; }
+    #hospitalBuildingsPage .hb-floor { display:flex; flex-direction:column; gap:4px; padding:13px 12px; border:1px solid var(--hb-border); border-top:4px solid #cbd5e1; border-radius:15px; background:#fff; text-align:right; font:inherit; cursor:pointer; box-shadow:0 2px 10px rgba(0,0,0,.05); }
+    #hospitalBuildingsPage .hb-floor.is-active { border-top-color:var(--hb-green); outline:2px solid var(--hb-green); }
+    #hospitalBuildingsPage .hb-floor b { font-size:15px; color:var(--hb-dark); }
+    #hospitalBuildingsPage .hb-floor span { font-size:12px; color:var(--hb-muted); }
+    #hospitalBuildingsPage .hb-sub { padding:0 18px 8px; font-size:13px; font-weight:800; color:var(--hb-dark); }
+    #hospitalBuildingsPage .hb-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; padding:0 16px 16px; }
+    #hospitalBuildingsPage .hb-bld { display:flex; flex-direction:column; align-items:center; gap:4px; padding:12px 6px; border:1px solid var(--hb-border); border-radius:14px; background:#fff; font:inherit; cursor:pointer; box-shadow:0 2px 8px rgba(0,0,0,.04); }
+    #hospitalBuildingsPage .hb-bld .hb-ico { font-size:22px; }
+    #hospitalBuildingsPage .hb-bld b { font-size:13px; color:var(--hb-dark); }
+    #hospitalBuildingsPage .hb-bld .hb-name { font-size:12px; font-weight:700; color:var(--hb-green); text-align:center; line-height:1.4; }
+    #hospitalBuildingsPage .hb-bld small { font-size:11px; color:var(--hb-muted); }
+    #hospitalBuildingsPage .hb-bld.st-ok { border-color:#86d3a8; }
+    #hospitalBuildingsPage .hb-bld.st-maint { border-color:#f2c36b; background:#fffaf0; }
+    #hospitalBuildingsPage .hb-bld.st-issue { border-color:#f1a1a1; background:#fff5f5; }
+    #hospitalBuildingsPage .hb-detail { margin:0 16px 20px; padding:14px; border:1px solid var(--hb-border); border-radius:15px; background:#fff; }
+    #hospitalBuildingsPage .hb-detail h3 { margin:0 0 10px; font-size:16px; color:var(--hb-dark); }
+    #hospitalBuildingsPage .hb-detail label { display:block; margin:10px 0 4px; font-size:12px; font-weight:700; color:var(--hb-muted); }
+    #hospitalBuildingsPage .hb-detail select, #hospitalBuildingsPage .hb-detail textarea { width:100%; box-sizing:border-box; padding:9px 10px; border:1px solid var(--hb-border); border-radius:10px; font:inherit; }
+    #hospitalBuildingsPage .hb-rows { border:1px solid var(--hb-border); border-radius:12px; overflow:hidden; }
+    #hospitalBuildingsPage .hb-row { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 12px; border-bottom:1px solid var(--hb-border); font-size:13px; }
+    #hospitalBuildingsPage .hb-row:last-child { border-bottom:0; }
+    #hospitalBuildingsPage .hb-row:nth-child(even) { background:#f8faf9; }
+    #hospitalBuildingsPage .hb-k small { display:block; margin-top:2px; font-size:11px; font-weight:600; color:#a3aba7; unicode-bidi:plaintext; direction:ltr; text-align:right; }
+    #hospitalBuildingsPage .hb-k { color:var(--hb-muted); font-weight:700; flex-shrink:0; }
+    #hospitalBuildingsPage .hb-v { color:var(--hb-dark); font-weight:800; text-align:left; overflow-wrap:anywhere; unicode-bidi:plaintext; }
+    #hospitalBuildingsPage .hb-v.is-empty { color:#c0c7c3; font-weight:400; }
+    #hospitalBuildingsPage .hb-units-title { margin:14px 0 8px; font-size:13px; font-weight:800; color:var(--hb-dark); }
+    #hospitalBuildingsPage .hb-units-title small, #hospitalBuildingsPage .hb-unit em { font-size:11px; font-weight:600; font-style:normal; color:#a3aba7; }
+    #hospitalBuildingsPage .hb-units { display:flex; flex-direction:column; gap:8px; }
+    #hospitalBuildingsPage .hb-unit { padding:10px 12px; border:1px solid var(--hb-border); border-radius:12px; background:#f8faf9; font-size:13px; }
+    #hospitalBuildingsPage .hb-unit b { display:block; margin-bottom:6px; color:var(--hb-green); font-size:14px; }
+    #hospitalBuildingsPage .hb-unit span { display:flex; justify-content:space-between; gap:10px; padding:3px 0; color:var(--hb-muted); font-weight:700; }
+    #hospitalBuildingsPage .hb-unit i { font-style:normal; color:var(--hb-dark); font-weight:800; overflow-wrap:anywhere; }
+    #hospitalBuildingsPage .hb-unit.us-working { border-color:#86d3a8; }
+    #hospitalBuildingsPage .hb-unit.us-faulty { border-color:#f1a1a1; background:#fff5f5; }
+    #hospitalBuildingsPage .hb-unit select { padding:5px 8px; border:1px solid var(--hb-border); border-radius:8px; background:#fff; font:inherit; font-size:12px; font-weight:800; color:var(--hb-dark); }
+    #hospitalBuildingsPage .hb-unit.us-working select { color:#14724e; }
+    #hospitalBuildingsPage .hb-unit.us-faulty select { color:#dc2626; }
+    #hospitalBuildingsPage .hb-unit .hb-unit-pump { width:90px; box-sizing:border-box; padding:5px 8px; border:1px solid var(--hb-border); border-radius:8px; background:#fff; font:inherit; font-size:12px; font-weight:800; color:var(--hb-dark); text-align:center; }
+    #hospitalBuildingsPage .hb-specs { margin-top:8px; border-top:1px dashed var(--hb-border); padding-top:6px; }
+    #hospitalBuildingsPage .hb-specs summary { cursor:pointer; font-size:12px; font-weight:800; color:var(--hb-green); padding:4px 0; }
+    #hospitalBuildingsPage .hb-spec-row { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; padding:5px 0; border-bottom:1px solid #eef1ef; font-size:12px; color:var(--hb-muted); font-weight:700; }
+    #hospitalBuildingsPage .hb-spec-row:last-child { border-bottom:0; }
+    #hospitalBuildingsPage .hb-spec-row small { display:block; font-size:10px; font-weight:600; color:#a3aba7; direction:ltr; text-align:right; }
+    #hospitalBuildingsPage .hb-spec-row b { color:var(--hb-dark); font-weight:800; text-align:left; overflow-wrap:break-word; word-break:normal; max-width:64%; }
+    #hospitalBuildingsPage .hb-ltr { direction:ltr; unicode-bidi:isolate; }
+    #hospitalBuildingsPage .hb-fields { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:0 10px; }
+    #hospitalBuildingsPage .hb-fields .hb-wide { grid-column:1 / -1; }
+    #hospitalBuildingsPage .hb-detail input { width:100%; box-sizing:border-box; padding:9px 10px; border:1px solid var(--hb-border); border-radius:10px; font:inherit; }
+    #hospitalBuildingsPage .hb-actions { display:flex; gap:8px; margin-top:12px; }
+    #hospitalBuildingsPage .hb-actions button { flex:1; padding:10px; border-radius:10px; border:1px solid var(--hb-border); background:#fff; font:inherit; font-weight:700; cursor:pointer; }
+    #hospitalBuildingsPage .hb-actions .hb-save { background:var(--hb-green); border-color:var(--hb-green); color:#fff; }
+    #hospitalBuildingsPage .hb-state { margin:0 16px 10px; font-size:12px; color:#b45309; }
+  </style>
+
+    <button type="button" class="hb-back" onclick="goHome()">→ الرئيسية</button>
+
+    <header class="hb-head">
+      <div class="hb-head-icon">🏥</div>
+      <div>
+        <h2>ابنية المستشفى</h2>
+        <p>Hospital Buildings — الطوابق والبنايات</p>
+      </div>
+    </header>
+
+    <div id="hbState" class="hb-state" hidden></div>
+    <div class="hb-floors" id="hbFloors"></div>
+    <div class="hb-sub" id="hbSub"></div>
+    <div class="hb-grid" id="hbGrid"></div>
+    <div class="hb-detail" id="hbDetail" hidden></div>
+
+  </main>
+
+  <!-- FIRE FIGHTING (منظومة مكافحة الحريق) -->
+
+  <main
+    id="fireFightingPage"
+    class="page"
+  >
+
+  <style>
+    #fireFightingPage {
+      --ff-green: #14724e;
+      --ff-green-light: #e8f5ee;
+      --ff-dark: #202b25;
+      --ff-muted: #64748b;
+      --ff-border: #e2e8f0;
+      --ff-ink: #1e293b;
+      --ff-card-bg: #ffffff;
+      --ff-red: #dc2626;
+      --ff-red-bg: #fee2e2;
+      --ff-amber: #b45309;
+      --ff-amber-bg: #fef3c7;
+      --ff-blue: #2563eb;
+      --ff-blue-bg: #dbeafe;
+      --ff-purple: #7c3aed;
+      --ff-purple-bg: #ede9fe;
+      direction: rtl;
+      font-family: inherit;
+      color: var(--ff-ink);
+      padding-bottom: 40px;
+    }
+    #fireFightingPage .ff-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin: 14px 16px 4px;
+      padding: 8px 16px;
+      border: 1px solid var(--ff-border);
+      border-radius: 12px;
+      background: #fff;
+      color: var(--ff-green);
+      font: inherit;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 1px 4px rgba(0,0,0,.04);
+      transition: background .15s ease;
+    }
+    #fireFightingPage .ff-back:hover { background: #f8fafc; }
+    #fireFightingPage .ff-head {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 12px 18px 10px;
+    }
+    #fireFightingPage .ff-head-icon {
+      width: 56px;
+      height: 56px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 18px;
+      background: linear-gradient(135deg, #fee2e2, #fecaca);
+      font-size: 30px;
+      box-shadow: 0 4px 12px rgba(220,38,38,.12);
+    }
+    #fireFightingPage .ff-head h2 {
+      margin: 0;
+      font-size: 22px;
+      font-weight: 850;
+      color: var(--ff-dark);
+      letter-spacing: -.4px;
+    }
+    #fireFightingPage .ff-head-en {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--ff-green);
+      letter-spacing: .4px;
+    }
+    #fireFightingPage .ff-head p {
+      margin: 4px 0 0;
+      font-size: 12.5px;
+      color: var(--ff-muted);
+      line-height: 1.6;
+    }
+    #fireFightingPage .ff-state {
+      padding: 12px 16px;
+      margin: 0 16px 10px;
+      border-radius: 12px;
+      font-size: 13px;
+      text-align: center;
+      font-weight: 600;
+    }
+    #fireFightingPage .ff-state.is-loading { background: #f1f5f9; color: var(--ff-muted); }
+    #fireFightingPage .ff-state.is-error { background: #fee2e2; color: #b91c1c; }
+    #fireFightingPage .ff-state .ff-retry {
+      margin-top: 8px;
+      border: 0;
+      border-radius: 10px;
+      padding: 8px 16px;
+      background: #b91c1c;
+      color: #fff;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    /* Sub-navigation tabs */
+    #fireFightingPage .ff-subnav {
+      display: flex;
+      gap: 8px;
+      padding: 6px 16px 10px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    #fireFightingPage .ff-subnav-btn {
+      flex: 1 1 auto;
+      white-space: nowrap;
+      padding: 10px 14px;
+      border: 1px solid var(--ff-border);
+      border-radius: 12px;
+      background: #fff;
+      color: var(--ff-ink);
+      font: inherit;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all .15s ease;
+      text-align: center;
+    }
+    #fireFightingPage .ff-subnav-btn:hover { background: #f8fafc; }
+    #fireFightingPage .ff-subnav-btn.is-active {
+      background: var(--ff-green);
+      color: #fff;
+      border-color: var(--ff-green);
+      box-shadow: 0 2px 8px rgba(20,114,78,.25);
+    }
+
+    /* Statistics Cards Grid */
+    #fireFightingPage .ff-stats {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      padding: 4px 16px 10px;
+    }
+    @media (min-width: 680px) {
+      #fireFightingPage .ff-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    }
+    #fireFightingPage .ff-stat {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 5px;
+      padding: 12px 13px;
+      border: 1px solid var(--ff-border);
+      border-top: 4px solid #cbd5e1;
+      border-radius: 14px;
+      background: #fff;
+      box-shadow: 0 2px 8px rgba(0,0,0,.04);
+      text-align: right;
+      cursor: pointer;
+      transition: transform .12s ease;
+    }
+    #fireFightingPage .ff-stat:hover { transform: translateY(-1px); }
+    #fireFightingPage .ff-stat-top {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--ff-muted);
+      font-size: 11.5px;
+      font-weight: 700;
+    }
+    #fireFightingPage .ff-stat-icon { font-size: 16px; }
+    #fireFightingPage .ff-stat-val {
+      font-size: 23px;
+      font-weight: 850;
+      color: var(--ff-dark);
+      line-height: 1;
+    }
+    #fireFightingPage .ff-stat.is-danger { border-top-color: var(--ff-red); }
+    #fireFightingPage .ff-stat.is-danger .ff-stat-val { color: var(--ff-red); }
+    #fireFightingPage .ff-stat.is-warn { border-top-color: var(--ff-amber); }
+    #fireFightingPage .ff-stat.is-warn .ff-stat-val { color: var(--ff-amber); }
+    #fireFightingPage .ff-stat.is-ok { border-top-color: var(--ff-green); }
+    #fireFightingPage .ff-stat.is-ok .ff-stat-val { color: var(--ff-green); }
+    #fireFightingPage .ff-stat.is-blue { border-top-color: var(--ff-blue); }
+    #fireFightingPage .ff-stat.is-blue .ff-stat-val { color: var(--ff-blue); }
+
+    /* Toolbar / Filters */
+    #fireFightingPage .ff-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 8px 16px 12px;
+    }
+    #fireFightingPage .ff-toolbar input[type="search"],
+    #fireFightingPage .ff-toolbar select {
+      font: inherit;
+      font-size: 13px;
+      padding: 9px 12px;
+      border: 1px solid #cbd5e1;
+      border-radius: 11px;
+      background: #fff;
+      color: var(--ff-ink);
+    }
+    #fireFightingPage .ff-toolbar input[type="search"] { flex: 1 1 200px; min-width: 0; }
+    #fireFightingPage .ff-toolbar select { flex: 0 1 auto; }
+    #fireFightingPage .ff-toolbar .ff-reset {
+      border: 1px solid var(--ff-border);
+      background: #f8fafc;
+      color: var(--ff-dark);
+      font: inherit;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 9px 14px;
+      border-radius: 11px;
+      cursor: pointer;
+    }
+    #fireFightingPage .ff-toolbar .ff-reset:hover { background: #e2e8f0; }
+
+    /* Section titles & hints */
+    #fireFightingPage .ff-section-title {
+      margin: 16px 16px 8px;
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--ff-dark);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    #fireFightingPage .ff-section-subtitle {
+      margin: 0 16px 12px;
+      font-size: 12.5px;
+      color: var(--ff-muted);
+      line-height: 1.6;
+    }
+
+    /* Group Cards Grid */
+    #fireFightingPage .ff-groups {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 12px;
+      padding: 0 16px;
+    }
+    @media (min-width: 640px) {
+      #fireFightingPage .ff-groups { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    }
+    #fireFightingPage .ff-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 16px;
+      border: 1px solid var(--ff-border);
+      border-top: 4px solid var(--ff-red);
+      border-radius: 18px;
+      background: #fff;
+      text-align: right;
+      cursor: pointer;
+      box-shadow: 0 3px 12px rgba(30,45,37,.06);
+      font: inherit;
+      transition: transform .14s ease, box-shadow .14s ease;
+    }
+    #fireFightingPage .ff-group:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 18px rgba(30,45,37,.1);
+    }
+    #fireFightingPage .ff-group:active { transform: scale(.98); }
+    #fireFightingPage .ff-group-top { display: flex; align-items: center; gap: 12px; }
+    #fireFightingPage .ff-group-icon {
+      width: 48px;
+      height: 48px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 15px;
+      background: var(--ff-red-bg);
+      font-size: 25px;
+    }
+    #fireFightingPage .ff-group-name { font-size: 15.5px; font-weight: 800; color: var(--ff-dark); }
+    #fireFightingPage .ff-group-en { font-size: 11px; color: var(--ff-muted); font-weight: 600; letter-spacing: .3px; }
+    #fireFightingPage .ff-group-counts { display: flex; flex-wrap: wrap; gap: 6px 10px; margin-top: 4px; }
+    #fireFightingPage .ff-count {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      flex: 1 1 auto;
+      font-size: 12px;
+      color: var(--ff-muted);
+      background: #f8fafc;
+      border-radius: 9px;
+      padding: 5px 9px;
+    }
+    #fireFightingPage .ff-count b { color: var(--ff-dark); font-weight: 800; }
+    #fireFightingPage .ff-count.is-danger b { color: var(--ff-red); }
+
+    /* Pump Set Layout */
+    #fireFightingPage .ff-pumpset-box {
+      margin: 12px 16px;
+      padding: 16px;
+      border: 1px solid var(--ff-border);
+      border-radius: 18px;
+      background: #fff;
+      box-shadow: 0 3px 14px rgba(0,0,0,.05);
+    }
+    #fireFightingPage .ff-pumpset-head {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--ff-border);
+      margin-bottom: 14px;
+    }
+    #fireFightingPage .ff-pumpset-head-icon {
+      width: 44px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 13px;
+      background: var(--ff-red-bg);
+      font-size: 22px;
+    }
+    #fireFightingPage .ff-pumpset-title {
+      font-size: 16px;
+      font-weight: 850;
+      color: var(--ff-dark);
+    }
+    #fireFightingPage .ff-pumpset-sub {
+      font-size: 11.5px;
+      color: var(--ff-muted);
+    }
+    #fireFightingPage .ff-pump-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 12px;
+    }
+    @media (min-width: 760px) {
+      #fireFightingPage .ff-pump-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    }
+    #fireFightingPage .ff-pump-card {
+      border: 1px solid var(--ff-border);
+      border-radius: 14px;
+      padding: 14px;
+      background: #fafcfb;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      cursor: pointer;
+      transition: all .15s ease;
+      text-align: right;
+    }
+    #fireFightingPage .ff-pump-card:hover {
+      border-color: var(--ff-green);
+      background: #fff;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(20,114,78,.1);
+    }
+    #fireFightingPage .ff-pump-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    #fireFightingPage .ff-pump-name {
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--ff-dark);
+    }
+    #fireFightingPage .ff-pump-en {
+      font-size: 11px;
+      color: var(--ff-muted);
+      font-weight: 600;
+    }
+    #fireFightingPage .ff-specs-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 6px;
+      margin: 4px 0;
+      font-size: 11.5px;
+      background: #f1f5f9;
+      padding: 8px 10px;
+      border-radius: 10px;
+    }
+    #fireFightingPage .ff-spec-item {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    #fireFightingPage .ff-spec-lbl { font-size: 10.5px; color: var(--ff-muted); }
+    #fireFightingPage .ff-spec-val { font-weight: 800; color: var(--ff-dark); }
+    #fireFightingPage .ff-review-note {
+      padding: 8px 10px;
+      border-radius: 9px;
+      background: var(--ff-amber-bg);
+      color: #92400e;
+      font-size: 11px;
+      line-height: 1.5;
+      font-weight: 600;
+    }
+    #fireFightingPage .ff-pump-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: auto;
+      padding-top: 6px;
+      font-size: 12px;
+      color: var(--ff-green);
+      font-weight: 700;
+    }
+
+    /* Pump Accessories Box */
+    #fireFightingPage .ff-accessories-box {
+      margin-top: 14px;
+      padding: 12px 14px;
+      border: 1px dashed var(--ff-border);
+      border-radius: 12px;
+      background: #f8fafc;
+    }
+    #fireFightingPage .ff-accessories-title {
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--ff-dark);
+      margin-bottom: 6px;
+    }
+    #fireFightingPage .ff-accessories-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 6px;
+    }
+    #fireFightingPage .ff-chip {
+      padding: 4px 10px;
+      border-radius: 8px;
+      background: #fff;
+      border: 1px solid var(--ff-border);
+      font-size: 11.5px;
+      font-weight: 700;
+      color: var(--ff-ink);
+    }
+    #fireFightingPage .ff-accessories-note {
+      font-size: 11px;
+      color: var(--ff-muted);
+      line-height: 1.5;
+      margin: 0;
+    }
+
+    /* Catalog Cards (Extinguishers & Fixed) */
+    #fireFightingPage .ff-catalog-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 12px;
+      padding: 0 16px 12px;
+    }
+    @media (min-width: 680px) {
+      #fireFightingPage .ff-catalog-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    #fireFightingPage .ff-type-card {
+      padding: 14px 16px;
+      border: 1px solid var(--ff-border);
+      border-radius: 15px;
+      background: #fff;
+      box-shadow: 0 2px 8px rgba(0,0,0,.04);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      text-align: right;
+      transition: all .15s ease;
+    }
+    #fireFightingPage .ff-type-card:hover {
+      border-color: #cbd5e1;
+      box-shadow: 0 4px 14px rgba(0,0,0,.06);
+    }
+    #fireFightingPage .ff-type-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    #fireFightingPage .ff-type-title {
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--ff-dark);
+    }
+    #fireFightingPage .ff-type-meta {
+      font-size: 11.5px;
+      color: var(--ff-muted);
+      line-height: 1.6;
+    }
+    #fireFightingPage .ff-qty-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      border-radius: 10px;
+      background: #f1f5f9;
+      font-size: 12px;
+    }
+    #fireFightingPage .ff-qty-bar b { color: var(--ff-dark); font-weight: 800; }
+    #fireFightingPage .ff-type-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 4px;
+    }
+    #fireFightingPage .ff-btn-sm {
+      padding: 6px 12px;
+      border-radius: 9px;
+      font: inherit;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      border: 1px solid var(--ff-border);
+      background: #fff;
+      color: var(--ff-ink);
+    }
+    #fireFightingPage .ff-btn-sm:hover { background: #f8fafc; }
+    #fireFightingPage .ff-btn-sm.is-primary {
+      background: var(--ff-green);
+      color: #fff;
+      border-color: var(--ff-green);
+    }
+
+    /* Generic Rows & Cards */
+    #fireFightingPage .ff-row {
+      padding: 12px 14px;
+      border: 1px solid var(--ff-border);
+      border-radius: 14px;
+      background: #fff;
+      margin: 0 16px 9px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.04);
+      cursor: pointer;
+      transition: all .14s ease;
+      text-align: right;
+    }
+    #fireFightingPage .ff-row:hover {
+      border-color: var(--ff-green);
+      transform: translateY(-1px);
+    }
+    #fireFightingPage .ff-row-title {
+      font-size: 14.5px;
+      font-weight: 800;
+      color: var(--ff-dark);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    #fireFightingPage .ff-row-meta {
+      margin-top: 4px;
+      font-size: 12px;
+      color: var(--ff-muted);
+      line-height: 1.7;
+    }
+
+    /* Status Pills */
+    #fireFightingPage .ff-pill {
+      display: inline-block;
+      padding: 2px 9px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    #fireFightingPage .ff-pill.st-OPERATIONAL { background: #d1fae5; color: #065f46; }
+    #fireFightingPage .ff-pill.st-STOPPED { background: #fee2e2; color: #b91c1c; }
+    #fireFightingPage .ff-pill.st-UNDER_MAINTENANCE { background: #fef3c7; color: #92400e; }
+    #fireFightingPage .ff-pill.st-OUT_OF_SERVICE { background: #e5e7eb; color: #374151; }
+    #fireFightingPage .ff-pill.st-UNVERIFIED { background: #ede9fe; color: #5b21b6; }
+
+    #fireFightingPage .ff-pill.p-LOW { background: #e0f2fe; color: #0369a1; }
+    #fireFightingPage .ff-pill.p-MEDIUM { background: #fef3c7; color: #92400e; }
+    #fireFightingPage .ff-pill.p-HIGH { background: #fed7aa; color: #c2410c; }
+    #fireFightingPage .ff-pill.p-CRITICAL { background: #fee2e2; color: #b91c1c; }
+
+    #fireFightingPage .ff-pill.st-NEW { background: #e0e7ff; color: #3730a3; }
+    #fireFightingPage .ff-pill.st-IN_PROGRESS,
+    #fireFightingPage .ff-pill.st-IN-PROGRESS { background: #fef3c7; color: #92400e; }
+    #fireFightingPage .ff-pill.st-AWAITING_PARTS,
+    #fireFightingPage .ff-pill.st-AWAITING-PARTS { background: #ffedd5; color: #9a3412; }
+    #fireFightingPage .ff-pill.st-COMPLETE { background: #d1fae5; color: #065f46; }
+
+    /* Empty states */
+    #fireFightingPage .ff-empty {
+      padding: 34px 16px;
+      text-align: center;
+      color: var(--ff-muted);
+      font-size: 13.5px;
+      line-height: 1.9;
+    }
+    #fireFightingPage .ff-empty-icon { font-size: 38px; margin-bottom: 6px; }
+
+    /* Detail View */
+    #fireFightingPage .ff-detail-page {
+      padding: 0 16px 20px;
+    }
+    #fireFightingPage .ff-detail-hero {
+      border: 1px solid var(--ff-border);
+      border-radius: 18px;
+      background: #fff;
+      padding: 16px;
+      margin-bottom: 14px;
+      box-shadow: 0 3px 12px rgba(0,0,0,.05);
+      text-align: right;
+    }
+    #fireFightingPage .ff-detail-hero-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+    #fireFightingPage .ff-detail-title {
+      font-size: 18px;
+      font-weight: 850;
+      color: var(--ff-dark);
+      margin: 0;
+    }
+    #fireFightingPage .ff-detail-subtitle {
+      font-size: 12px;
+      color: var(--ff-muted);
+      margin-top: 3px;
+    }
+    #fireFightingPage .ff-detail-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px solid var(--ff-border);
+    }
+    #fireFightingPage .ff-btn {
+      padding: 8px 14px;
+      border-radius: 10px;
+      font: inherit;
+      font-size: 12.5px;
+      font-weight: 700;
+      cursor: pointer;
+      border: 1px solid var(--ff-border);
+      background: #fff;
+      color: var(--ff-ink);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all .15s ease;
+    }
+    #fireFightingPage .ff-btn:hover { background: #f8fafc; }
+    #fireFightingPage .ff-btn.is-primary {
+      background: var(--ff-green);
+      color: #fff;
+      border-color: var(--ff-green);
+    }
+    #fireFightingPage .ff-btn.is-danger {
+      background: var(--ff-red);
+      color: #fff;
+      border-color: var(--ff-red);
+    }
+    #fireFightingPage .ff-detail-tabs {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      margin-bottom: 12px;
+      padding-bottom: 4px;
+    }
+    #fireFightingPage .ff-detail-tab-btn {
+      padding: 8px 14px;
+      border: 1px solid var(--ff-border);
+      border-radius: 11px;
+      background: #fff;
+      font: inherit;
+      font-size: 12.5px;
+      font-weight: 700;
+      color: var(--ff-muted);
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    #fireFightingPage .ff-detail-tab-btn.is-active {
+      background: var(--ff-dark);
+      color: #fff;
+      border-color: var(--ff-dark);
+    }
+
+    /* Modal System */
+    .ff-modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, .6);
+      backdrop-filter: blur(4px);
+      z-index: 10000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      direction: rtl;
+    }
+    .ff-modal {
+      background: #fff;
+      border-radius: 20px;
+      max-width: 540px;
+      width: 100%;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 20px 40px rgba(0,0,0,.25);
+      animation: ffModalIn .2s ease-out;
+      overflow: hidden;
+      text-align: right;
+    }
+    @keyframes ffModalIn {
+      from { opacity: 0; transform: translateY(12px) scale(.97); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .ff-modal-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid #e2e8f0;
+      background: #f8fafc;
+    }
+    .ff-modal-title {
+      font-size: 16px;
+      font-weight: 850;
+      color: var(--ff-dark);
+      margin: 0;
+    }
+    .ff-modal-close {
+      border: 0;
+      background: transparent;
+      font-size: 20px;
+      color: var(--ff-muted);
+      cursor: pointer;
+      padding: 4px;
+      line-height: 1;
+    }
+    .ff-modal-body {
+      padding: 18px 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .ff-modal-foot {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
+      padding: 14px 20px;
+      border-top: 1px solid #e2e8f0;
+      background: #f8fafc;
+    }
+    .ff-form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .ff-form-label {
+      font-size: 12.5px;
+      font-weight: 700;
+      color: var(--ff-dark);
+    }
+    .ff-form-hint {
+      font-size: 11px;
+      color: var(--ff-muted);
+      line-height: 1.5;
+    }
+    .ff-form-input,
+    .ff-form-select,
+    .ff-form-textarea {
+      font: inherit;
+      font-size: 13.5px;
+      padding: 9px 12px;
+      border: 1px solid #cbd5e1;
+      border-radius: 11px;
+      background: #fff;
+      color: var(--ff-ink);
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .ff-form-input:focus,
+    .ff-form-select:focus,
+    .ff-form-textarea:focus {
+      outline: 0;
+      border-color: var(--ff-green);
+      box-shadow: 0 0 0 3px rgba(20,114,78,.15);
+    }
+    .ff-form-textarea { min-height: 80px; resize: vertical; }
+
+    /* ===== فصل الجهات (المستشفى / المجمع) وعناصر التنظيم ===== */
+    #fireFightingPage .ff-facility-bar {
+      display: flex; gap: 8px; padding: 10px 16px 2px; flex-wrap: wrap;
+    }
+    #fireFightingPage .ff-fac-btn {
+      flex: 1 1 140px; display: flex; align-items: center; justify-content: center; gap: 8px;
+      padding: 11px 14px; border: 1.5px solid var(--ff-border, #e2e8f0); border-radius: 14px;
+      background: #fff; font: inherit; font-size: 14px; font-weight: 800; cursor: pointer;
+      color: var(--ff-dark); min-height: 44px;
+    }
+    #fireFightingPage .ff-fac-btn small { font-weight: 600; color: var(--ff-muted); font-size: 11px; }
+    #fireFightingPage .ff-fac-btn.is-active { background: var(--ff-dark); border-color: var(--ff-dark); color: #fff; }
+    #fireFightingPage .ff-fac-btn.is-active small { color: #cbd5e1; }
+    #fireFightingPage .ff-fac-note {
+      margin: 6px 16px 0; font-size: 11.5px; color: var(--ff-muted); line-height: 1.6;
+    }
+    #fireFightingPage .ff-mode-badge {
+      display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 11px; font-weight: 800;
+      background: #e0f2fe; color: #0369a1; margin-inline-start: 6px; vertical-align: middle;
+    }
+    #fireFightingPage .ff-mode-badge.is-auto { background: #fef3c7; color: #92400e; }
+    #fireFightingPage .ff-subgroup-title {
+      margin: 14px 16px 4px; font-size: 13.5px; font-weight: 800; color: var(--ff-dark);
+    }
+    #fireFightingPage .ff-data-note {
+      margin: 8px 16px; padding: 9px 12px; border-radius: 10px; font-size: 12px; line-height: 1.7;
+      background: var(--ff-amber-bg, #fef3c7); color: #92400e;
+    }
+    #fireFightingPage .ff-group.is-muted { opacity: .72; }
+    #fireFightingPage .ff-title-sub { margin: -4px 16px 4px; font-size: 12px; font-weight: 700; color: var(--ff-muted); direction: ltr; unicode-bidi: plaintext; text-align: right; }
+    /* ===== ترتيب داخلي موحّد لبطاقات الأنواع والوحدات ===== */
+    #fireFightingPage .ff-qty-bar {
+      display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; padding: 0; background: transparent;
+    }
+    #fireFightingPage .ff-qty-bar > span {
+      display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; border-radius: 10px;
+      background: #f1f5f9; font-size: 11.5px; color: var(--ff-muted); line-height: 1.3; min-width: 0;
+    }
+    #fireFightingPage .ff-qty-bar > span i { font-style: normal; }
+    #fireFightingPage .ff-qty-bar > span b { font-size: 17px; line-height: 1.15; color: var(--ff-dark); }
+    #fireFightingPage .ff-mi { display: inline-block; margin-inline-end: 14px; margin-top: 2px; }
+    #fireFightingPage .ff-mi b { color: var(--ff-dark); }
+    #fireFightingPage .ff-row-meta { line-height: 1.8; overflow-wrap: anywhere; }
+    #fireFightingPage .ff-info-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(220px, 100%), 1fr)); gap: 8px; }
+    #fireFightingPage .ff-info-item { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; background: #f8fafc; border-radius: 10px; min-width: 0; }
+    #fireFightingPage .ff-info-lbl { font-size: 11.5px; color: var(--ff-muted); }
+    #fireFightingPage .ff-info-val { font-size: 13px; font-weight: 700; color: var(--ff-dark); overflow-wrap: anywhere; unicode-bidi: plaintext; text-align: right; }
+    #fireFightingPage .ff-spec-val { unicode-bidi: plaintext; text-align: right; overflow-wrap: anywhere; }
+    #fireFightingPage .ff-type-top, #fireFightingPage .ff-row-title { gap: 10px; }
+    #fireFightingPage .ff-type-title { overflow-wrap: anywhere; line-height: 1.5; }
+    #fireFightingPage .ff-type-meta { direction: ltr; unicode-bidi: plaintext; text-align: right; overflow-wrap: anywhere; line-height: 1.5; }
+    #fireFightingPage .ff-type-actions { flex-wrap: wrap; }
+    #fireFightingPage .ff-type-actions .ff-btn-sm { flex: 1 1 130px; text-align: center; }
+    #fireFightingPage .ff-catalog-grid { grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr)); }
+
+    /* بطاقات المجموعات: شبكة 2×2 مرتبة (العنوان فوق الرقم) بدل الشرائح المتناثرة */
+    #fireFightingPage .ff-groups { grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr)); }
+    #fireFightingPage .ff-group { min-width: 0; }
+    #fireFightingPage .ff-group-top > div:last-child { min-width: 0; flex: 1 1 auto; }
+    #fireFightingPage .ff-group-name, #fireFightingPage .ff-group-en { overflow-wrap: anywhere; }
+    #fireFightingPage .ff-group-counts {
+      display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 6px;
+    }
+    #fireFightingPage .ff-group-counts .ff-count {
+      flex-direction: column; justify-content: flex-start; align-items: flex-start; gap: 2px;
+      padding: 8px 10px; font-size: 11.5px; line-height: 1.3;
+    }
+    #fireFightingPage .ff-group-counts .ff-count b { font-size: 18px; line-height: 1.1; }
+    #fireFightingPage .ff-toolbar select { max-width: 100%; }
+
+    /* التطبيق عمود ضيق على كل الشاشات: لا نزيد عدد الأعمدة بزيادة عرض المتصفح */
+    #fireFightingPage .ff-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    #fireFightingPage .ff-pump-grid { grid-template-columns: minmax(0, 1fr); }
+    #fireFightingPage .ff-groups { grid-template-columns: minmax(0, 1fr); }
+    #fireFightingPage .ff-catalog-grid { grid-template-columns: minmax(0, 1fr); }
+    /* شريط البحث والتصفية: شبكة مرتبة بعمودين */
+    #fireFightingPage .ff-toolbar { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    #fireFightingPage .ff-toolbar input[type="search"] { grid-column: 1 / -1; width: 100%; box-sizing: border-box; }
+    #fireFightingPage .ff-toolbar select { width: 100%; min-width: 0; }
+    #fireFightingPage .ff-toolbar .ff-reset { grid-column: 1 / -1; }
+    @media (max-width: 560px) {
+      #fireFightingPage .ff-facility-bar { padding: 10px 14px 2px; }
+      #fireFightingPage .ff-fac-note, #fireFightingPage .ff-subgroup-title, #fireFightingPage .ff-data-note { margin-inline: 14px; }
+    }
+
+    @media (max-width: 560px) {
+      #fireFightingPage .ff-head { padding: 10px 14px; }
+      #fireFightingPage .ff-toolbar { padding: 8px 14px; }
+      #fireFightingPage .ff-subnav { padding: 4px 14px 8px; }
+      #fireFightingPage .ff-stats { padding: 4px 14px; }
+      #fireFightingPage .ff-groups { padding: 0 14px; }
+      #fireFightingPage .ff-pumpset-box { margin: 10px 14px; }
+      #fireFightingPage .ff-catalog-grid { padding: 0 14px 12px; }
+      #fireFightingPage .ff-row { margin: 0 14px 8px; }
+      #fireFightingPage .ff-detail-page { padding: 0 14px 16px; }
+    }
+  </style>
+
+    <button type="button" class="ff-back" onclick="ffBack()">→ رجوع للميكانيك</button>
+
+    <header class="ff-head">
+      <div class="ff-head-icon">🧯</div>
+      <div>
+        <h2>منظومة مكافحة الحريق</h2>
+        <div class="ff-head-en">Fire Fighting System</div>
+        <p>إدارة معدات مكافحة الحريق والمضخات والفحوصات والصيانة والأعطال.</p>
+      </div>
+    </header>
+
+    <div id="ffState" class="ff-state is-loading" hidden></div>
+
+    <!-- اختيار الجهة: بيانات المستشفى والمجمع منفصلة ولا تُدمج أعدادهما -->
+    <div class="ff-facility-bar" id="ffFacilityBar" role="tablist" aria-label="الجهة"></div>
+
+    <section class="ff-stats" id="ffStats" aria-label="إحصائيات المنظومة"></section>
+
+    <!-- تبويبات التنقل السريع داخل القسم -->
+    <nav class="ff-subnav" id="ffSubNav" aria-label="أقسام منظومة مكافحة الحريق">
+      <button type="button" class="ff-subnav-btn is-active" id="ffTabBtn-groups" onclick="ffSwitchView('groups')">🏢 المجموعات والمعدات</button>
+      <button type="button" class="ff-subnav-btn" id="ffTabBtn-tracker" onclick="ffSwitchView('tracker')">📊 متابعة الفحص والصيانة</button>
+      <button type="button" class="ff-subnav-btn" id="ffTabBtn-orders" onclick="ffSwitchView('orders')">📋 أوامر العمل</button>
+    </nav>
+
+    <!-- شريط البحث والتصفية -->
+    <section class="ff-toolbar" id="ffToolbar" aria-label="البحث والتصفية">
+      <input type="search" id="ffSearch" placeholder="🔍 ابحث باسم المعدة (عربي/English)، رقم Tag، الرمز، الموقع، أو أمر العمل..." oninput="ffOnSearch(this.value)">
+      <select id="ffGroupFilter" onchange="ffOnGroupFilter(this.value)" aria-label="تصفية بالمجموعة">
+        <option value="">كل المجموعات</option>
+        <option value="pump-set">مضخات الحريق — Fire Pumps</option>
+        <option value="extinguishers">مطافئ الحريق — Extinguishers</option>
+        <option value="hydrants">حنفيات الحريق — Hydrants</option>
+        <option value="hose-cabinets">صناديق الخراطيم — Hose Cabinets</option>
+        <option value="foam">معدات الرغوة — Foam</option>
+        <option value="fixed">معدات ثابتة أخرى</option>
+      </select>
+      <select id="ffStatus" onchange="ffOnStatus(this.value)" aria-label="تصفية بالحالة التشغيلية"></select>
+      <select id="ffMaint" onchange="ffOnMaint(this.value)" aria-label="تصفية بحالة الصيانة">
+        <option value="">كل حالات الصيانة</option>
+        <option value="needs">تحتاج إلى صيانة</option>
+        <option value="faults">عليها أعطال مفتوحة</option>
+        <option value="ok">لا صيانة مطلوبة</option>
+      </select>
+      <select id="ffInsp" onchange="ffOnInsp(this.value)" aria-label="تصفية بموعد الفحص">
+        <option value="">كل مواعيد الفحص</option>
+        <option value="overdue">فحص متأخر</option>
+        <option value="soon">فحص خلال 14 يوماً</option>
+        <option value="never">لم تُفحص بعد</option>
+        <option value="ok">فحص غير مستحق</option>
+      </select>
+      <select id="ffType" onchange="ffOnType(this.value)" aria-label="تصفية بنوع المعدة"></select>
+      <button type="button" class="ff-reset" onclick="ffResetFilters()">إعادة تعيين</button>
+    </section>
+
+    <div id="ffContent"></div>
+    <div id="ffModalHost"></div>
+
+  </main>
+
   <!-- FUEL TANKS (خزانات الكاز) -->
 
   <main
@@ -4289,7 +5777,13 @@ content="default"
 
   </div>
 
+  <button type="button" id="fuelDlToggle" class="fuel-dl-toggle" onclick="toggleFuelDeliveries()">📋 جدول التوريد</button>
+
 </section>
+
+<div id="fuelViewOnly" class="fuel-banner is-info" hidden></div>
+
+<div id="fuelDashboardView">
 
 <div id="fuelIncompleteBanner" class="fuel-banner is-warn" hidden></div>
 
@@ -4306,10 +5800,10 @@ content="default"
   </div>
 </section>
 
-<section class="fuel-section">
-  <h3 class="fuel-section-title">جدول المخزون الإجمالي</h3>
+<details class="fuel-section" id="fuelInventoryBox">
+  <summary>جدول المخزون الإجمالي</summary>
   <div id="fuelInventory"></div>
-</section>
+</details>
 
 <section class="fuel-section" id="fuelReadingPanel">
   <h3 class="fuel-section-title">تحديث قراءة</h3>
@@ -4323,27 +5817,37 @@ content="default"
   </div>
 </section>
 
-<section class="fuel-section">
-  <h3 class="fuel-section-title">سجل الحركات</h3>
+<details class="fuel-section" id="fuelHistoryBox">
+  <summary>سجل الحركات</summary>
   <div class="fuel-history-filter">
     <label for="fuelHistoryFilter" class="fuel-muted">الخزان:</label>
     <select id="fuelHistoryFilter" onchange="renderFuelHistory()"></select>
   </div>
   <div id="fuelHistory"></div>
-</section>
+</details>
 
-<details class="fuel-section">
+<details class="fuel-section" id="fuelSettingsBox">
   <summary>إعدادات التنبيهات</summary>
   <div class="fuel-panel">
     <div class="fuel-settings-grid">
       <label>تنبيه الانخفاض عند أقل من (%)<input type="number" id="fuelSetLow" min="0" max="100" step="1"></label>
       <label>تنبيه قرب الامتلاء عند (%)<input type="number" id="fuelSetHigh" min="0" max="100" step="1"></label>
       <label>تنبيه عدم التحديث بعد (يوم)<input type="number" id="fuelSetStale" min="0" step="1"></label>
-      <label>تنبيه اختلاف السعة الهندسية عن الاسمية (%)<input type="number" id="fuelSetGeom" min="0" step="0.5"></label>
     </div>
     <button type="button" class="fuel-btn" onclick="saveFuelSettings()">💾 حفظ الإعدادات</button>
   </div>
 </details>
+
+</div><!-- /fuelDashboardView -->
+
+<div id="fuelDeliveriesView" hidden>
+  <section class="fuel-section">
+    <h3 class="fuel-section-title">📋 جدول توريد الكاز</h3>
+    <p class="fuel-muted">كل صف حمولة واصلة (التاريخ، السائق، وتوزيعها على الخزانات). الكمية الواصلة تُحسب تلقائياً من مجموع الخزانات. هذا الجدول سجل توريد ولا يغيّر قراءات الخزانات.</p>
+    <div id="fuelDlForm"></div>
+    <div id="fuelDlTable"></div>
+  </section>
+</div>
 
   </main>
 
@@ -4364,6 +5868,8 @@ FIREBASE
 ====================================================== -->
 
 <script src="fuel-calc.js"></script>
+
+<script src="mechanics-calc.js"></script>
 
 <script type="module">
 

@@ -1,8 +1,8 @@
 From d8b9d9c9d5cea41aec19a1945d16b5b1480fb394 Mon Sep 17 00:00:00 2001
 From: Claude <noreply@anthropic.com>
 Date: Sat, 10 Oct 2026 09:16:30 +0300
-Subject: [PATCH 1/8] Rebuild fuel tanks section as an engineering dashboard (7
- tanks)
+Subject: [PATCH 01/17] Rebuild fuel tanks section as an engineering dashboard
+ (7 tanks)
 
 - fuel-calc.js: tested geometry engine (horizontal cylinder / rectangular)
 - 7 tanks, 86,000 L nominal; legacy tank ids kept; old 38k/complex liters ignored
@@ -2267,7 +2267,7 @@ index 0000000..ead6785
 From a281c4d983b62d4ce7bb5b712c680e0d4ba488a6 Mon Sep 17 00:00:00 2001
 From: Claude <noreply@anthropic.com>
 Date: Sat, 10 Oct 2026 13:05:09 +0300
-Subject: [PATCH 2/8] Add dimensions for fuel tanks 1-3
+Subject: [PATCH 02/17] Add dimensions for fuel tanks 1-3
 
 - tanks 1 and 2: 1 x 1 x 2 m (2,000 L); tank 3: 2 x 1 x 2 m (4,000 L)
 - measurement method assumed: liquid height from the bottom (needs confirmation)
@@ -2379,7 +2379,7 @@ index ead6785..1fa82c0 100644
 From 64f279e8ace1347565bec8fd98a573704c238c83 Mon Sep 17 00:00:00 2001
 From: Claude <noreply@anthropic.com>
 Date: Sat, 10 Oct 2026 13:08:05 +0300
-Subject: [PATCH 3/8] Treat fuel tanks 1-3 as always full
+Subject: [PATCH 03/17] Treat fuel tanks 1-3 as always full
 
 - alwaysFull flag: fixed quantity = nominal capacity (8,000 L total), no readings, no alerts
 - reading panel explains why; tanks still count toward totals (7 of 7)
@@ -2571,7 +2571,7 @@ index 1fa82c0..003d029 100644
 From ae45d0a05edb377c1d2990167b9a6d83d1330b70 Mon Sep 17 00:00:00 2001
 From: Claude <noreply@anthropic.com>
 Date: Sat, 10 Oct 2026 13:32:37 +0300
-Subject: [PATCH 4/8] Simplify tank cards and move tanks 1-3 to the end
+Subject: [PATCH 04/17] Simplify tank cards and move tanks 1-3 to the end
 
 - cards show only total capacity (details hidden)
 - display order: tanks 4,5,6,7 then 1,2,3 (numbers/names unchanged)
@@ -2711,7 +2711,7 @@ index 003d029..456d292 100644
 From ea20332d1758897b81f9f0e3bf9486354398bc08 Mon Sep 17 00:00:00 2001
 From: Claude <noreply@anthropic.com>
 Date: Sat, 10 Oct 2026 13:34:37 +0300
-Subject: [PATCH 5/8] Renumber tanks: big tanks 1-4, small always-full tanks
+Subject: [PATCH 05/17] Renumber tanks: big tanks 1-4, small always-full tanks
  5-7
 
 - history shows tank names from tank id so old entries follow the new numbering
@@ -2849,7 +2849,8 @@ index 456d292..ea772be 100644
 From 97e56c9a777d701aa7a355e0402c14665c56f3a5 Mon Sep 17 00:00:00 2001
 From: Claude <noreply@anthropic.com>
 Date: Sat, 10 Oct 2026 13:39:17 +0300
-Subject: [PATCH 6/8] Card header: full tank name with total capacity beside it
+Subject: [PATCH 06/17] Card header: full tank name with total capacity beside
+ it
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
@@ -2910,7 +2911,7 @@ index 46116ff..6363b99 100644
 From 7153a590e18de12037658d00d890c2584bd00526 Mon Sep 17 00:00:00 2001
 From: Claude <noreply@anthropic.com>
 Date: Sat, 10 Oct 2026 13:39:42 +0300
-Subject: [PATCH 7/8] =?UTF-8?q?Summary=20card=20label:=20=D8=A7=D9=84?=
+Subject: [PATCH 07/17] =?UTF-8?q?Summary=20card=20label:=20=D8=A7=D9=84?=
  =?UTF-8?q?=D8=B3=D8=B9=D8=A9=20=D8=A7=D9=84=D8=AE=D8=A7=D9=84=D9=8A=D8=A9?=
  =?UTF-8?q?=20instead=20of=20=D8=A7=D9=84=D9=83=D8=A7=D8=B2=20=D8=A7=D9=84?=
  =?UTF-8?q?=D9=81=D8=A7=D8=B1=D8=BA?=
@@ -2944,7 +2945,7 @@ index 6363b99..8ee5ced 100644
 From b3a9b646d175af256d916e854010fcb48624e1ee Mon Sep 17 00:00:00 2001
 From: Claude <noreply@anthropic.com>
 Date: Sat, 10 Oct 2026 13:41:52 +0300
-Subject: [PATCH 8/8] Turn readings history into a movements log
+Subject: [PATCH 08/17] Turn readings history into a movements log
 
 - columns: date/time, tank, entered reading, previous qty, movement (+/-), qty after, entered by
 - first reading labelled, increases/decreases colored
@@ -3079,6 +3080,1533 @@ index 8ee5ced..f1d32f6 100644
  }
  
  // ============================================================
+-- 
+2.43.0
+
+
+From a71a71cc24d4afc3ba50a76c0af8c1229c1ccf7b Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sun, 11 Oct 2026 13:22:09 +0300
+Subject: [PATCH 09/17] Movements log: show liters equivalent of the entered
+ reading and added/withdrawn columns
+
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_013dGGq9Dw7dMGkWFuLFBhLC
+---
+ script.js | 26 ++++++++++++++++----------
+ 1 file changed, 16 insertions(+), 10 deletions(-)
+
+diff --git a/script.js b/script.js
+index f1d32f6..21c3538 100644
+--- a/script.js
++++ b/script.js
+@@ -7246,17 +7246,22 @@ function renderFuelHistory() {
+     const body = rows.map(function (h) {
+         const methodLabel = FuelCalc.METHODS[h.method] ? FuelCalc.METHODS[h.method].short : "";
+         const name = (fuelFindDef(h.tankId) || {}).name || h.tankName || h.tankId;
++        const hasPrev = typeof h.deltaL === "number";
+ 
+-        // الحركة: الفرق بين هذه القراءة والتي قبلها
+-        let movement;
+-        if (typeof h.deltaL !== "number") {
+-            movement = '<span class="fuel-move is-first">أول قراءة</span>';
++        // المضاف / المسحوب بين هذه القراءة والتي قبلها (باللتر)
++        let added, withdrawn;
++        if (!hasPrev) {
++            added = '<span class="fuel-move is-first">أول قراءة</span>';
++            withdrawn = '<span class="fuel-muted">—</span>';
+         } else if (h.deltaL > 0) {
+-            movement = '<span class="fuel-move is-up">▲ زيادة +' + formatFuelNumber(h.deltaL) + ' لتر</span>';
++            added = '<span class="fuel-move is-up">▲ +' + formatFuelNumber(h.deltaL) + ' لتر</span>';
++            withdrawn = '<span class="fuel-muted">—</span>';
+         } else if (h.deltaL < 0) {
+-            movement = '<span class="fuel-move is-down">▼ نقص −' + formatFuelNumber(Math.abs(h.deltaL)) + ' لتر</span>';
++            added = '<span class="fuel-muted">—</span>';
++            withdrawn = '<span class="fuel-move is-down">▼ −' + formatFuelNumber(Math.abs(h.deltaL)) + ' لتر</span>';
+         } else {
+-            movement = '<span class="fuel-move">بلا تغيير</span>';
++            added = '<span class="fuel-move">بلا تغيير</span>';
++            withdrawn = '<span class="fuel-muted">—</span>';
+         }
+ 
+         const readingText = escapeHTML(h.value) + ' ' + fuelUnitLabel(h.unit) +
+@@ -7266,16 +7271,17 @@ function renderFuelHistory() {
+             '<td data-label="التاريخ والوقت">' + escapeHTML(formatFuelDateTime(h.createdAt)) + '</td>' +
+             '<td data-label="الخزان">' + escapeHTML(name) + '</td>' +
+             '<td data-label="القراءة المُدخلة">' + readingText + '</td>' +
++            '<td data-label="تعادل (لتر)"><b>' + (typeof h.volumeL === "number" ? formatFuelLiters(h.volumeL) : "—") + '</b></td>' +
+             '<td data-label="الكمية السابقة">' + (typeof h.prevVolumeL === "number" ? formatFuelLiters(h.prevVolumeL) : '<span class="fuel-muted">—</span>') + '</td>' +
+-            '<td data-label="الحركة">' + movement + '</td>' +
+-            '<td data-label="الكمية بعد القراءة"><b>' + (typeof h.volumeL === "number" ? formatFuelLiters(h.volumeL) : "—") + '</b></td>' +
++            '<td data-label="مضاف">' + added + '</td>' +
++            '<td data-label="مسحوب">' + withdrawn + '</td>' +
+             '<td data-label="أدخلها">' + escapeHTML(h.createdBy || "—") + '</td>' +
+         '</tr>';
+     }).join("");
+ 
+     box.innerHTML =
+         '<div class="fuel-table-wrap"><table class="fuel-table">' +
+-        '<thead><tr><th>التاريخ والوقت</th><th>الخزان</th><th>القراءة المُدخلة</th><th>الكمية السابقة</th><th>الحركة</th><th>الكمية بعد القراءة</th><th>أدخلها</th></tr></thead>' +
++        '<thead><tr><th>التاريخ والوقت</th><th>الخزان</th><th>القراءة المُدخلة</th><th>تعادل (لتر)</th><th>الكمية السابقة</th><th>مضاف</th><th>مسحوب</th><th>أدخلها</th></tr></thead>' +
+         '<tbody>' + body + '</tbody></table></div>' +
+         (fuelHistory.length >= FUEL_HISTORY_LIMIT || rows.length >= FUEL_HISTORY_SHOWN
+             ? '<p class="fuel-muted">يعرض آخر ' + FUEL_HISTORY_SHOWN + ' حركة (السجل الكامل محفوظ في قاعدة البيانات).</p>' : '');
+-- 
+2.43.0
+
+
+From 68f9c32c3d18c37d324a78b69f72397918e23dc7 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sun, 11 Oct 2026 13:25:25 +0300
+Subject: [PATCH 10/17] Fuel tanks: only one account can edit, everyone else is
+ view-only
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- UI hides reading panel, settings and update buttons for other users; writers guarded
+- firestore.rules: isFuelEditor() for fuelTanks and fuelTankReadings
+- entries by the editor appear as "مهندس يوسف"
+
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_013dGGq9Dw7dMGkWFuLFBhLC
+---
+ firestore.rules | 13 ++++++++++---
+ index.html      |  5 ++++-
+ script.js       | 51 +++++++++++++++++++++++++++++++++++++++++++++++--
+ 3 files changed, 63 insertions(+), 6 deletions(-)
+
+diff --git a/firestore.rules b/firestore.rules
+index 6f89083..11a9a63 100644
+--- a/firestore.rules
++++ b/firestore.rules
+@@ -26,6 +26,13 @@ service cloud.firestore {
+       return request.auth != null && request.auth.uid != null;
+     }
+ 
++    // المحرّر الوحيد لقسم خزانات الكاز (الباقون قراءة فقط)
++    function isFuelEditor() {
++      return isSignedIn()
++        && request.auth.token.email != null
++        && request.auth.token.email.lower() == 'yousif.altaee9@gmail.com';
++    }
++
+     // المشتريات
+     match /purchases/{documentId} {
+       allow read: if true;
+@@ -80,16 +87,16 @@ service cloud.firestore {
+       allow write: if isSignedIn();
+     }
+ 
+-    // كميات خزانات الكاز (Fuel Tanks)
++    // كميات خزانات الكاز (Fuel Tanks) — الكتابة للمحرّر الوحيد فقط
+     match /fuelTanks/{documentId} {
+       allow read: if true;
+-      allow write: if isSignedIn();
++      allow write: if isFuelEditor();
+     }
+ 
+     // سجل قراءات خزانات الكاز (إضافة فقط: لا تعديل ولا حذف حتى يبقى السجل التاريخي سليماً)
+     match /fuelTankReadings/{documentId} {
+       allow read: if true;
+-      allow create: if isSignedIn();
++      allow create: if isFuelEditor();
+       allow update, delete: if false;
+     }
+ 
+diff --git a/index.html b/index.html
+index f9b7e91..9f36a3a 100644
+--- a/index.html
++++ b/index.html
+@@ -1900,6 +1900,7 @@ content="default"
+     /* ---- شريط التنبيه العام والتنبيهات ---- */
+     #fuelTanksPage .fuel-banner { margin: 12px 4px 0; padding: 10px 14px; border-radius: 12px; font-size: 13.5px; line-height: 1.6; }
+     #fuelTanksPage .fuel-banner[hidden] { display: none; }
++    #fuelTanksPage .fuel-banner.is-info { background: #e0f2fe; color: #075985; border: 1px solid #bae6fd; }
+     #fuelTanksPage .fuel-banner.is-warn { background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
+     #fuelTanksPage .fuel-alerts[hidden] { display: none; }
+     #fuelTanksPage .fuel-alerts { margin: 16px 4px 0; }
+@@ -4291,6 +4292,8 @@ content="default"
+ 
+ </section>
+ 
++<div id="fuelViewOnly" class="fuel-banner is-info" hidden></div>
++
+ <div id="fuelIncompleteBanner" class="fuel-banner is-warn" hidden></div>
+ 
+ <section class="fuel-summary-grid" id="fuelSummary">
+@@ -4332,7 +4335,7 @@ content="default"
+   <div id="fuelHistory"></div>
+ </section>
+ 
+-<details class="fuel-section">
++<details class="fuel-section" id="fuelSettingsBox">
+   <summary>إعدادات التنبيهات</summary>
+   <div class="fuel-panel">
+     <div class="fuel-settings-grid">
+diff --git a/script.js b/script.js
+index 21c3538..8c5cc6e 100644
+--- a/script.js
++++ b/script.js
+@@ -6384,6 +6384,11 @@ const FUEL_SETTINGS_DOC_ID = "_settings";
+ const FUEL_FIRESTORE_URL = "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
+ const FUEL_SAVE_TIMEOUT_MS = 15000;
+ const FUEL_RELOAD_MIN_MS = 30000;
++
++// التعديل في قسم خزانات الكاز مقصور على هذا الحساب فقط؛ الباقون يشاهدون دون تعديل.
++// (الحماية الفعلية في firestore.rules أيضاً، وليست في الواجهة وحدها.)
++const FUEL_EDITOR_EMAIL = "yousif.altaee9@gmail.com";
++const FUEL_EDITOR_NAME = "مهندس يوسف";
+ const FUEL_HISTORY_LIMIT = 100;
+ const FUEL_HISTORY_SHOWN = 50;
+ 
+@@ -6470,13 +6475,46 @@ function withFuelTimeout(promise, ms) {
+     });
+ }
+ 
++function fuelIsEditorEmail(email) {
++    return typeof email === "string" && email.trim().toLowerCase() === FUEL_EDITOR_EMAIL;
++}
++
++// هل المستخدم الحالي هو الوحيد المسموح له بالتعديل؟
++function fuelCanEdit() {
++    return typeof currentUser !== "undefined" && !!currentUser && fuelIsEditorEmail(currentUser.email);
++}
++
++function fuelDenyEdit() {
++    showMessage("التعديل في قسم خزانات الكاز مقصور على " + FUEL_EDITOR_NAME + "، والباقون للمشاهدة فقط.", "error");
++}
++
+ function fuelWho() {
++    if (fuelCanEdit()) return FUEL_EDITOR_NAME;
+     if (typeof currentUser !== "undefined" && currentUser) {
+         return currentUser.displayName || currentUser.email || currentUser.uid || null;
+     }
+     return null;
+ }
+ 
++// اسم المُدخِل كما يظهر في السجل (الحسابات المسجلة بالبريد تظهر باسم المهندس)
++function fuelDisplayWho(value) {
++    return fuelIsEditorEmail(value) ? FUEL_EDITOR_NAME : (value || "—");
++}
++
++// إظهار/إخفاء أدوات التعديل حسب الحساب
++function applyFuelAccess() {
++    const can = fuelCanEdit();
++    const panel = document.getElementById("fuelReadingPanel");
++    const settings = document.getElementById("fuelSettingsBox");
++    const note = document.getElementById("fuelViewOnly");
++    if (panel) panel.hidden = !can;
++    if (settings) settings.hidden = !can;
++    if (note) {
++        note.hidden = can;
++        note.textContent = "وضع المشاهدة فقط — التعديل وإدخال القراءات مقصوران على " + FUEL_EDITOR_NAME + ".";
++    }
++}
++
+ // حالات جميع الخزانات (تُحسب من البيانات المحفوظة عند كل رسم)
+ function getFuelStates() {
+     const now = new Date();
+@@ -6587,6 +6625,7 @@ function renderFuelDashboard() {
+     renderFuelReadingPanel(states);
+     renderFuelHistory();
+     fillFuelSettingsForm();
++    applyFuelAccess();
+ }
+ 
+ // ---------- بطاقات الملخص ----------
+@@ -6809,7 +6848,7 @@ function renderFuelTanksCards(statesArg) {
+                 ? '<div class="fuel-card-warn">⛔ الكمية المحسوبة تتجاوز السعة الاسمية بمقدار ' + formatFuelNumber(st.overflowL) + ' لتر — تحقق من القياس أو المعايرة</div>'
+                 : '') +
+ 
+-            (def.alwaysFull
++            ((def.alwaysFull || !fuelCanEdit())
+                 ? ''
+                 : '<button type="button" class="fuel-btn" onclick="selectFuelTankForReading(\'' + def.id + '\')">' +
+                     (st.status === "no_geometry" ? "⚙️ إعداد الأبعاد وإدخال قراءة" : "📝 تحديث القراءة") +
+@@ -7050,6 +7089,7 @@ function updateFuelReadingPreview() {
+ 
+ async function saveFuelTankConfig() {
+     if (!requireLoginForWrite(function () { saveFuelTankConfig(); })) return;
++    if (!fuelCanEdit()) { fuelDenyEdit(); return; }
+     if (!fuelEngineReady()) return;
+ 
+     const def = fuelFindDef(fuelSelectedTankId);
+@@ -7115,6 +7155,7 @@ function handleFuelSaveError(error, what) {
+ async function saveFuelReading() {
+     if (fuelSaving) return;
+     if (!requireLoginForWrite(function () { saveFuelReading(); })) return;
++    if (!fuelCanEdit()) { fuelDenyEdit(); return; }
+     if (!fuelEngineReady()) return;
+ 
+     const st = getSelectedFuelState();
+@@ -7275,7 +7316,7 @@ function renderFuelHistory() {
+             '<td data-label="الكمية السابقة">' + (typeof h.prevVolumeL === "number" ? formatFuelLiters(h.prevVolumeL) : '<span class="fuel-muted">—</span>') + '</td>' +
+             '<td data-label="مضاف">' + added + '</td>' +
+             '<td data-label="مسحوب">' + withdrawn + '</td>' +
+-            '<td data-label="أدخلها">' + escapeHTML(h.createdBy || "—") + '</td>' +
++            '<td data-label="أدخلها">' + escapeHTML(fuelDisplayWho(h.createdBy)) + '</td>' +
+         '</tr>';
+     }).join("");
+ 
+@@ -7304,6 +7345,7 @@ function fillFuelSettingsForm() {
+ 
+ async function saveFuelSettings() {
+     if (!requireLoginForWrite(function () { saveFuelSettings(); })) return;
++    if (!fuelCanEdit()) { fuelDenyEdit(); return; }
+     if (!fuelEngineReady()) return;
+ 
+     const read = function (id) {
+@@ -7439,6 +7481,11 @@ function handleAuthStateChanged(user, authInstance) {
+   authUserUid = user ? user.uid : null;
+   updateHeaderAuthUI();
+ 
++  // قسم خزانات الكاز: تحديث صلاحيات التعديل فور تغيّر الحساب
++  if (typeof renderFuelDashboard === "function" && document.getElementById("fuelTanksPage")) {
++    renderFuelDashboard();
++  }
++
+   if (user) {
+     // تسجيل الدخول نجح.
+     // لا نغيّر صفحة المستخدم قسرًا؛ التصفح مفتوح أصلاً.
+-- 
+2.43.0
+
+
+From 343dff1ae6b2b4a536f130a76b64e7af1ec0ba8c Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sun, 11 Oct 2026 13:33:56 +0300
+Subject: [PATCH 11/17] =?UTF-8?q?Header:=20clicking=20'=D8=A7=D9=84=D8=A3?=
+ =?UTF-8?q?=D9=82=D8=B3=D8=A7=D9=85=20=D8=A7=D9=84=D8=B1=D8=A6=D9=8A=D8=B3?=
+ =?UTF-8?q?=D9=8A=D8=A9'=20returns=20to=20main=20menu?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_013dGGq9Dw7dMGkWFuLFBhLC
+---
+ index.html | 13 ++++++++++++-
+ 1 file changed, 12 insertions(+), 1 deletion(-)
+
+diff --git a/index.html b/index.html
+index 9f36a3a..341ecfc 100644
+--- a/index.html
++++ b/index.html
+@@ -1861,6 +1861,10 @@ content="default"
+ 
+     #fuelTanksPage { container-type: inline-size; --fuel-green: #14724e; --fuel-text: #1f2937; --fuel-muted: #6b7280; --fuel-border: #e5e7eb; }
+ 
++    /* "الأقسام الرئيسية" في الهيدر: ضغطة واحدة تعيد إلى القائمة الرئيسية */
++    .header-welcome #headerHomeLink { cursor: pointer; }
++    .header-welcome #headerHomeLink:focus-visible { outline: 2px solid rgba(255,255,255,.85); outline-offset: 3px; border-radius: 6px; }
++
+     #fuelTanksPage .fuel-muted { color: var(--fuel-muted); font-size: 13px; }
+     #fuelTanksPage .fuel-section { margin: 18px 4px 0; }
+     #fuelTanksPage .fuel-section-title { font-size: 17px; font-weight: 800; color: var(--fuel-text); margin: 0 0 10px; }
+@@ -2056,7 +2060,14 @@ content="default"
+ 
+   <span>لوحة الشركة</span>
+ 
+-  <strong>الأقسام الرئيسية</strong>
++  <strong
++    id="headerHomeLink"
++    role="button"
++    tabindex="0"
++    title="العودة إلى القائمة الرئيسية"
++    onclick="goHome()"
++    onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); goHome(); }"
++  >الأقسام الرئيسية</strong>
+ 
+   <div class="header-user-wrap" id="headerUserWrap" style="display:none;">
+ 
+-- 
+2.43.0
+
+
+From e43d37d0d852e6cdefdc690d74d24eaca3957cf6 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sun, 11 Oct 2026 13:44:28 +0300
+Subject: [PATCH 12/17] Fuel tanks: in-app deliveries table (fuelDeliveries),
+ collapsible inventory table and movements log
+
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_013dGGq9Dw7dMGkWFuLFBhLC
+---
+ firestore.rules |   6 +
+ index.html      |  51 ++++++-
+ script.js       | 349 ++++++++++++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 400 insertions(+), 6 deletions(-)
+
+diff --git a/firestore.rules b/firestore.rules
+index 11a9a63..b639104 100644
+--- a/firestore.rules
++++ b/firestore.rules
+@@ -100,6 +100,12 @@ service cloud.firestore {
+       allow update, delete: if false;
+     }
+ 
++    // جدول توريد الكاز (الحمولات الواصلة) — الكتابة للمحرّر الوحيد فقط
++    match /fuelDeliveries/{documentId} {
++      allow read: if true;
++      allow write: if isFuelEditor();
++    }
++
+     // مواقع الأجهزة الطبية (Location) — تُنشأ تلقائياً عند أول حفظ
+     match /medical_locations/{documentId} {
+       allow read: if true;
+diff --git a/index.html b/index.html
+index 341ecfc..a99cac5 100644
+--- a/index.html
++++ b/index.html
+@@ -2011,6 +2011,30 @@ content="default"
+ 
+     #fuelTanksPage details.fuel-section > summary { cursor: pointer; font-size: 17px; font-weight: 800; color: var(--fuel-text); margin-bottom: 10px; }
+ 
++    /* ---- جدول توريد الكاز ---- */
++    #fuelTanksPage .fuel-dl-toggle { margin-inline-start: auto; align-self: center; border: 0; border-radius: 12px; padding: 9px 14px; background: var(--fuel-green); color: #fff; font: inherit; font-weight: 700; cursor: pointer; white-space: nowrap; }
++    #fuelTanksPage .intro { flex-wrap: wrap; }
++    #fuelTanksPage .fuel-dl-form-title { margin: 0; font-size: 15px; color: var(--fuel-text); }
++    #fuelTanksPage .fuel-dl-form-top { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
++    #fuelTanksPage .fuel-dl-qty-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
++    #fuelTanksPage .fuel-dl-form-top input, #fuelTanksPage .fuel-dl-qty-grid input { font: inherit; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 10px; width: 100%; box-sizing: border-box; }
++    #fuelTanksPage .fuel-dl-total { font-size: 15px; font-weight: 700; color: var(--fuel-text); }
++    #fuelTanksPage .fuel-dl-total strong { color: var(--fuel-green); font-size: 18px; }
++    #fuelTanksPage .fuel-dl-actions { display: flex; gap: 10px; flex-wrap: wrap; }
++    #fuelTanksPage .fuel-dl-actions .fuel-btn.is-secondary { margin-top: 0; }
++    #fuelTanksPage #fuelDlForm { margin-bottom: 14px; }
++    #fuelTanksPage .fuel-dl-wrap { overflow-x: auto; background: #fff; border: 1px solid var(--fuel-border); border-radius: 14px; }
++    #fuelTanksPage .fuel-dl-table { width: 100%; min-width: 760px; border-collapse: collapse; font-size: 13.5px; text-align: center; }
++    #fuelTanksPage .fuel-dl-table th, #fuelTanksPage .fuel-dl-table td { border: 1px solid #d5e3d3; padding: 8px 8px; }
++    #fuelTanksPage .fuel-dl-table thead th { background: #d9ead3; color: #1f2937; font-weight: 800; white-space: nowrap; }
++    #fuelTanksPage .fuel-dl-tankhead span { display: block; font-size: 12px; font-weight: 700; color: #14532d; }
++    #fuelTanksPage .fuel-dl-table tbody tr:nth-child(even) td { background: #fafcf9; }
++    #fuelTanksPage .fuel-dl-total-cell { background: #f1f5f9; font-weight: 700; }
++    #fuelTanksPage .fuel-dl-driver { white-space: nowrap; }
++    #fuelTanksPage .fuel-dl-table tfoot td { background: #f0fdf4; font-weight: 800; border-top: 2px solid #86efac; }
++    #fuelTanksPage .fuel-dl-row-actions { white-space: nowrap; }
++    #fuelTanksPage .fuel-dl-row-actions button { border: 0; background: transparent; cursor: pointer; font-size: 16px; padding: 2px 6px; }
++
+     /* ---- الهاتف: الجداول كبطاقات مكدّسة ---- */
+     @container (max-width: 640px) {
+       #fuelTanksPage .fuel-tanks-grid { grid-template-columns: minmax(0, 1fr); }
+@@ -4301,10 +4325,14 @@ content="default"
+ 
+   </div>
+ 
++  <button type="button" id="fuelDlToggle" class="fuel-dl-toggle" onclick="toggleFuelDeliveries()">📋 جدول التوريد</button>
++
+ </section>
+ 
+ <div id="fuelViewOnly" class="fuel-banner is-info" hidden></div>
+ 
++<div id="fuelDashboardView">
++
+ <div id="fuelIncompleteBanner" class="fuel-banner is-warn" hidden></div>
+ 
+ <section class="fuel-summary-grid" id="fuelSummary">
+@@ -4320,10 +4348,10 @@ content="default"
+   </div>
+ </section>
+ 
+-<section class="fuel-section">
+-  <h3 class="fuel-section-title">جدول المخزون الإجمالي</h3>
++<details class="fuel-section" id="fuelInventoryBox">
++  <summary>جدول المخزون الإجمالي</summary>
+   <div id="fuelInventory"></div>
+-</section>
++</details>
+ 
+ <section class="fuel-section" id="fuelReadingPanel">
+   <h3 class="fuel-section-title">تحديث قراءة</h3>
+@@ -4337,14 +4365,14 @@ content="default"
+   </div>
+ </section>
+ 
+-<section class="fuel-section">
+-  <h3 class="fuel-section-title">سجل الحركات</h3>
++<details class="fuel-section" id="fuelHistoryBox">
++  <summary>سجل الحركات</summary>
+   <div class="fuel-history-filter">
+     <label for="fuelHistoryFilter" class="fuel-muted">الخزان:</label>
+     <select id="fuelHistoryFilter" onchange="renderFuelHistory()"></select>
+   </div>
+   <div id="fuelHistory"></div>
+-</section>
++</details>
+ 
+ <details class="fuel-section" id="fuelSettingsBox">
+   <summary>إعدادات التنبيهات</summary>
+@@ -4359,6 +4387,17 @@ content="default"
+   </div>
+ </details>
+ 
++</div><!-- /fuelDashboardView -->
++
++<div id="fuelDeliveriesView" hidden>
++  <section class="fuel-section">
++    <h3 class="fuel-section-title">📋 جدول توريد الكاز</h3>
++    <p class="fuel-muted">كل صف حمولة واصلة (التاريخ، السائق، وتوزيعها على الخزانات). الكمية الواصلة تُحسب تلقائياً من مجموع الخزانات. هذا الجدول سجل توريد ولا يغيّر قراءات الخزانات.</p>
++    <div id="fuelDlForm"></div>
++    <div id="fuelDlTable"></div>
++  </section>
++</div>
++
+   </main>
+ 
+   <!-- FOOTER -->
+diff --git a/script.js b/script.js
+index 8c5cc6e..acff36b 100644
+--- a/script.js
++++ b/script.js
+@@ -6547,6 +6547,7 @@ const FUEL_CLASS_COLORS = {
+ 
+ async function openFuelTanks() {
+     showPage("fuelTanksPage");
++    showFuelView("dashboard");
+     if (!fuelEngineReady()) return;
+     renderFuelDashboard();
+     await getFuelTanks();
+@@ -6626,6 +6627,7 @@ function renderFuelDashboard() {
+     renderFuelHistory();
+     fillFuelSettingsForm();
+     applyFuelAccess();
++    renderFuelDeliveries();
+ }
+ 
+ // ---------- بطاقات الملخص ----------
+@@ -7143,6 +7145,353 @@ async function saveFuelTankConfig() {
+ // حفظ قراءة جديدة (آخر قراءة + سجل تاريخي) — يتطلب تسجيل الدخول
+ // ============================================================
+ 
++// ============================================================
++// جدول توريد الكاز: سجل الحمولات الواصلة وتوزيع كل حمولة على الخزانات
++// fuelDeliveries/{auto}: { date: "YYYY-MM-DD", driver, tanks: { [tankId]: لتر },
++//                          totalL, createdAt, createdBy, updatedAt, updatedBy }
++// هذا الجدول سجل توريد فقط؛ لا يغيّر قراءات الخزانات (القراءات تُدخل بالقياس).
++// ============================================================
++
++const FUEL_DELIVERIES_COLLECTION = "fuelDeliveries";
++const FUEL_DELIVERIES_LIMIT = 1000;
++const FUEL_DELIVERY_MAX_L = 1000000;
++// ترتيب أعمدة الخزانات (من اليمين إلى اليسار) كما في الجدول الورقي
++const FUEL_DELIVERY_COLUMNS = ["tank1", "tank2", "tank3", "complexGenerator", "boiler1", "boiler2", "hospitalGenerator"];
++
++let fuelDeliveries = [];
++let fuelDeliveriesLoaded = false;
++let fuelDeliveriesFailed = false;
++let fuelDeliveriesLoading = false;
++let fuelDlEditingId = null;
++let fuelDlSaving = false;
++
++function fuelDlColumns() {
++    return FUEL_DELIVERY_COLUMNS.map(fuelFindDef).filter(Boolean);
++}
++
++function fuelTodayString() {
++    const d = new Date();
++    return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
++}
++
++function fuelDlDateText(value) {
++    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value || ""));
++    return m ? m[3] + "/" + m[2] + "/" + m[1] : "—";
++}
++
++// التبديل بين لوحة الخزانات وجدول التوريد (داخل نفس الصفحة)
++function showFuelView(view) {
++    const dash = document.getElementById("fuelDashboardView");
++    const dl = document.getElementById("fuelDeliveriesView");
++    const btn = document.getElementById("fuelDlToggle");
++    const deliveries = view === "deliveries";
++    if (dash) dash.hidden = deliveries;
++    if (dl) dl.hidden = !deliveries;
++    if (btn) btn.textContent = deliveries ? "🛢️ لوحة الخزانات" : "📋 جدول التوريد";
++}
++
++function toggleFuelDeliveries() {
++    const dl = document.getElementById("fuelDeliveriesView");
++    const open = !!dl && dl.hidden;
++    showFuelView(open ? "deliveries" : "dashboard");
++    if (open) {
++        renderFuelDeliveries();
++        getFuelDeliveries();
++    }
++}
++
++async function getFuelDeliveries(force) {
++    if (fuelDeliveriesLoading) return;
++    if (!force && fuelDeliveriesLoaded) return;
++    const db = getFirestoreDB();
++    if (!db) return;
++
++    fuelDeliveriesLoading = true;
++    try {
++        const fs = await import(FUEL_FIRESTORE_URL);
++        const q = fs.query(
++            fs.collection(db, FUEL_DELIVERIES_COLLECTION),
++            fs.orderBy("date", "asc"),
++            fs.limit(FUEL_DELIVERIES_LIMIT)
++        );
++        const snap = await fs.getDocs(q);
++        const rows = [];
++        snap.forEach(function (d) { rows.push(Object.assign({ id: d.id }, d.data())); });
++        fuelDeliveries = rows;
++        fuelDeliveriesLoaded = true;
++        fuelDeliveriesFailed = false;
++    } catch (error) {
++        console.error("تعذر تحميل جدول توريد الكاز:", error);
++        fuelDeliveriesFailed = true;
++    } finally {
++        fuelDeliveriesLoading = false;
++    }
++    renderFuelDeliveries();
++}
++
++// نموذج الإضافة يُبنى مرة واحدة حتى لا تضيع القيم المكتوبة عند إعادة الرسم
++function buildFuelDlForm() {
++    const box = document.getElementById("fuelDlForm");
++    if (!box || box.childElementCount) return;
++    const inputs = fuelDlColumns().map(function (def) {
++        return '<label>' + escapeHTML(fuelTankFullName(def)) + ' <span class="fuel-muted">(' + formatFuelNumber(def.nominalL) + ')</span>' +
++            '<input type="text" inputmode="decimal" autocomplete="off" id="fuelDlQty_' + def.id + '" placeholder="0" oninput="updateFuelDlTotal()">' +
++            '</label>';
++    }).join("");
++    box.innerHTML =
++        '<div class="fuel-panel">' +
++            '<h4 class="fuel-dl-form-title" id="fuelDlFormTitle">➕ إضافة حمولة جديدة</h4>' +
++            '<div class="fuel-dl-form-top">' +
++                '<label>التاريخ<input type="date" id="fuelDlDate"></label>' +
++                '<label>اسم السائق<input type="text" id="fuelDlDriver" maxlength="80" autocomplete="off" placeholder="مثال: السيد/تنكر"></label>' +
++            '</div>' +
++            '<div class="fuel-muted">الكمية الواصلة لكل خزان (لتر) — اترك الخزانات التي لم تستلم فارغة:</div>' +
++            '<div class="fuel-dl-qty-grid">' + inputs + '</div>' +
++            '<div class="fuel-dl-total">الكمية الواصلة (المجموع): <strong id="fuelDlTotal">0</strong> لتر</div>' +
++            '<div class="fuel-dl-actions">' +
++                '<button type="button" class="fuel-btn" id="fuelDlSave" onclick="saveFuelDelivery()">💾 حفظ الحمولة</button>' +
++                '<button type="button" class="fuel-btn is-secondary" id="fuelDlCancel" onclick="resetFuelDlForm()" hidden>إلغاء التعديل</button>' +
++            '</div>' +
++        '</div>';
++    resetFuelDlForm();
++}
++
++function resetFuelDlForm() {
++    fuelDlEditingId = null;
++    const date = document.getElementById("fuelDlDate");
++    if (date) date.value = fuelTodayString();
++    const driver = document.getElementById("fuelDlDriver");
++    if (driver) driver.value = "";
++    fuelDlColumns().forEach(function (def) {
++        const el = document.getElementById("fuelDlQty_" + def.id);
++        if (el) el.value = "";
++    });
++    const title = document.getElementById("fuelDlFormTitle");
++    if (title) title.textContent = "➕ إضافة حمولة جديدة";
++    const save = document.getElementById("fuelDlSave");
++    if (save) save.textContent = "💾 حفظ الحمولة";
++    const cancel = document.getElementById("fuelDlCancel");
++    if (cancel) cancel.hidden = true;
++    updateFuelDlTotal();
++}
++
++// قراءة قيم النموذج مع التحقق (null عند وجود خطأ بعد إظهار الرسالة)
++function readFuelDlForm() {
++    const date = (document.getElementById("fuelDlDate") || {}).value || "";
++    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
++        showMessage("اختر تاريخ الحمولة", "error");
++        return null;
++    }
++    const driver = ((document.getElementById("fuelDlDriver") || {}).value || "").trim().slice(0, 80);
++    const tanks = {};
++    let total = 0;
++    for (const def of fuelDlColumns()) {
++        const raw = ((document.getElementById("fuelDlQty_" + def.id) || {}).value || "").trim();
++        if (raw === "") continue;
++        const p = FuelCalc.parseInput(raw);
++        if (!p.ok) {
++            showMessage("كمية " + def.name + ": " + p.error, "error");
++            return null;
++        }
++        if (p.value > FUEL_DELIVERY_MAX_L) {
++            showMessage("كمية " + def.name + " كبيرة جداً، تحقق من الرقم", "error");
++            return null;
++        }
++        if (p.value > 0) {
++            tanks[def.id] = Math.round(p.value * 10) / 10;
++            total += tanks[def.id];
++        }
++    }
++    if (!Object.keys(tanks).length) {
++        showMessage("أدخل كمية لخزان واحد على الأقل", "error");
++        return null;
++    }
++    return { date: date, driver: driver, tanks: tanks, totalL: Math.round(total * 10) / 10 };
++}
++
++function updateFuelDlTotal() {
++    const el = document.getElementById("fuelDlTotal");
++    if (!el) return;
++    let total = 0;
++    fuelDlColumns().forEach(function (def) {
++        const input = document.getElementById("fuelDlQty_" + def.id);
++        if (!input || input.value.trim() === "") return;
++        const p = FuelCalc.parseInput(input.value);
++        if (p.ok) total += p.value;
++    });
++    el.textContent = formatFuelNumber(total);
++}
++
++async function saveFuelDelivery() {
++    if (fuelDlSaving) return;
++    if (!requireLoginForWrite(function () { saveFuelDelivery(); })) return;
++    if (!fuelCanEdit()) { fuelDenyEdit(); return; }
++    if (!fuelEngineReady()) return;
++
++    const data = readFuelDlForm();
++    if (!data) return;
++    const db = getFirestoreDB();
++    if (!db) return;
++
++    const who = fuelWho();
++    const editingId = fuelDlEditingId;
++    fuelDlSaving = true;
++    const btn = document.getElementById("fuelDlSave");
++    if (btn) btn.disabled = true;
++
++    try {
++        const fs = await import(FUEL_FIRESTORE_URL);
++        if (editingId) {
++            await withFuelTimeout(fs.updateDoc(fs.doc(db, FUEL_DELIVERIES_COLLECTION, editingId), Object.assign({}, data, {
++                updatedAt: fs.serverTimestamp(), updatedBy: who
++            })), FUEL_SAVE_TIMEOUT_MS);
++        } else {
++            await withFuelTimeout(fs.addDoc(fs.collection(db, FUEL_DELIVERIES_COLLECTION), Object.assign({}, data, {
++                createdAt: fs.serverTimestamp(), createdBy: who
++            })), FUEL_SAVE_TIMEOUT_MS);
++        }
++        showMessage(editingId ? "تم تعديل الحمولة" : "تمت إضافة الحمولة إلى جدول التوريد", "success");
++        resetFuelDlForm();
++        await getFuelDeliveries(true);
++    } catch (error) {
++        handleFuelSaveError(error, "حفظ الحمولة");
++    } finally {
++        fuelDlSaving = false;
++        const b = document.getElementById("fuelDlSave");
++        if (b) b.disabled = false;
++    }
++}
++
++function editFuelDelivery(id) {
++    if (!fuelCanEdit()) { fuelDenyEdit(); return; }
++    const row = fuelDeliveries.find(function (r) { return r.id === id; });
++    if (!row) return;
++    buildFuelDlForm();
++    fuelDlEditingId = id;
++    document.getElementById("fuelDlDate").value = row.date || fuelTodayString();
++    document.getElementById("fuelDlDriver").value = row.driver || "";
++    fuelDlColumns().forEach(function (def) {
++        const el = document.getElementById("fuelDlQty_" + def.id);
++        const v = row.tanks && row.tanks[def.id];
++        if (el) el.value = typeof v === "number" && v > 0 ? String(v) : "";
++    });
++    document.getElementById("fuelDlFormTitle").textContent = "✏️ تعديل الحمولة";
++    document.getElementById("fuelDlSave").textContent = "💾 حفظ التعديل";
++    document.getElementById("fuelDlCancel").hidden = false;
++    updateFuelDlTotal();
++    const form = document.getElementById("fuelDlForm");
++    if (form && form.scrollIntoView) form.scrollIntoView({ behavior: "smooth", block: "start" });
++}
++
++async function deleteFuelDelivery(id) {
++    if (fuelDlSaving) return;
++    if (!requireLoginForWrite(function () { deleteFuelDelivery(id); })) return;
++    if (!fuelCanEdit()) { fuelDenyEdit(); return; }
++    const row = fuelDeliveries.find(function (r) { return r.id === id; });
++    if (!row) return;
++    if (!window.confirm("حذف حمولة " + fuelDlDateText(row.date) + " (" + formatFuelNumber(row.totalL) + " لتر)؟ لا يمكن التراجع.")) return;
++
++    const db = getFirestoreDB();
++    if (!db) return;
++    fuelDlSaving = true;
++    try {
++        const fs = await import(FUEL_FIRESTORE_URL);
++        await withFuelTimeout(fs.deleteDoc(fs.doc(db, FUEL_DELIVERIES_COLLECTION, id)), FUEL_SAVE_TIMEOUT_MS);
++        if (fuelDlEditingId === id) resetFuelDlForm();
++        showMessage("تم حذف الحمولة", "success");
++        await getFuelDeliveries(true);
++    } catch (error) {
++        handleFuelSaveError(error, "حذف الحمولة");
++    } finally {
++        fuelDlSaving = false;
++    }
++}
++
++function fuelDlSortedRows() {
++    function t(r) {
++        const d = window.FuelCalc ? FuelCalc.toDate(r.createdAt) : null;
++        return d ? d.getTime() : 0;
++    }
++    return fuelDeliveries.slice().sort(function (a, b) {
++        const da = String(a.date || ""), db2 = String(b.date || "");
++        return da < db2 ? -1 : da > db2 ? 1 : t(a) - t(b);
++    });
++}
++
++function renderFuelDeliveries() {
++    const box = document.getElementById("fuelDlTable");
++    if (!box || !window.FuelCalc) return;
++    buildFuelDlForm();
++
++    const canEdit = fuelCanEdit();
++    const form = document.getElementById("fuelDlForm");
++    if (form) form.hidden = !canEdit;
++
++    if (fuelDeliveriesFailed) {
++        box.innerHTML = '<p class="fuel-muted">تعذر تحميل جدول التوريد. إن كان هذا أول استخدام، تأكد من نشر قواعد Firestore المحدّثة (firestore.rules).</p>';
++        return;
++    }
++    if (!fuelDeliveriesLoaded) {
++        box.innerHTML = '<p class="fuel-muted">جارٍ تحميل جدول التوريد…</p>';
++        return;
++    }
++
++    const cols = fuelDlColumns();
++    const rows = fuelDlSortedRows();
++    const colTotals = {};
++    let grand = 0;
++
++    const head =
++        '<tr>' +
++            '<th rowspan="2">ت</th>' +
++            '<th rowspan="2">التاريخ</th>' +
++            '<th rowspan="2">الكمية الواصلة<br>(لتر)</th>' +
++            '<th colspan="' + cols.length + '">سعة الخزان (لتر)</th>' +
++            '<th rowspan="2">اسم السائق</th>' +
++            (canEdit ? '<th rowspan="2">إجراء</th>' : '') +
++        '</tr><tr>' +
++            cols.map(function (d) {
++                return '<th class="fuel-dl-tankhead" title="' + escapeHTML(fuelTankFullName(d)) + '">' + escapeHTML(d.name) +
++                    '<span>' + formatFuelNumber(d.nominalL) + '</span></th>';
++            }).join("") +
++        '</tr>';
++
++    const body = rows.map(function (r, i) {
++        const total = typeof r.totalL === "number" ? r.totalL : 0;
++        grand += total;
++        const cells = cols.map(function (d) {
++            const v = r.tanks && typeof r.tanks[d.id] === "number" ? r.tanks[d.id] : 0;
++            if (v > 0) colTotals[d.id] = (colTotals[d.id] || 0) + v;
++            return '<td>' + (v > 0 ? formatFuelNumber(v) : '') + '</td>';
++        }).join("");
++        return '<tr>' +
++            '<td>' + (i + 1) + '</td>' +
++            '<td>' + fuelDlDateText(r.date) + '</td>' +
++            '<td class="fuel-dl-total-cell">' + formatFuelNumber(total) + '</td>' +
++            cells +
++            '<td class="fuel-dl-driver">' + escapeHTML(r.driver || "") + '</td>' +
++            (canEdit
++                ? '<td class="fuel-dl-row-actions">' +
++                    '<button type="button" title="تعديل" onclick="editFuelDelivery(\'' + r.id + '\')">✏️</button>' +
++                    '<button type="button" title="حذف" onclick="deleteFuelDelivery(\'' + r.id + '\')">🗑️</button>' +
++                  '</td>'
++                : '') +
++        '</tr>';
++    }).join("");
++
++    const foot = rows.length
++        ? '<tr><td colspan="2">المجموع</td><td>' + formatFuelNumber(grand) + '</td>' +
++            cols.map(function (d) { return '<td>' + (colTotals[d.id] ? formatFuelNumber(colTotals[d.id]) : '') + '</td>'; }).join("") +
++            '<td></td>' + (canEdit ? '<td></td>' : '') + '</tr>'
++        : '';
++
++    box.innerHTML = rows.length
++        ? '<div class="fuel-dl-wrap"><table class="fuel-dl-table"><thead>' + head + '</thead><tbody>' + body + '</tbody><tfoot>' + foot + '</tfoot></table></div>' +
++          '<p class="fuel-muted">' + rows.length + ' حمولة — إجمالي الواصل ' + formatFuelLiters(grand) + '</p>'
++        : '<div class="fuel-dl-wrap"><table class="fuel-dl-table"><thead>' + head + '</thead></table></div>' +
++          '<p class="fuel-muted">لا توجد حمولات مسجلة بعد.' + (canEdit ? ' أضف أول حمولة من النموذج أعلاه.' : '') + '</p>';
++}
++
+ function handleFuelSaveError(error, what) {
+     console.error("خطأ " + what + " (خزانات الكاز):", error);
+     if (error && error.code === "timeout") {
+-- 
+2.43.0
+
+
+From 0e9e441ff95a45c105b39c5a96b4e637b77dd39a Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sun, 11 Oct 2026 13:53:36 +0300
+Subject: [PATCH 13/17] Fuel deliveries: one-click import of the 21 paper-table
+ rows (idempotent ids, editor only)
+
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_013dGGq9Dw7dMGkWFuLFBhLC
+---
+ script.js | 61 ++++++++++++++++++++++++++++++++++++++++++++++++++++++-
+ 1 file changed, 60 insertions(+), 1 deletion(-)
+
+diff --git a/script.js b/script.js
+index acff36b..e0c3164 100644
+--- a/script.js
++++ b/script.js
+@@ -7407,6 +7407,64 @@ async function deleteFuelDelivery(id) {
+     }
+ }
+ 
++
++// ---------- استيراد الجدول الورقي (يظهر للمحرّر فقط والجدول فارغ) ----------
++// الحمولات كما في صورة الجدول الورقي. المعرّفات ثابتة (import-01 …) فلا تتكرر لو ضُغط الزر مرتين.
++// ملاحظة: التواريخ 3/5 و5/3 و11/5 قُرئت يوم/شهر (5 مارس، 5 مارس، 11 مايو) وتُصحَّح من زر التعديل.
++const FUEL_DELIVERIES_IMPORT = [
++    ["2025-10-07", "السيد/تانكي", { boiler1: 2000 }],
++    ["2025-10-09", "السيد/تانكي", { boiler1: 2000 }],
++    ["2025-10-25", "السيد/تانكي", { tank3: 1000, tank2: 500, tank1: 500 }],
++    ["2025-11-10", "السيد/تانكي", { complexGenerator: 2000 }],
++    ["2025-12-15", "السيد/تانكي", { tank3: 2000 }],
++    ["2025-12-16", "السيد/تانكي", { tank2: 1000, tank1: 1000 }],
++    ["2025-12-17", "السيد/تانكي", { boiler1: 2000 }],
++    ["2025-12-18", "السيد/تانكي", { tank3: 1000, tank2: 500, tank1: 500 }],
++    ["2026-01-04", "السيد/تنكر", { boiler1: 4000 }],
++    ["2026-01-21", "السيد/تانكي", { boiler1: 2000 }],
++    ["2026-01-22", "السيد/تانكي", { boiler1: 2000 }],
++    ["2026-02-18", "السيد/تانكي", { tank3: 2000 }],
++    ["2026-02-18", "السيد/تانكي", { hospitalGenerator: 2000 }],
++    ["2026-02-18", "يحيى/دعلج", { hospitalGenerator: 9250 }],
++    ["2026-03-05", "يحيى/دعلج", { hospitalGenerator: 9250 }],
++    ["2026-03-05", "السيد/تنكر", { hospitalGenerator: 10000 }],
++    ["2026-03-19", "السيد/تنكر", { hospitalGenerator: 10000 }],
++    ["2026-03-19", "السيد/تنكر", { complexGenerator: 10000 }],
++    ["2026-03-25", "السيد/تنكر", { boiler1: 10000 }],
++    ["2026-03-26", "السيد/تنكر", { boiler2: 10000 }],
++    ["2026-05-11", "السيد/تنكر", { hospitalGenerator: 3700, boiler1: 6300 }]
++];
++
++async function importFuelDeliveries() {
++    if (fuelDlSaving) return;
++    if (!requireLoginForWrite(function () { importFuelDeliveries(); })) return;
++    if (!fuelCanEdit()) { fuelDenyEdit(); return; }
++    if (fuelDeliveries.length) { showMessage("الجدول يحتوي بيانات بالفعل، لا حاجة للاستيراد", "error"); return; }
++    if (!window.confirm("سيتم إضافة " + FUEL_DELIVERIES_IMPORT.length + " حمولة من الجدول الورقي. متابعة؟")) return;
++
++    const db = getFirestoreDB();
++    if (!db) return;
++    fuelDlSaving = true;
++    try {
++        const fs = await import(FUEL_FIRESTORE_URL);
++        const who = fuelWho();
++        await withFuelTimeout(Promise.all(FUEL_DELIVERIES_IMPORT.map(function (r, i) {
++            const total = Object.keys(r[2]).reduce(function (a, k) { return a + r[2][k]; }, 0);
++            const id = "import-" + String(i + 1).padStart(2, "0");
++            return fs.setDoc(fs.doc(db, FUEL_DELIVERIES_COLLECTION, id), {
++                date: r[0], driver: r[1], tanks: r[2], totalL: total,
++                source: "paper-table-import", createdAt: fs.serverTimestamp(), createdBy: who
++            });
++        })), FUEL_SAVE_TIMEOUT_MS * 2);
++        showMessage("تم استيراد " + FUEL_DELIVERIES_IMPORT.length + " حمولة من الجدول الورقي", "success");
++        await getFuelDeliveries(true);
++    } catch (error) {
++        handleFuelSaveError(error, "استيراد الحمولات");
++    } finally {
++        fuelDlSaving = false;
++    }
++}
++
+ function fuelDlSortedRows() {
+     function t(r) {
+         const d = window.FuelCalc ? FuelCalc.toDate(r.createdAt) : null;
+@@ -7489,7 +7547,8 @@ function renderFuelDeliveries() {
+         ? '<div class="fuel-dl-wrap"><table class="fuel-dl-table"><thead>' + head + '</thead><tbody>' + body + '</tbody><tfoot>' + foot + '</tfoot></table></div>' +
+           '<p class="fuel-muted">' + rows.length + ' حمولة — إجمالي الواصل ' + formatFuelLiters(grand) + '</p>'
+         : '<div class="fuel-dl-wrap"><table class="fuel-dl-table"><thead>' + head + '</thead></table></div>' +
+-          '<p class="fuel-muted">لا توجد حمولات مسجلة بعد.' + (canEdit ? ' أضف أول حمولة من النموذج أعلاه.' : '') + '</p>';
++          '<p class="fuel-muted">لا توجد حمولات مسجلة بعد.' + (canEdit ? ' أضف أول حمولة من النموذج أعلاه، أو استورد بيانات الجدول الورقي دفعة واحدة.' : '') + '</p>' +
++          (canEdit ? '<button type="button" class="fuel-btn" id="fuelDlImport" onclick="importFuelDeliveries()">📥 استيراد بيانات الجدول الورقي (' + FUEL_DELIVERIES_IMPORT.length + ' حمولة)</button>' : '');
+ }
+ 
+ function handleFuelSaveError(error, what) {
+-- 
+2.43.0
+
+
+From c74ca306eca6bf751e98d05971ad565780233b5d Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sun, 11 Oct 2026 13:55:07 +0300
+Subject: [PATCH 14/17] Tasks: prevent duplicate task when the add button is
+ pressed repeatedly
+
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_013dGGq9Dw7dMGkWFuLFBhLC
+---
+ script.js | 15 +++++++++++++++
+ 1 file changed, 15 insertions(+)
+
+diff --git a/script.js b/script.js
+index e0c3164..1f6789f 100644
+--- a/script.js
++++ b/script.js
+@@ -2973,8 +2973,13 @@ async function getTasks() {
+ // إضافة مهمة
+ // ============================================================
+ 
++// يمنع تكرار الإضافة عند الضغط المتكرر على الزر أثناء الحفظ
++let taskSaving = false;
++
+ async function addTask() {
+ 
++    if (taskSaving) return;
++
+     if (!requireLoginForWrite(addTask)) return;
+ 
+     const input =
+@@ -3023,6 +3028,10 @@ async function addTask() {
+ 
+     if (!db) return;
+ 
++    taskSaving = true;
++    const taskSaveBtn = document.querySelector(".save-task-button");
++    if (taskSaveBtn) taskSaveBtn.disabled = true;
++
+     try {
+ 
+         const {
+@@ -3133,6 +3142,12 @@ async function addTask() {
+             "error"
+         );
+ 
++    } finally {
++
++        taskSaving = false;
++
++        if (taskSaveBtn) taskSaveBtn.disabled = false;
++
+     }
+ 
+ }
+-- 
+2.43.0
+
+
+From 493a5c70bcc96ad72a94b11854a0c9d616ef7d5f Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Mon, 12 Oct 2026 09:10:49 +0300
+Subject: [PATCH 15/17] Hide login screen on app open (shown only from header
+ button, logout returns home); drop geometry-vs-nominal alert; card title uses
+ number only
+
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_013dGGq9Dw7dMGkWFuLFBhLC
+---
+ fuel-calc.js            |  9 ---------
+ index.html              |  1 -
+ script.js               | 18 +++++++++++++-----
+ style.css               | 10 +++++++++-
+ tests/fuel-calc.test.js |  4 ++--
+ 5 files changed, 24 insertions(+), 18 deletions(-)
+
+diff --git a/fuel-calc.js b/fuel-calc.js
+index 8bc1740..03c9e9d 100644
+--- a/fuel-calc.js
++++ b/fuel-calc.js
+@@ -19,7 +19,6 @@
+         lowPercent: 20,          // تنبيه "انخفاض" عند نسبة امتلاء أقل من هذه القيمة
+         highPercent: 90,         // تنبيه "قرب الامتلاء" عند نسبة أكبر من أو تساوي هذه القيمة
+         staleDays: 7,            // تنبيه "لم تُحدَّث القراءة" بعد هذا العدد من الأيام
+-        geometryDiffPercent: 2   // تنبيه عند اختلاف السعة الهندسية عن الاسمية بأكثر من هذه النسبة
+     };
+ 
+     // ---------- طرق القياس ----------
+@@ -406,14 +405,6 @@
+                 out.push({ level: "warn", tankId: s.id, code: "stale",
+                     text: label + ": لم تُحدَّث القراءة منذ " + Math.floor(s.ageDays) + " يوماً" });
+             }
+-            if (s.geomCapacityL) {
+-                var diff = Math.abs(s.geomCapacityL - s.nominalL) / s.nominalL * 100;
+-                if (diff > settings.geometryDiffPercent) {
+-                    out.push({ level: "info", tankId: s.id, code: "geom_diff",
+-                        text: label + ": السعة الهندسية (" + Math.round(s.geomCapacityL).toLocaleString("en-US") +
+-                            " لتر) تختلف عن الاسمية بنسبة " + diff.toFixed(1) + "%" });
+-                }
+-            }
+         });
+         return out;
+     }
+diff --git a/index.html b/index.html
+index a99cac5..9642014 100644
+--- a/index.html
++++ b/index.html
+@@ -4381,7 +4381,6 @@ content="default"
+       <label>تنبيه الانخفاض عند أقل من (%)<input type="number" id="fuelSetLow" min="0" max="100" step="1"></label>
+       <label>تنبيه قرب الامتلاء عند (%)<input type="number" id="fuelSetHigh" min="0" max="100" step="1"></label>
+       <label>تنبيه عدم التحديث بعد (يوم)<input type="number" id="fuelSetStale" min="0" step="1"></label>
+-      <label>تنبيه اختلاف السعة الهندسية عن الاسمية (%)<input type="number" id="fuelSetGeom" min="0" step="0.5"></label>
+     </div>
+     <button type="button" class="fuel-btn" onclick="saveFuelSettings()">💾 حفظ الإعدادات</button>
+   </div>
+diff --git a/script.js b/script.js
+index 1f6789f..fa7df6f 100644
+--- a/script.js
++++ b/script.js
+@@ -6472,6 +6472,11 @@ function fuelTankFullName(def) {
+     return def.name + (def.note ? " — " + def.note : "");
+ }
+ 
++// عنوان بطاقة الخزان: الترقيم يكفي بدل كلمة «الخزان N» (الخزانات بلا وصف تُبقي اسمها)
++function fuelTankCardTitle(def) {
++    return def.note ? def.no + " — " + def.note : def.name;
++}
++
+ function fuelFindDef(tankId) {
+     return FUEL_TANKS_DEFINITIONS.find(function (d) { return d.id === tankId; });
+ }
+@@ -6841,7 +6846,7 @@ function renderFuelTanksCards(statesArg) {
+             '<div class="fuel-tank-card-header">' +
+                 '<span class="fuel-tank-no">' + def.no + '</span>' +
+                 '<div class="fuel-tank-header-text">' +
+-                    '<div class="fuel-tank-name">' + escapeHTML(fuelTankFullName(def)) + '</div>' +
++                    '<div class="fuel-tank-name">' + escapeHTML(fuelTankCardTitle(def)) + '</div>' +
+                     '<div class="fuel-tank-capline">السعة الكلية: <b>' + formatFuelLiters(st.nominalL) + '</b></div>' +
+                 '</div>' +
+                 '<span class="fuel-badge is-' + statusClass + '">' + escapeHTML(statusLabel) + '</span>' +
+@@ -7758,7 +7763,7 @@ function renderFuelHistory() {
+ function fillFuelSettingsForm() {
+     const map = {
+         fuelSetLow: "lowPercent", fuelSetHigh: "highPercent",
+-        fuelSetStale: "staleDays", fuelSetGeom: "geometryDiffPercent"
++        fuelSetStale: "staleDays"
+     };
+     Object.keys(map).forEach(function (id) {
+         const el = document.getElementById(id);
+@@ -7778,7 +7783,7 @@ async function saveFuelSettings() {
+     };
+     const next = {
+         lowPercent: read("fuelSetLow"), highPercent: read("fuelSetHigh"),
+-        staleDays: read("fuelSetStale"), geometryDiffPercent: read("fuelSetGeom")
++        staleDays: read("fuelSetStale")
+     };
+ 
+     if (Object.keys(next).some(function (k) { return !isFinite(next[k]); })) {
+@@ -8178,8 +8183,11 @@ async function logoutUser() {
+     await signOut(auth);
+     currentUser = null;
+     authUserUid = null;
+-    showPage("authPage");
+-    renderAuth();
++    // بعد الخروج نعود للقائمة الرئيسية (التصفح مفتوح للجميع)
++    // وتُفتح شاشة الدخول فقط عند الضغط على زر الدخول في الهيدر
++    pageBeforeAuthPrompt = null;
++    pendingWriteAction = null;
++    showPage("homePage");
+   } catch (error) {
+     console.error("Logout error:", error);
+     showMessage("حدث خطأ أثناء تسجيل الخروج");
+diff --git a/style.css b/style.css
+index 0ce1370..70713e9 100644
+--- a/style.css
++++ b/style.css
+@@ -3196,12 +3196,20 @@ textarea:focus-visible {
+ #authPage {
+   background: #f4f6f5;
+   min-height: 100vh;
+-  display: flex;
++  /* مخفية عند فتح التطبيق؛ تظهر فقط عند الضغط على زر الدخول في الهيدر
++     (showPage يضبط display مباشرة). بدون هذا السطر كان selector الـ id
++     يتغلب على .page {display:none} فتظهر عند كل فتح */
++  display: none;
+   flex-direction: column;
+   align-items: center;
+   padding: 24px 16px 32px;
+ }
+ 
++/* عند فتحها عبر showPage (display:block مباشرة) نُبقي تخطيط flex المتمركز */
++#authPage[style*="display: block"] {
++  display: flex !important;
++}
++
+ .auth-hero {
+   text-align: center;
+   margin: 18px 0 22px;
+diff --git a/tests/fuel-calc.test.js b/tests/fuel-calc.test.js
+index ea772be..07e70a1 100644
+--- a/tests/fuel-calc.test.js
++++ b/tests/fuel-calc.test.js
+@@ -189,12 +189,12 @@ t("الإجمالي المكتمل: ÷ 86,000 والمتوفر + الفارغ =
+   near(tot.availableL + tot.emptyL, 86000, 0.5);
+   near(tot.percent, tot.availableL / 86000 * 100, 1e-9); assert.strictEqual(tot.percentBasis, "all");
+ });
+-t("تنبيهات: منخفض/مرتفع/اختلاف هندسي", () => {
++t("تنبيهات: منخفض/مرتفع، ولا تنبيه لاختلاف السعة الهندسية عن الاسمية", () => {
+   const low = mk("boiler1", { reading: { value: 15, unit: "cm", method: "level_height" }, updatedAt: now });
+   const high = mk("boiler2", { reading: { value: 145, unit: "cm", method: "level_height" }, updatedAt: now });
+   const cx = mk("complexGenerator", { reading: { value: 115, unit: "cm", method: "top_distance" }, updatedAt: now });
+   const codes = F.buildAlerts([low, high, cx], S, now).map((a) => a.code);
+-  assert.ok(codes.includes("low")); assert.ok(codes.includes("high")); assert.ok(codes.includes("geom_diff"));
++  assert.ok(codes.includes("low")); assert.ok(codes.includes("high")); assert.ok(!codes.includes("geom_diff"));
+ });
+ t("الإعدادات: قيم غير صالحة ترجع للافتراضي", () => {
+   const m = F.mergeSettings({ lowPercent: "x", highPercent: 80, staleDays: -1 });
+-- 
+2.43.0
+
+
+From 969e577b816d675b2e1aec1c9aee6bf39f2c6a30 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Mon, 12 Oct 2026 11:35:15 +0300
+Subject: [PATCH 16/17] Storage: containers split into numbered containers 1-6
+ (legacy records kept)
+
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_013dGGq9Dw7dMGkWFuLFBhLC
+---
+ index.html | 190 ++++++++++++++++++++++++++++++++++++++++++++++++++++-
+ script.js  |  33 +++++++++-
+ 2 files changed, 220 insertions(+), 3 deletions(-)
+
+diff --git a/index.html b/index.html
+index 9642014..9d96eea 100644
+--- a/index.html
++++ b/index.html
+@@ -2533,7 +2533,7 @@ content="default"
+   <button
+     type="button"
+     class="storage-card"
+-    onclick="openWarehouse('containers')"
++    onclick="openContainers()"
+   >
+ 
+     <div class="storage-icon">🚢</div>
+@@ -2542,7 +2542,7 @@ content="default"
+ 
+       <h3>الحاويات</h3>
+ 
+-      <p>مخزن الحاويات</p>
++      <p>6 حاويات (حاوية رقم 1 … حاوية رقم 6)</p>
+ 
+     </div>
+ 
+@@ -2593,6 +2593,192 @@ content="default"
+   </button>
+ 
+ 
++</section>
++
++  </main>
++
++  <!-- CONTAINERS (حاويات المخازن: 1 إلى 6) -->
++
++  <main
++    id="containersPage"
++    class="page"
++  >
++
++<div class="navigation">
++
++  <button
++    type="button"
++    onclick="openStorage()"
++  >
++    → المخازن
++  </button>
++
++</div>
++
++<section class="intro">
++
++  <div class="intro-icon">🚢</div>
++
++  <div>
++
++    <h2>الحاويات</h2>
++
++    <p>اختر الحاوية المطلوبة</p>
++
++  </div>
++
++</section>
++
++<section class="storage-list">
++
++  <button
++    type="button"
++    class="storage-card"
++    onclick="openWarehouse('container1')"
++  >
++
++    <div class="storage-icon">🚢</div>
++
++    <div class="storage-text">
++
++      <h3>حاوية رقم 1</h3>
++
++      <p>مخزن حاوية رقم 1</p>
++
++    </div>
++
++    <div class="storage-arrow">←</div>
++
++  </button>
++
++
++  <button
++    type="button"
++    class="storage-card"
++    onclick="openWarehouse('container2')"
++  >
++
++    <div class="storage-icon">🚢</div>
++
++    <div class="storage-text">
++
++      <h3>حاوية رقم 2</h3>
++
++      <p>مخزن حاوية رقم 2</p>
++
++    </div>
++
++    <div class="storage-arrow">←</div>
++
++  </button>
++
++
++  <button
++    type="button"
++    class="storage-card"
++    onclick="openWarehouse('container3')"
++  >
++
++    <div class="storage-icon">🚢</div>
++
++    <div class="storage-text">
++
++      <h3>حاوية رقم 3</h3>
++
++      <p>مخزن حاوية رقم 3</p>
++
++    </div>
++
++    <div class="storage-arrow">←</div>
++
++  </button>
++
++
++  <button
++    type="button"
++    class="storage-card"
++    onclick="openWarehouse('container4')"
++  >
++
++    <div class="storage-icon">🚢</div>
++
++    <div class="storage-text">
++
++      <h3>حاوية رقم 4</h3>
++
++      <p>مخزن حاوية رقم 4</p>
++
++    </div>
++
++    <div class="storage-arrow">←</div>
++
++  </button>
++
++
++  <button
++    type="button"
++    class="storage-card"
++    onclick="openWarehouse('container5')"
++  >
++
++    <div class="storage-icon">🚢</div>
++
++    <div class="storage-text">
++
++      <h3>حاوية رقم 5</h3>
++
++      <p>مخزن حاوية رقم 5</p>
++
++    </div>
++
++    <div class="storage-arrow">←</div>
++
++  </button>
++
++
++  <button
++    type="button"
++    class="storage-card"
++    onclick="openWarehouse('container6')"
++  >
++
++    <div class="storage-icon">🚢</div>
++
++    <div class="storage-text">
++
++      <h3>حاوية رقم 6</h3>
++
++      <p>مخزن حاوية رقم 6</p>
++
++    </div>
++
++    <div class="storage-arrow">←</div>
++
++  </button>
++
++
++  <button
++    type="button"
++    class="storage-card"
++    id="legacyContainersCard"
++    style="display:none;"
++    onclick="openWarehouse('containers')"
++  >
++
++    <div class="storage-icon">🗂️</div>
++
++    <div class="storage-text">
++
++      <h3>سجلات الحاويات السابقة</h3>
++
++      <p>حركات مسجلة قبل ترقيم الحاويات</p>
++
++    </div>
++
++    <div class="storage-arrow">←</div>
++
++  </button>
++
+ </section>
+ 
+   </main>
+diff --git a/script.js b/script.js
+index fa7df6f..ef113d0 100644
+--- a/script.js
++++ b/script.js
+@@ -291,7 +291,15 @@ const MEDICAL_DEVICES = [
+ // ============================================================
+ 
+ const INVENTORY_LOCATIONS = {
+-    containers: { name: "الحاويات", icon: "🚢", sub: "مخزن الحاويات" },
++    // الحاويات المرقمة 1–6 (كل حاوية مخزن مستقل)
++    container1: { name: "حاوية رقم 1", icon: "🚢", sub: "مخزن حاوية رقم 1", group: "containers" },
++    container2: { name: "حاوية رقم 2", icon: "🚢", sub: "مخزن حاوية رقم 2", group: "containers" },
++    container3: { name: "حاوية رقم 3", icon: "🚢", sub: "مخزن حاوية رقم 3", group: "containers" },
++    container4: { name: "حاوية رقم 4", icon: "🚢", sub: "مخزن حاوية رقم 4", group: "containers" },
++    container5: { name: "حاوية رقم 5", icon: "🚢", sub: "مخزن حاوية رقم 5", group: "containers" },
++    container6: { name: "حاوية رقم 6", icon: "🚢", sub: "مخزن حاوية رقم 6", group: "containers" },
++    // السجلات القديمة المحفوظة قبل ترقيم الحاويات (تبقى كما هي ولا تُحذف)
++    containers: { name: "سجلات الحاويات السابقة", icon: "🗂️", sub: "حركات مسجلة قبل ترقيم الحاويات", group: "containers" },
+     hall: { name: "القاعة", icon: "🏭", sub: "مخزن القاعة" },
+     building6: { name: "مخزن بناية 6", icon: "🏢", sub: "مخزن بناية 6" },
+     kitchen: { name: "المطبخ", icon: "🍽️", sub: "إدارة ومتابعة المطبخ" }
+@@ -374,6 +382,26 @@ function openStorage() {
+ 
+ }
+ 
++// قائمة الحاويات المرقمة (1–6)
++async function openContainers() {
++    showPage("containersPage");
++
++    // إظهار بطاقة السجلات القديمة فقط إن وُجدت حركات محفوظة بالمعرّف القديم "containers"
++    const legacy = document.getElementById("legacyContainersCard");
++    if (!legacy) return;
++    try {
++        const db = window.firebaseDb;
++        if (!db) return;
++        const { collection, getDocs, query, where, limit } = await import("https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js");
++        const snap = await getDocs(query(collection(db, MATERIALS_COLLECTION), where("location", "==", "containers"), limit(1)));
++        legacy.style.display = snap.empty ? "none" : "flex";
++    } catch (error) {
++        console.error("تعذر فحص سجلات الحاويات السابقة:", error);
++        // عند الفشل نُظهر البطاقة احتياطاً حتى لا تُخفى بيانات موجودة
++        legacy.style.display = "flex";
++    }
++}
++
+ function openReports() {
+ 
+     showPage("reportsPage");
+@@ -1317,6 +1345,9 @@ function showInventory(locationKey) {
+         if (locationKey === "kitchen") {
+             backButton.textContent = "→ الرئيسية";
+             backButton.setAttribute("onclick", "goHome()");
++        } else if (location.group === "containers") {
++            backButton.textContent = "→ الحاويات";
++            backButton.setAttribute("onclick", "openContainers()");
+         } else {
+             backButton.textContent = "→ المخازن";
+             backButton.setAttribute("onclick", "openStorage()");
+-- 
+2.43.0
+
+
+From af7c43e6fe77a0b9a84423f1cabe3213fd500406 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Mon, 12 Oct 2026 11:43:23 +0300
+Subject: [PATCH 17/17] Home: swap positions of kitchen and fuel tanks cards
+
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_013dGGq9Dw7dMGkWFuLFBhLC
+---
+ index.html | 16 ++++++++--------
+ 1 file changed, 8 insertions(+), 8 deletions(-)
+
+diff --git a/index.html b/index.html
+index 9d96eea..e7095f4 100644
+--- a/index.html
++++ b/index.html
+@@ -2339,12 +2339,12 @@ content="default"
+   <button
+     type="button"
+     class="main-card"
+-    onclick="openKitchen()"
++    onclick="openFuelTanks()"
+   >
+ 
+     <div class="card-top">
+ 
+-      <div class="main-icon gray">🍽️</div>
++      <div class="main-icon gray">🛢️</div>
+ 
+       <div class="card-arrow">←</div>
+ 
+@@ -2352,9 +2352,9 @@ content="default"
+ 
+     <div class="card-text">
+ 
+-      <h3>المطبخ</h3>
++      <h3>خزانات الكاز</h3>
+ 
+-      <p>إدارة ومتابعة المطبخ</p>
++      <p>متابعة مستوى الكاز والكميات المطلوبة</p>
+ 
+     </div>
+ 
+@@ -2468,12 +2468,12 @@ content="default"
+   <button
+     type="button"
+     class="main-card"
+-    onclick="openFuelTanks()"
++    onclick="openKitchen()"
+   >
+ 
+     <div class="card-top">
+ 
+-      <div class="main-icon gray">🛢️</div>
++      <div class="main-icon gray">🍽️</div>
+ 
+       <div class="card-arrow">←</div>
+ 
+@@ -2481,9 +2481,9 @@ content="default"
+ 
+     <div class="card-text">
+ 
+-      <h3>خزانات الكاز</h3>
++      <h3>المطبخ</h3>
+ 
+-      <p>متابعة مستوى الكاز والكميات المطلوبة</p>
++      <p>إدارة ومتابعة المطبخ</p>
+ 
+     </div>
+ 
 -- 
 2.43.0
 
