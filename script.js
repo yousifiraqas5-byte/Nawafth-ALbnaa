@@ -11152,6 +11152,80 @@ const HB_AHU_UNITS = [
 // m الموديل، sa/ra هواء التغذية/الراجع m³/h، w/l/h/kg الأبعاد mm والوزن، sf/rf مروحة التغذية/الراجع (z الحجم، q التدفق، p الضغط الستاتيكي الخارجي Pa، k القدرة المركّبة kW، a القدرة الممتصة kW)،
 // hc/cc قدرات ملفات التسخين/التبريد kW، hr استرجاع الحرارة (t النوع، e الكفاءة %، k القدرة kW)، ps التغذية الكهربائية
 const HB_AHU_SPECS = {"AHU-17":{"m":"MYHC 2.5","sa":6300,"ra":5700,"w":1617,"l":3735,"h":1616,"kg":909,"rf":{"z":"TE 355 S4","q":5700,"p":230,"k":2.2,"a":1.5},"ps":"400V/3ph/50Hz","sf":{"z":"TE 355 S4","q":6300,"p":260,"k":3.0,"a":2.4},"hc":[11.5],"cc":[41.4],"hr":{"t":"cross flow","e":64.52,"k":7.67}},"FAHU-18":{"m":"MYHC 4.5","sa":10600,"ra":7015,"w":1923,"l":4600,"h":2216,"kg":1600,"rf":{"z":"TE 355 S4","q":7015,"p":360,"k":3.0,"a":2.5},"ps":"400V/3ph/50Hz","sf":{"z":"NPA450S4","q":10600,"p":370,"k":7.5,"a":4.6},"hc":[80.8],"cc":[137.1],"hr":{"t":"cross flow","e":67.66,"k":43.53}},"FAHU-19":{"m":"MYHC 2.5","sa":5700,"ra":2800,"w":1617,"l":3820,"h":1616,"kg":954,"rf":{"z":"TE 280 S4","q":2800,"p":410,"k":1.1,"a":0.8},"ps":"400V/3ph/50Hz","sf":{"z":"TE 355 S4","q":5700,"p":390,"k":3.0,"a":2.7},"hc":[42.1],"cc":[71.8],"hr":{"t":"cross flow","e":63.86,"k":18.09}},"AHU-21":{"m":"MYHC 2","sa":4610,"ra":4450,"w":1314,"l":4190,"h":1616,"kg":911,"rf":{"z":"GR40I 116895/A01","q":4450,"p":290,"k":2.1,"a":1.2},"ps":"400V/3ph/50Hz","sf":{"z":"GR31I 116890/A01","q":4610,"p":670,"k":3.0,"a":2.5},"hc":[22.6,8.2],"cc":[59.3],"hr":{"t":"cross flow","e":60.82,"k":19.22}},"AHU-22":{"m":"MYHC 5","sa":13000,"ra":10400,"w":1617,"l":4940,"h":2828,"kg":1943,"rf":{"z":"NPA450S4","q":10400,"p":300,"k":4.0,"a":3.1},"ps":"400V/3ph/50Hz","sf":{"z":"NPA500S4","q":13000,"p":290,"k":7.5,"a":5.6},"hc":[55.1],"cc":[168.8],"hr":{"t":"cross flow","e":67.96,"k":57.45}},"FAHU-23":{"m":"MYHC 2","sa":4900,"ra":3410,"w":1314,"l":3820,"h":1616,"kg":822,"rf":{"z":"TE 280 S4","q":3410,"p":280,"k":1.1,"a":1.0},"ps":"400V/3ph/50Hz","sf":{"z":"TE 355 S4","q":4900,"p":300,"k":3.0,"a":2.1},"hc":[34.4],"cc":[58.6],"hr":{"t":"cross flow","e":64.4,"k":19.94}},"AHU-24":{"m":"MYHC 3","sa":7115,"ra":6350,"w":1314,"l":5060,"h":2216,"kg":1273,"rf":{"z":"GR35I 116892/A01","q":6350,"p":300,"k":2.5,"a":1.9},"ps":"400V/3ph/50Hz","sf":{"z":"GR45I 116903/A01","q":7115,"p":660,"k":5.0,"a":4.3},"hc":[34.5,17.2],"cc":[105.7],"hr":{"t":"cross flow","e":64.29,"k":30.68}},"AHU-25":{"m":"MYHC 3","sa":6655,"ra":6655,"w":1314,"l":4560,"h":2216,"kg":1199,"rf":{"z":"GR35I 116893/A01","q":6655,"p":260,"k":3.3,"a":2.2},"ps":"400V/3ph/50Hz","sf":{"z":"GR45I 116903/A01","q":6655,"p":670,"k":5.0,"a":3.9},"hc":[31.0,16.7],"cc":[99.1],"hr":{"t":"cross flow","e":63.86,"k":30.18}},"AHU-26":{"m":"MYHC 1.5","sa":3435,"ra":3050,"w":1008,"l":4400,"h":1616,"kg":819,"rf":{"z":"GR35I 116892/A01","q":3050,"p":270,"k":2.5,"a":0.8},"ps":"400V/3ph/50Hz","sf":{"z":"GR35I 116892/A01","q":3435,"p":380,"k":2.5,"a":1.7},"hc":[15.7,8.8],"cc":[50.5],"hr":{"t":"cross flow","e":63.93,"k":15.01}},"AHU-27":{"m":"MYHC 2","sa":3895,"ra":3550,"w":1314,"l":4400,"h":1616,"kg":926,"rf":{"z":"GR35I 116892/A01","q":3550,"p":280,"k":2.5,"a":0.9},"ps":"400V/3ph/50Hz","sf":{"z":"GR35I 116892/A01","q":3895,"p":370,"k":2.5,"a":1.7},"hc":[18.7,8.8],"cc":[58.2],"hr":{"t":"cross flow","e":63.82,"k":17.1}},"AHU-28":{"m":"MYHC 1.5","sa":3000,"ra":2600,"w":1008,"l":4370,"h":1616,"kg":790,"rf":{"z":"GR25I 116883/A01","q":2600,"p":270,"k":0.78,"a":0.7},"ps":"400V/3ph/50Hz","sf":{"z":"GR35I 116892/A01","q":3000,"p":280,"k":2.5,"a":1.2},"hc":[13.9,4.0],"cc":[40.1],"hr":{"t":"cross flow","e":63.94,"k":12.99}},"AHU-30":{"m":"MYHC 1.5","sa":2220,"ra":1400,"w":1008,"l":3580,"h":1616,"kg":667,"rf":{"z":"TE 225 S4","q":1400,"p":220,"k":0.75,"a":0.3},"ps":"400V/3ph/50Hz","sf":{"z":"TE 250 S4","q":2220,"p":210,"k":1.1,"a":0.8},"hc":[12.3],"cc":[29.1],"hr":{"t":"cross flow","e":66.59,"k":8.97}},"AHU-31":{"m":"MYHC 3.5","sa":9200,"ra":6350,"w":1617,"l":4870,"h":2216,"kg":1412,"rf":{"z":"TE 355 S4","q":6350,"p":310,"k":3.0,"a":2.0},"ps":"400V/3ph/50Hz","sf":{"z":"NPA450S4","q":9200,"p":300,"k":4.0,"a":3.5},"hc":[46.6],"cc":[122.6],"hr":{"t":"cross flow","e":65.19,"k":37.16}},"AHU-32":{"m":"MYHC 3.5","sa":7850,"ra":6500,"w":1617,"l":4470,"h":2216,"kg":1302,"rf":{"z":"TE 355 S4","q":6500,"p":320,"k":3.0,"a":2.2},"ps":"400V/3ph/50Hz","sf":{"z":"NPA450S4","q":7850,"p":290,"k":4.0,"a":2.8},"hc":[35.4],"cc":[93.7],"hr":{"t":"cross flow","e":67.15,"k":34.36}},"AHU-33":{"m":"MYHC 6","sa":14150,"ra":10830,"w":1923,"l":4750,"h":2828,"kg":2152,"rf":{"z":"GR50I 116906/A01","q":10830,"p":220,"k":4.8,"a":2.4},"ps":"400V/3ph/50Hz","sf":{"z":"GR56C 116180/A01","q":14150,"p":220,"k":6.0,"a":5.5},"hc":[68.6,7.3],"cc":[183.7],"hr":{"t":"cross flow","e":68.77,"k":62.7}},"AHU-34":{"m":"MYHC 2","sa":3900,"ra":3100,"w":1314,"l":3620,"h":1616,"kg":815,"rf":{"z":"GR28I 116885/A01","q":3100,"p":230,"k":0.78,"a":0.7},"ps":"400V/3ph/50Hz","sf":{"z":"GR35I 116892/A01","q":3900,"p":270,"k":2.5,"a":1.2},"hc":[18.0,2.0],"cc":[50.2],"hr":{"t":"cross flow","e":65.15,"k":16.73}},"AHU-35":{"m":"MYHC 3","sa":6655,"ra":5850,"w":1314,"l":4940,"h":2216,"kg":1241,"rf":{"z":"GR31I 116889/A01","q":5850,"p":280,"k":2.4,"a":1.9},"ps":"400V/3ph/50Hz","sf":{"z":"GR40I 116897/A01","q":6655,"p":660,"k":3.7,"a":3.5},"hc":[31.1,18.4],"cc":[100.3],"hr":{"t":"cross flow","e":64.64,"k":28.69}},"AHU-36":{"m":"MYHC 2","sa":3600,"ra":3270,"w":1314,"l":3720,"h":1616,"kg":795,"rf":{"z":"TE 280 S4","q":3270,"p":260,"k":1.1,"a":0.9},"ps":"400V/3ph/50Hz","sf":{"z":"TE 280 S4","q":3600,"p":270,"k":2.2,"a":1.5},"hc":[16.6],"cc":[52.6],"hr":{"t":"cross flow","e":64.49,"k":15.96}},"AHU-37":{"m":"MYHC 1.5","sa":3100,"ra":3150,"w":1008,"l":3690,"h":1616,"kg":688,"rf":{"z":"TE 280 S4","q":3150,"p":240,"k":1.1,"a":0.9},"ps":"400V/3ph/50Hz","sf":{"z":"TE 280 S4","q":3100,"p":270,"k":1.5,"a":1.2},"hc":[14.1],"cc":[41.0],"hr":{"t":"cross flow","e":60.52,"k":13.39}},"AHU-38":{"m":"MYHC 1.5","sa":2300,"ra":2070,"w":1008,"l":3490,"h":1616,"kg":690,"rf":{"z":"GR28I 116884/A01","q":2070,"p":260,"k":0.5,"a":0.5},"ps":"230V/1ph/50Hz","sf":{"z":"GR25I 116883/A01","q":2300,"p":280,"k":0.78,"a":0.8},"hc":[10.6,5.2],"cc":[34.3],"hr":{"t":"cross flow","e":64.34,"k":10.17}},"AHU-39":{"m":"MYHC 5","sa":10200,"ra":6200,"w":1617,"l":4510,"h":2828,"kg":1761,"rf":{"z":"TE 355 S4","q":6200,"p":310,"k":2.2,"a":1.8},"ps":"400V/3ph/50Hz","sf":{"z":"NPA400S4","q":10200,"p":310,"k":5.5,"a":4.5},"hc":[50.6],"cc":[136.4],"hr":{"t":"cross flow","e":67.95,"k":40.05}},"FAHU-43":{"m":"MYHC 2","sa":3800,"ra":2950,"w":1314,"l":3660,"h":1616,"kg":791,"rf":{"z":"TE 250 S4","q":2950,"p":260,"k":1.5,"a":1.1},"ps":"400V/3ph/50Hz","sf":{"z":"TE 280 S4","q":3800,"p":270,"k":2.2,"a":1.8},"hc":[27.7],"cc":[47.2],"hr":{"t":"cross flow","e":66.01,"k":16.36}},"FAHU-1":{"m":"MYHC 5","sa":12000,"ra":6000,"w":1617,"l":5260,"h":2828,"kg":2079,"rf":{"z":"NPA400S4","q":6000,"p":480,"k":2.2,"a":1.6},"ps":"400V/3ph/50Hz","sf":{"z":"NPA500S4","q":12000,"p":430,"k":7.5,"a":5.5},"hc":[87.9],"cc":[149.4],"hr":{"t":"cross flow","e":73.58,"k":48.04}},"FAHU-2":{"m":"MYHC 4","sa":10000,"ra":8900,"w":1314,"l":4630,"h":2828,"kg":1607,"rf":{"z":"NPA450S4","q":8900,"p":460,"k":4.0,"a":2.9},"ps":"400V/3ph/50Hz","sf":{"z":"NPA450S4","q":10000,"p":450,"k":7.5,"a":4.8},"hc":[73.2],"cc":[124.5],"hr":{"t":"cross flow","e":64.16,"k":43.51}},"AHU-4":{"m":"MYHC 1","sa":1930,"ra":1960,"w":708,"l":3330,"h":1616,"kg":559,"rf":{"z":"NPL280S4","q":1960,"p":240,"k":0.75,"a":0.5},"ps":"400V/3ph/50Hz","sf":{"z":"TE 250 S4","q":1930,"p":180,"k":1.1,"a":0.7},"hc":[9.3],"cc":[23.1],"hr":{"t":"cross flow","e":61.28,"k":8.44}},"FAHU-8":{"m":"MYHC 2","sa":4680,"ra":3240,"w":1314,"l":4110,"h":1616,"kg":870,"rf":{"z":"TE 280 S4","q":3240,"p":310,"k":1.1,"a":0.9},"ps":"400V/3ph/50Hz","sf":{"z":"TE 355 S4","q":4680,"p":310,"k":3.0,"a":1.9},"hc":[33.2],"cc":[56.2],"hr":{"t":"cross flow","e":70.55,"k":20.25}},"AHU-9":{"m":"MYHC 4.5","sa":11840,"ra":8570,"w":1923,"l":4780,"h":2216,"kg":1712,"rf":{"z":"GR45I 116901/A01","q":8570,"p":320,"k":2.4,"a":2.2},"ps":"400V/3ph/50Hz","sf":{"z":"GR56C 116180/A01","q":11840,"p":300,"k":6.0,"a":4.9},"hc":[61.3,7.1],"cc":[153.7],"hr":{"t":"cross flow","e":70.52,"k":51.88}},"FAHU-10":{"m":"MYHC 1.5","sa":2170,"ra":1070,"w":1008,"l":3610,"h":1616,"kg":690,"rf":{"z":"TE 250 S4","q":1070,"p":220,"k":0.75,"a":0.2},"ps":"400V/3ph/50Hz","sf":{"z":"TE 250 S4","q":2170,"p":260,"k":1.1,"a":0.8},"hc":[20.8],"cc":[33.1],"hr":{"t":"cross flow","e":67.34,"k":6.91}},"FAHU-7":{"m":"MYHC 1.5","sa":2660,"ra":1965,"w":1008,"l":3610,"h":1616,"kg":671,"rf":{"z":"TE 225 S4","q":1965,"p":270,"k":0.75,"a":0.7},"ps":"400V/3ph/50Hz","sf":{"z":"TE 250 S4","q":2660,"p":250,"k":1.5,"a":1.2},"hc":[19.1],"cc":[32.5],"hr":{"t":"cross flow","e":64.42,"k":9.6}},"FAHU-6":{"m":"MYHC 2","sa":4630,"ra":3290,"w":1314,"l":3820,"h":1616,"kg":841,"rf":{"z":"TE 280 S4","q":3290,"p":270,"k":1.1,"a":0.9},"ps":"400V/3ph/50Hz","sf":{"z":"TE 355 S4","q":4630,"p":310,"k":3.0,"a":2.0},"hc":[34.3],"cc":[58.3],"hr":{"t":"cross flow","e":68.32,"k":19.96}},"FAHU-5":{"m":"MYHC 1.5","sa":2770,"ra":1700,"w":1008,"l":3700,"h":1616,"kg":702,"rf":{"z":"TE 225 S4","q":1700,"p":350,"k":0.75,"a":0.5},"ps":"400V/3ph/50Hz","sf":{"z":"NPL315S4","q":2770,"p":350,"k":1.5,"a":1.0},"hc":[20.1],"cc":[35.5],"hr":{"t":"cross flow","e":68.66,"k":10.98}},"AHU-12":{"m":"MYHC 1","sa":780,"ra":730,"w":708,"l":3130,"h":1616,"kg":507,"rf":{"z":"ER22C-2DN.A7.1R","q":730,"p":230,"k":0.55,"a":0.1},"ps":"400V/3ph/50Hz","sf":{"z":"ER22C-2DN.A7.1R","q":780,"p":230,"k":0.55,"a":0.2},"hc":[2.9],"cc":[8.0],"hr":{"t":"cross flow","e":57.28,"k":3.1}},"FAHU-41":{"m":"MYHC 2","sa":4500,"ra":3700,"w":1314,"l":3730,"h":1616,"kg":816,"rf":{"z":"TE 280 S4","q":3700,"p":280,"k":1.5,"a":1.2},"ps":"400V/3ph/50Hz","sf":{"z":"NPL315S4","q":4500,"p":340,"k":2.2,"a":1.9},"hc":[32.1],"cc":[56.1],"hr":{"t":"cross flow","e":64.64,"k":19.42}},"FAHU-3":{"m":"MYHC 2.25","sa":5300,"ra":3900,"w":1008,"l":4710,"h":2216,"kg":1033,"rf":{"z":"TE 315 S4","q":3900,"p":300,"k":1.5,"a":1.0},"ps":"400V/3ph/50Hz","sf":{"z":"TE 355 S4","q":5300,"p":360,"k":3.0,"a":2.4},"hc":[40.7],"cc":[69.3],"hr":{"t":"cross flow","e":69.13,"k":23.05}},"AHU-14":{"m":"MYHC 1","sa":1460,"ra":1560,"w":708,"l":3110,"h":1616,"kg":513,"rf":{"z":"TE 225 S4","q":1560,"p":320,"k":0.75,"a":0.5},"ps":"400V/3ph/50Hz","sf":{"z":"TE 225 S4","q":1460,"p":330,"k":0.75,"a":0.5},"hc":[6.1],"cc":[16.1],"hr":{"t":"cross flow","e":52.63,"k":4.76}},"AHU-47":{"m":"MYHC 3","sa":6400,"ra":6200,"w":1314,"l":3790,"h":2216,"kg":1021,"rf":{"z":"TE 355 S4","q":6200,"p":230,"k":3.0,"a":1.9},"ps":"400V/3ph/50Hz","sf":{"z":"TE 355 S4","q":6400,"p":270,"k":3.0,"a":2.6},"hc":[46.7],"cc":[69.0],"hr":{"t":"cross flow","e":59.07,"k":26.56}},"FAHU-11":{"m":"MYHC 2","sa":4800,"ra":3130,"w":1314,"l":3820,"h":1616,"kg":837,"rf":{"z":"TE 280 S4","q":3130,"p":290,"k":1.1,"a":0.8},"ps":"400V/3ph/50Hz","sf":{"z":"TE 355 S4","q":4800,"p":280,"k":3.0,"a":2.0},"hc":[35.2],"cc":[61.6],"hr":{"t":"cross flow","e":66.69,"k":19.71}},"AHU-49":{"m":"MYHC 7","sa":17805,"ra":10935,"w":2224,"l":5230,"h":2828,"kg":2478,"rf":{"z":"NPA500S4","q":10935,"p":350,"k":4.0,"a":2.7},"ps":"400V/3ph/50Hz","sf":{"z":"NPL560S4","q":17805,"p":380,"k":11.0,"a":8.6},"hc":[168.3],"cc":[230.5],"hr":{"t":"cross flow","e":68.8,"k":70.9}},"AHU-50":{"m":"MYHC 2","sa":4200,"ra":4500,"w":1314,"l":3720,"h":1616,"kg":793,"rf":{"z":"TE 315 S4","q":4500,"p":220,"k":2.2,"a":1.4},"ps":"400V/3ph/50Hz","sf":{"z":"TE 355 S4","q":4200,"p":250,"k":2.2,"a":1.4},"hc":[37.7],"cc":[31.4],"hr":{"t":"cross flow","e":59.47,"k":18.19}},"FAHU-13":{"m":"MYHC 2","sa":4190,"ra":3050,"w":1314,"l":3690,"h":1616,"kg":799,"rf":{"z":"TE 250 S4","q":3050,"p":290,"k":1.5,"a":1.1},"ps":"400V/3ph/50Hz","sf":{"z":"TE 280 S4","q":4190,"p":330,"k":2.2,"a":1.9},"hc":[30.7],"cc":[53.6],"hr":{"t":"cross flow","e":64.73,"k":17.27}},"AHU-51":{"m":"MYHC 3.5","sa":7700,"ra":6720,"w":1617,"l":4230,"h":2216,"kg":1250,"rf":{"z":"TE 355 S4","q":6720,"p":260,"k":3.0,"a":2.1},"ps":"400V/3ph/50Hz","sf":{"z":"TE 450 S4","q":7700,"p":270,"k":3.0,"a":2.6},"hc":[16.0],"cc":[64.7],"hr":{"t":"cross flow","e":64.84,"k":33.21}},"FAHU-15":{"m":"MYHC 2.25","sa":5290,"ra":4000,"w":1008,"l":4430,"h":2216,"kg":963,"rf":{"z":"TE 315 S4","q":4000,"p":340,"k":1.5,"a":1.1},"ps":"400V/3ph/50Hz","sf":{"z":"TE 355 S4","q":5290,"p":360,"k":3.0,"a":2.4},"hc":[41.6],"cc":[71.1],"hr":{"t":"cross flow","e":67.94,"k":22.56}},"AHU-46":{"m":"MYHC 1.5","sa":2190,"ra":2340,"w":1008,"l":3410,"h":1616,"kg":647,"rf":{"z":"TE 250 S4","q":2340,"p":380,"k":1.1,"a":0.8},"ps":"400V/3ph/50Hz","sf":{"z":"TE 250 S4","q":2190,"p":340,"k":1.1,"a":0.9},"hc":[9.1],"cc":[24.7],"hr":{"t":"cross flow","e":55.2,"k":8.77}},"FAHU-48":{"m":"MYHC 1","sa":1885,"ra":1690,"w":708,"l":3670,"h":1616,"kg":579,"rf":{"z":"TE 225 S4","q":1690,"p":280,"k":0.75,"a":0.5},"ps":"400V/3ph/50Hz","sf":{"z":"NPL280S4","q":1885,"p":330,"k":1.1,"a":0.7},"hc":[17.2],"cc":[29.2],"hr":{"t":"cross flow","e":60.63,"k":7.83}},"FAHU-16":{"m":"MYHC 2.5","sa":5520,"ra":4350,"w":1617,"l":3820,"h":1616,"kg":980,"rf":{"z":"TE 280 S4","q":4350,"p":430,"k":2.2,"a":1.8},"ps":"400V/3ph/50Hz","sf":{"z":"TE 355 S4","q":5520,"p":380,"k":3.0,"a":2.4},"hc":[40.4],"cc":[69.1],"hr":{"t":"cross flow","e":64.58,"k":23.38}},"AHU-20":{"m":"MYHC 3","sa":6840,"ra":5290,"w":1314,"l":4520,"h":2216,"kg":1191,"rf":{"z":"GR35I 116892/A01","q":5290,"p":300,"k":2.5,"a":1.3},"ps":"400V/3ph/50Hz","sf":{"z":"GR35I 116893/A01","q":6840,"p":280,"k":3.3,"a":2.9},"hc":[34.5,4.3],"cc":[89.5],"hr":{"t":"cross flow","e":61.67,"k":27.11}}};
+// البناية الفرعية (1A/1B/1C) لوحدات بناية 1: من السطح الذي تقف عليه الوحدة، وسطح 1D لا توجد له بناية في الطوابق فتبقى غير محددة
+const HB_SUB_OVERRIDE = { "AHU-38": "1A" };
+function hbSubBuilding(id, loc) {
+    if (HB_SUB_OVERRIDE[id]) return HB_SUB_OVERRIDE[id];
+    const l = String(loc || "").toUpperCase();
+    return /^1[A-C]$/.test(l) ? l : "";
+}
+const HB_SUB_UNKNOWN = "بناية 1 (1A أو 1B أو 1C — غير محدد)";
+const HB_AHU_SERVES = {"AHU-17":["1",[2]],"FAHU-23":["1",[2]],"FAHU-43":["1",[2]],"FAHU-18":["1",[0,1]],"FAHU-19":["1",[0]],"AHU-21":["1",[0]],"AHU-22":["1",[0]],"AHU-28":["1",[1]],"AHU-24":["1",[1]],"AHU-25":["1",[1]],"AHU-26":["1",[1]],"AHU-27":["1",[1]],"AHU-30":["1",[1]],"AHU-31":["1",[1]],"AHU-32":["1",[1]],"AHU-33":["1",[1]],"AHU-34":["1",[1]],"AHU-35":["1",[1]],"AHU-36":["1",[1]],"AHU-37":["1",[1]],"AHU-38":["1",[1]],"AHU-39":["1",[1]],"FAHU-1":["2، 3، 14",[0,1,2]],"FAHU-2":["2، 3، 14",[0,1,2]],"AHU-4":["5",[1]],"FAHU-8":["5",[0,1]],"AHU-9":["4",[1]],"FAHU-10":["4",[0]],"FAHU-7":["6",[0,1]],"FAHU-6":["7",[0,1]],"FAHU-5":["8",[2]],"AHU-12":["8",[1]],"FAHU-41":["8",[0,1]],"FAHU-3":["9",[0,1,2]],"AHU-14":["9",[1,2]],"AHU-47":["9",[0]],"FAHU-11":["10",[0,1,2]],"AHU-49":["10",[0]],"AHU-50":["10",[0]],"FAHU-13":["11",[1,2]],"AHU-51":["11",[0]],"FAHU-15":["12",[1,2]],"AHU-46":["12",[1,2]],"FAHU-48":["12",[0]],"FAHU-16":["13",[0,1,2]],"AHU-20":["13",[2]]};
+function hbServesHtml(id) {
+    const d = HB_AHU_SERVES[id];
+    if (!d) return "";
+    const names = ["الطابق الأرضي", "الطابق الأول", "الطابق الثاني"];
+    const lv = d[1].map(n => names[n]).join(" + ");
+    let label = "بناية " + d[0];
+    if (d[0] === "1") {
+        const u = HB_AHU_UNITS.find(x => x.id === id);
+        const sub = hbSubBuilding(id, u && u.loc);
+        label = sub ? "بناية " + sub : HB_SUB_UNKNOWN;
+    }
+    return `<span><em>تخدم · Serves</em><i>${escapeHTML(label + " — " + lv)}</i></span>`;
+}
+function hbServingUnits(floorKey, item) {
+    // الدافعات التي تخدم هذه البناية في هذا الطابق (من جداول وفروع مخططات الرايزر)
+    if (!item || item.kind === "r") return [];
+    const lvl = { ground: 0, first: 1, second: 2 }[floorKey];
+    if (lvl == null) return [];
+    const num = String(item.num).toUpperCase();
+    const out = [];
+    Object.keys(HB_AHU_SERVES).forEach(id => {
+        const d = HB_AHU_SERVES[id];
+        if (d[1].indexOf(lvl) < 0) return;
+        const blds = d[0].split("،").map(x => x.trim());
+        if (blds[0] === "1") {
+            const u = HB_AHU_UNITS.find(x => x.id === id);
+            if (hbSubBuilding(id, u && u.loc) === num) out.push(id);
+        } else if (blds.indexOf(String(item.num)) >= 0) {
+            out.push(id);
+        }
+    });
+    return out;
+}
+const HB_CF_SERVES = {"CF-1.1":["1",[2]],"CF-1.2":["1",[2]],"CF-1.3":["1",[1]],"CF-1.4":["1",[2]],"CF-1.5":["1",[1]],"CF-1.6":["1",[0]],"CF-1.7":["1",[0]],"CF-4.1":["4",[0,1]],"CF-5.1":["5",[0,1]],"CF-6.1":["6",[1]],"CF-6.2":["6",[0]],"CF-7.1":["7",[0,1]],"CF-8.1":["8",[1,2]],"CF-9.1":["9",[0,1,2]],"CF-10.1":["10",[0,1,2]],"CF-10.4":["10",[0]],"CF-10.6":["11",[0]],"CF-11.1":["11",[1,2]],"CF-12.1":["12",[1,2]],"CF-13.1":["13",[0,1,2]],"CF-15.1":["15",[0,1]],"CF-16.1":["16",[0,1]]};
+function hbCfServesHtml(id) {
+    const d = HB_CF_SERVES[id];
+    if (!d) return "";
+    const names = ["الطابق الأرضي", "الطابق الأول", "الطابق الثاني"];
+    let label = "بناية " + d[0];
+    if (d[0] === "1") {
+        const u = HB_FC_UNITS.find(x => x.id === id);
+        const sub = hbSubBuilding(id, u && u.loc);
+        label = sub ? "بناية " + sub : HB_SUB_UNKNOWN;
+    }
+    return `<span><em>تخدم · Serves</em><i>${escapeHTML(label + " — " + d[1].map(n => names[n]).join(" + "))}</i></span>`;
+}
+function hbServingCf(floorKey, item) {
+    // الساحبات (CF) التي تخدم هذه البناية في هذا الطابق
+    if (!item || item.kind === "r") return [];
+    const lvl = { ground: 0, first: 1, second: 2 }[floorKey];
+    if (lvl == null) return [];
+    const num = String(item.num).toUpperCase();
+    const out = [];
+    Object.keys(HB_CF_SERVES).forEach(id => {
+        const d = HB_CF_SERVES[id];
+        if (d[1].indexOf(lvl) < 0) return;
+        if (d[0] === "1") {
+            const u = HB_FC_UNITS.find(x => x.id === id);
+            if (hbSubBuilding(id, u && u.loc) === num) out.push(id);
+        } else if (d[0] === String(item.num)) {
+            out.push(id);
+        }
+    });
+    return out;
+}
 function hbSpecHtml(id) {
     const d = HB_AHU_SPECS[id];
     if (!d) return "";
@@ -11193,6 +11267,54 @@ const HB_COUNT_FIELDS = [
     { key: "sinks", label: "السنك", en: "Sinks" },
     { key: "toilets", label: "التواليت", en: "Toilets" }
 ];
+// أعداد الكابينات والطفايات المستخرجة من مخططات الإطفاء (FF.FP) — طفايات البودرة 6كغ وCO2 5كغ.
+// القيمة المحفوظة يدوياً تتغلّب عليها. بنايات 2 و3 و14 و17 لم تُستخرج بعد فتبقى فارغة.
+const HB_FF_COUNTS = {
+    "ground_b_1A": { hoseCabinets: 3, extinguishers: 8 },
+    "ground_b_1B": { hoseCabinets: 3, extinguishers: 5 },
+    "ground_b_1C": { hoseCabinets: 5, extinguishers: 14 },
+    "ground_b_4": { hoseCabinets: 1, extinguishers: 5 },
+    "ground_b_5": { hoseCabinets: 2, extinguishers: 3 },
+    "ground_b_6": { hoseCabinets: 1, extinguishers: 11 },
+    "ground_b_7": { hoseCabinets: 2, extinguishers: 3 },
+    "ground_b_8": { hoseCabinets: 2, extinguishers: 4 },
+    "ground_b_9": { hoseCabinets: 3, extinguishers: 5 },
+    "ground_b_10": { hoseCabinets: 4, extinguishers: 4 },
+    "ground_b_11": { hoseCabinets: 1, extinguishers: 6 },
+    "ground_b_12": { hoseCabinets: 1, extinguishers: 3 },
+    "ground_b_13": { hoseCabinets: 2, extinguishers: 3 },
+    "ground_b_15": { hoseCabinets: 3, extinguishers: 7 },
+    "ground_b_16": { hoseCabinets: 3, extinguishers: 7 },
+    "first_b_1A": { hoseCabinets: 2, extinguishers: 9 },
+    "first_b_1B": { hoseCabinets: 4, extinguishers: 7 },
+    "first_b_1C": { hoseCabinets: 6, extinguishers: 12 },
+    "first_b_4": { hoseCabinets: 1, extinguishers: 3 },
+    "first_b_5": { hoseCabinets: 1, extinguishers: 3 },
+    "first_b_6": { hoseCabinets: 1, extinguishers: 4 },
+    "first_b_7": { hoseCabinets: 1, extinguishers: 4 },
+    "first_b_8": { hoseCabinets: 3, extinguishers: 3 },
+    "first_b_9": { hoseCabinets: 3, extinguishers: 4 },
+    "first_b_10": { hoseCabinets: 2, extinguishers: 3 },
+    "first_b_11": { hoseCabinets: 3, extinguishers: 4 },
+    "first_b_12": { hoseCabinets: 2, extinguishers: 4 },
+    "first_b_13": { hoseCabinets: 2, extinguishers: 3 },
+    "first_b_15": { hoseCabinets: 3, extinguishers: 8 },
+    "first_b_16": { hoseCabinets: 3, extinguishers: 7 },
+    "second_b_1B": { hoseCabinets: 3, extinguishers: 3 },
+    "second_b_1C": { hoseCabinets: 3, extinguishers: 6 },
+    "second_b_8": { hoseCabinets: 1, extinguishers: 4 },
+    "second_b_9": { hoseCabinets: 2, extinguishers: 4 },
+    "second_b_10": { hoseCabinets: 2, extinguishers: 3 },
+    "second_b_11": { hoseCabinets: 3, extinguishers: 4 },
+    "second_b_12": { hoseCabinets: 3, extinguishers: 4 },
+    "second_b_13": { hoseCabinets: 3, extinguishers: 2 }
+};
+function hbCountVal(floorKey, item, key) {
+    const rec = hbData[hbId(floorKey, item)] || {};
+    if (rec[key] !== undefined && rec[key] !== null && rec[key] !== "") return rec[key];
+    const d = HB_FF_COUNTS[hbId(floorKey, item)];
+    return d && d[key] !== undefined ? d[key] : null;
+}
 let hbActiveFloor = "ground";
 let hbActiveItem = null;
 let hbEditing = false;
@@ -11253,7 +11375,18 @@ function renderHospitalBuildings() {
         </button>`).join("");
 
     const floor = HB_FLOORS.find(f => f.key === hbActiveFloor) || HB_FLOORS[0];
-    subEl.textContent = floor.nameAr + " — " + floor.items.length + " " + (floor.key === "roof" ? "سطح" : "بناية/سطح");
+    const hbSum = key => {
+        let total = 0, filled = 0;
+        floor.items.forEach(it => {
+            const v = hbCountVal(floor.key, it, key);
+            if (v !== undefined && v !== null && v !== "" && !isNaN(Number(v))) { total += Number(v); filled++; }
+        });
+        return { total, filled };
+    };
+    const hbCab = hbSum("hoseCabinets"), hbExt = hbSum("extinguishers");
+    const hbTot = (label, en, r) => `<span style="display:inline-block;margin:6px 0 0 14px"><b>${escapeHTML(label)}</b> · ${escapeHTML(en)}: <b>${r.filled ? r.total : "—"}</b> <small>(${r.filled}/${floor.items.length})</small></span>`;
+    subEl.innerHTML = escapeHTML(floor.nameAr + " — " + floor.items.length + " " + (floor.key === "roof" ? "سطح" : "بناية/سطح"))
+        + (floor.key === "roof" ? "" : "<br>" + hbTot("الكابينات", "Hose Cabinets", hbCab) + hbTot("الطفايات", "Extinguishers", hbExt));
     gridEl.innerHTML = floor.items.map(it => {
         const st = (hbData[hbId(floor.key, it)] || {}).status || "";
         const cls = st ? " st-" + st : "";
@@ -11274,11 +11407,19 @@ function renderHospitalBuildings() {
         if (hbActiveItem.kind !== "r") {
             const units = hbFanUnits(floor.key, hbActiveItem);
             HB_COUNT_FIELDS.forEach(f => {
-                let v = rec[f.key] == null ? "" : String(rec[f.key]);
+                const cv = hbCountVal(floor.key, hbActiveItem, f.key);
+                let v = cv == null ? "" : String(cv);
                 if (f.key === "fanCoils" && v === "" && units.length) v = String(units.length);
                 rows.push(row(f, v));
             });
-            rows.push(row(HB_PUMP_LABEL, rec.pump || ""));
+            // دافعة رقم: القيمة المكتوبة يدوياً إن وُجدت، وإلا الدافعات المستخرجة من المخططات
+            const autoAhu = hbServingUnits(floor.key, hbActiveItem);
+            if (rec.pump || !autoAhu.length) rows.push(row(HB_PUMP_LABEL, rec.pump || ""));
+            else rows.push(`<div class="hb-row"><span class="hb-k">${escapeHTML(HB_PUMP_LABEL.label)}<small>${escapeHTML(HB_PUMP_LABEL.en)}</small></span><span class="hb-v">${autoAhu.map(id => `<b class="hb-ltr">${escapeHTML(id)}</b>`).join(" · ")}</span></div>`);
+        }
+        if (hbActiveItem.kind !== "r") {
+            const cfs = hbServingCf(floor.key, hbActiveItem);
+            rows.push(`<div class="hb-row"><span class="hb-k">مخدومة من قبل ساحبة رقم<small>Served by Exhaust Fan No.</small></span><span class="hb-v${cfs.length ? "" : " is-empty"}">${cfs.length ? cfs.map(id => `<b class="hb-ltr">${escapeHTML(id)}</b>`).join(" · ") : "—"}</span></div>`);
         }
         rows.push(row(HB_STATUS_LABEL, rec.status ? HB_STATUSES[rec.status] : ""));
         rows.push(row(HB_NOTES_LABEL, rec.notes || ""));
@@ -11292,6 +11433,7 @@ function renderHospitalBuildings() {
                     <b class="hb-ltr">${escapeHTML(u.id)}</b>
                     <span><em>الحالة · Status</em><select class="hb-unit-status" onchange="hbSetUnitStatus('${u.id}', this.value)">${Object.keys(HB_UNIT_STATUSES).map(k =>
                         `<option value="${k}"${hbUnitStatus(floor.key, hbActiveItem, u.id) === k ? " selected" : ""}>${escapeHTML(HB_UNIT_STATUSES[k])}</option>`).join("")}</select></span>
+                    ${hbCfServesHtml(u.id)}
                     <span><em>الدكت الخارجي · Duct</em><i class="hb-ltr">${escapeHTML(u.duct)}</i></span>
                     <span><em>كمية الهواء · Air Flow</em><i class="hb-ltr">${escapeHTML(String(u.air))} m³/h</i></span>
                     ${u.notes ? `<span class="hb-unit-note"><em>ملاحظات · Notes</em><i>${escapeHTML(u.notes)}</i></span>` : ""}
@@ -11303,6 +11445,7 @@ function renderHospitalBuildings() {
                     <b class="hb-ltr">${escapeHTML(u.id)}</b>
                     ${HB_AHU_SPECS[u.id] ? `<span><em>هواء التغذية · Supply Air</em><i class="hb-ltr">${HB_AHU_SPECS[u.id].sa} m³/h</i></span>
                     <span><em>هواء الراجع · Return Air</em><i class="hb-ltr">${HB_AHU_SPECS[u.id].ra} m³/h</i></span>` : ""}
+                    ${hbServesHtml(u.id)}
                     <span><em>مخدومة من قبل دافعة رقم · Served by Pump No.</em><input type="text" class="hb-unit-pump" value="${escapeHTML(hbUnitPump(floor.key, hbActiveItem, u.id))}" placeholder="—" onchange="hbSetUnitPump('${u.id}', this.value)"></span>
                     ${hbSpecHtml(u.id)}
                 </div>`;
@@ -11317,7 +11460,7 @@ function renderHospitalBuildings() {
         <h3>${escapeHTML(hbLabel(hbActiveItem))}${hbActiveItem.name ? " — " + escapeHTML(hbActiveItem.name) : ""} — ${escapeHTML(floor.nameAr)}</h3>
         ${hbActiveItem.kind === "r" ? "" : `<div class="hb-fields">
             ${HB_COUNT_FIELDS.map(f => `<div><label for="hbf_${f.key}">${escapeHTML(f.label)} · ${escapeHTML(f.en)}</label>
-                <input type="number" min="0" step="1" inputmode="numeric" id="hbf_${f.key}" value="${rec[f.key] == null ? "" : escapeHTML(String(rec[f.key]))}"></div>`).join("")}
+                <input type="number" min="0" step="1" inputmode="numeric" id="hbf_${f.key}" value="${hbCountVal(floor.key, hbActiveItem, f.key) == null ? "" : escapeHTML(String(hbCountVal(floor.key, hbActiveItem, f.key)))}"></div>`).join("")}
             <div class="hb-wide"><label for="hbf_pump">${escapeHTML(HB_PUMP_LABEL.label)} · ${escapeHTML(HB_PUMP_LABEL.en)}</label>
                 <input type="text" id="hbf_pump" value="${escapeHTML(rec.pump || "")}" placeholder="مثال: 1 أو 1 و2"></div>
         </div>`}
