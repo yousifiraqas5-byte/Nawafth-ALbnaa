@@ -93,11 +93,12 @@ service cloud.firestore {
       allow write: if isFuelEditor();
     }
 
-    // سجل قراءات خزانات الكاز (إضافة فقط: لا تعديل ولا حذف حتى يبقى السجل التاريخي سليماً)
+    // سجل قراءات خزانات الكاز (إضافة وإنشاء؛ الحذف مسموح للمحرّر الوحيد لإزالة قراءة خاطئة)
     match /fuelTankReadings/{documentId} {
       allow read: if true;
       allow create: if isFuelEditor();
-      allow update, delete: if false;
+      allow update: if false;
+      allow delete: if isFuelEditor();
     }
 
     // جدول توريد الكاز (الحمولات الواصلة) — الكتابة للمحرّر الوحيد فقط

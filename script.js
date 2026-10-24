@@ -7262,6 +7262,28 @@ async function saveFuelReading() {
 // سجل الحركات (القراءات السابقة)
 // ============================================================
 
+async function deleteFuelReading(readingId) {
+    if (!readingId) return;
+    if (!requireLoginForWrite(function () { deleteFuelReading(readingId); })) return;
+
+    if (!window.confirm("هل أنت متأكد من حذف هذه القراءة؟ سيؤثر ذلك على حساب الحركة في السجل.")) {
+        return;
+    }
+
+    const db = getFirestoreDB();
+    if (!db) return;
+
+    try {
+        const fs = await import(FUEL_FIRESTORE_URL);
+        await withFuelTimeout(fs.deleteDoc(fs.doc(db, FUEL_READINGS_COLLECTION, readingId)), FUEL_SAVE_TIMEOUT_MS);
+        fuelHistory = fuelHistory.filter(function (h) { return h.id !== readingId; });
+        renderFuelHistory();
+        showMessage("تم حذف القراءة بنجاح", "success");
+    } catch (error) {
+        handleFuelSaveError(error, "حذف القراءة");
+    }
+}
+
 function renderFuelHistory() {
     const box = document.getElementById("fuelHistory");
     const filterEl = document.getElementById("fuelHistoryFilter");
@@ -7285,6 +7307,8 @@ function renderFuelHistory() {
         box.innerHTML = '<p class="fuel-muted">لا توجد حركات مسجلة بعد. كل قراءة تُدخلها ستظهر هنا بتاريخها ووقتها.</p>';
         return;
     }
+
+    const head = '<thead><tr><th>التاريخ والوقت</th><th>الخزان</th><th>القراءة المُدخلة</th><th>الكمية السابقة</th><th>الحركة</th><th>الكمية بعد القراءة</th><th>أدخلها</th><th>إجراءات</th></tr></thead>';
 
     const body = rows.map(function (h) {
         const methodLabel = FuelCalc.METHODS[h.method] ? FuelCalc.METHODS[h.method].short : "";
@@ -7313,12 +7337,12 @@ function renderFuelHistory() {
             '<td data-label="الحركة">' + movement + '</td>' +
             '<td data-label="الكمية بعد القراءة"><b>' + (typeof h.volumeL === "number" ? formatFuelLiters(h.volumeL) : "—") + '</b></td>' +
             '<td data-label="أدخلها">' + escapeHTML(h.createdBy || "—") + '</td>' +
+            '<td data-label="إجراءات"><button type="button" class="fuel-del-btn" title="حذف هذه القراءة" onclick="deleteFuelReading(\'' + h.id + '\')">🗑️</button></td>' +
         '</tr>';
     }).join("");
 
     box.innerHTML =
-        '<div class="fuel-table-wrap"><table class="fuel-table">' +
-        '<thead><tr><th>التاريخ والوقت</th><th>الخزان</th><th>القراءة المُدخلة</th><th>الكمية السابقة</th><th>الحركة</th><th>الكمية بعد القراءة</th><th>أدخلها</th></tr></thead>' +
+        '<div class="fuel-table-wrap"><table class="fuel-table">' + head +
         '<tbody>' + body + '</tbody></table></div>' +
         (fuelHistory.length >= FUEL_HISTORY_LIMIT || rows.length >= FUEL_HISTORY_SHOWN
             ? '<p class="fuel-muted">يعرض آخر ' + FUEL_HISTORY_SHOWN + ' حركة (السجل الكامل محفوظ في قاعدة البيانات).</p>' : '');
