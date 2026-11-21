@@ -154,22 +154,31 @@ t("typeFields يعيد حقولاً معروفة", () => {
 });
 
 console.log("مجموعات واجهة مكافحة الحريق");
-t("ثلاث مجموعات بمعرّفات وأيقونات", () => {
-  assert.strictEqual(M.FF_GROUPS.length, 3);
-  assert.deepStrictEqual(M.FF_GROUPS.map((g) => g.id), ["pump-set", "extinguishers", "fixed"]);
+t("ست مجموعات (خمس رئيسية + حاوية للمعدات الأخرى) بمعرّفات وأيقونات", () => {
+  assert.strictEqual(M.FF_GROUPS.length, 6);
+  assert.deepStrictEqual(M.FF_GROUPS.map((g) => g.id), ["pump-set", "extinguishers", "hydrants", "hose-cabinets", "foam", "fixed"]);
   M.FF_GROUPS.forEach((g) => assert.ok(g.icon && g.name && g.nameEn));
 });
 t("ffGroupOf يصنّف الأنواع صحيحاً", () => {
   assert.strictEqual(M.ffGroupOf("Fire Pumps"), "pump-set");
   assert.strictEqual(M.ffGroupOf("Jockey Pumps"), "pump-set");
   assert.strictEqual(M.ffGroupOf("Fire Extinguishers"), "extinguishers");
-  assert.strictEqual(M.ffGroupOf("Fire Hydrants"), "fixed");
+  assert.strictEqual(M.ffGroupOf("Fire Hydrants"), "hydrants");
+  assert.strictEqual(M.ffGroupOf("Fire Hose Cabinets"), "hose-cabinets");
+  assert.strictEqual(M.ffGroupOf("Foam Fire Extinguishers"), "foam");
   assert.strictEqual(M.ffGroupOf("Sprinkler Systems"), "fixed");
   assert.strictEqual(M.ffGroupOf("نوع مجهول"), "fixed"); // الحاوية الافتراضية
 });
 t("ffGroupOf يحترم ffGroup الصريح", () => {
   assert.strictEqual(M.ffGroupOf({ ffGroup: "extinguishers", type: "Valves" }), "extinguishers");
   assert.strictEqual(M.ffGroupOf({ type: "Fire Pumps" }), "pump-set");
+});
+t("ffGroupOf: ffGroup القديم «fixed» يُعاد تصنيفه حسب النوع، ونوع الكتالوج له الأولوية", () => {
+  assert.strictEqual(M.ffGroupOf({ ffGroup: "fixed", type: "Fire Hydrant", catalogTypeId: "ff-type-fixed-hydrant" }), "hydrants");
+  assert.strictEqual(M.ffGroupOf({ ffGroup: "fixed", type: "Fire Hydrants" }), "hydrants");
+  assert.strictEqual(M.ffGroupOf({ ffGroup: "fixed", type: "Valves" }), "fixed");
+  // وحدة رغوة سُجّلت سابقاً ضمن المطفآت تظهر الآن ضمن الرغوة
+  assert.strictEqual(M.ffGroupOf({ ffGroup: "extinguishers", type: "50kg Foam", catalogTypeId: "ff-type-ext-50kg-foam" }), "foam");
 });
 t("نوع Fire Extinguishers مضاف للقسم وله قوالب حقول", () => {
   assert.ok(M.deptTypes("fire-fighting").includes("Fire Extinguishers"));
@@ -208,14 +217,14 @@ t("50kgm foam: الوصف الأصلي محفوظ والاسم المعروض م
   assert.strictEqual(f.name, "50kg Foam");
   assert.ok(f.notes.includes("50kgm foam"));
 });
-t("المعدات الثابتة: حنفيات 15 وصناديق 130", () => {
+t("المستشفى: حنفيات 15 وصناديق 130", () => {
   const h = M.FF_CATALOG_SEED.find((c) => c.id === "ff-type-fixed-hydrant");
   const c2 = M.FF_CATALOG_SEED.find((c) => c.id === "ff-type-fixed-hose-cabinet");
   assert.strictEqual(h.approvedQuantity, 15);
   assert.strictEqual(c2.approvedQuantity, 130);
 });
 t("الملحقات بلا كميات (null) لأن المصدر لا يذكرها", () => {
-  const acc = M.FF_CATALOG_SEED.filter((c) => c.ffGroup === "pump-set");
+  const acc = M.FF_CATALOG_SEED.filter((c) => c.ffGroup === "pump-set" && c.facility === "hospital");
   assert.strictEqual(acc.length, 4);
   acc.forEach((a) => {
     assert.strictEqual(a.approvedQuantity, null);
@@ -227,7 +236,73 @@ t("معرفات ثابتة وغير مكررة", () => {
   assert.strictEqual(new Set(ids).size, ids.length);
 });
 t("كل سجل في المجموعة الصحيحة", () => {
-  M.FF_CATALOG_SEED.forEach((c) => assert.ok(["pump-set", "extinguishers", "fixed"].includes(c.ffGroup), c.id));
+  const ids = M.FF_GROUPS.map((g) => g.id);
+  M.FF_CATALOG_SEED.forEach((c) => assert.ok(ids.includes(c.ffGroup), c.id));
+  M.FF_CATALOG_SEED.forEach((c) => assert.ok(c.facility === "hospital" || c.facility === "complex", c.id));
+});
+
+console.log("فصل المستشفى عن المجمع");
+t("أعداد المجمع المسجلة: مطافئ 12 وصناديق 12 ومضخات 3", () => {
+  const cx = M.FF_CATALOG_SEED.filter((c) => c.facility === "complex");
+  const q = (g) => cx.filter((c) => c.ffGroup === g).reduce((a, c) => a + c.approvedQuantity, 0);
+  assert.strictEqual(q("extinguishers"), 12);
+  assert.strictEqual(q("hose-cabinets"), 12);
+  assert.strictEqual(q("pump-set"), 3);
+});
+t("أعداد المستشفى لا تتأثر بالمجمع: حنفيات 15، صناديق 130، رغوة 4، مضخات 3", () => {
+  const h = M.ffApprovedTotals("hospital").byGroup;
+  assert.strictEqual(h.hydrants, 15);
+  assert.strictEqual(h["hose-cabinets"], 130);
+  assert.strictEqual(h.foam, 4);
+  assert.strictEqual(h["pump-set"], 3);
+  assert.strictEqual(h.extinguishers, 221 + 14 + 38);
+  const c = M.ffApprovedTotals("complex").byGroup;
+  assert.strictEqual(c.hydrants, 0);
+  assert.strictEqual(c["hose-cabinets"], 12);
+});
+t("ffApprovedTotals لا يدمج الجهتين", () => {
+  const h = M.ffApprovedTotals("hospital").total, c = M.ffApprovedTotals("complex").total;
+  assert.strictEqual(h, 3 + 273 + 15 + 130 + 4);
+  assert.strictEqual(c, 3 + 12 + 12);
+});
+t("ffFacilityOf: الحقل الصريح ثم المضخات المعتمدة ثم الكتالوج، وإلا غير محددة", () => {
+  assert.strictEqual(M.ffFacilityOf({ id: "x", facility: "complex" }), "complex");
+  assert.strictEqual(M.ffFacilityOf({ id: "ff-pump-diesel" }), "hospital");
+  assert.strictEqual(M.ffFacilityOf({ id: "y", catalogTypeId: "ff-cx-extinguishers" }), "complex");
+  assert.strictEqual(M.ffFacilityOf({ id: "z" }), "unassigned");
+  assert.strictEqual(M.ffFacilityOf(null), "unassigned");
+});
+t("ffScopeData يعزل المعدات والأوامر لكل جهة دون خلط", () => {
+  const data = {
+    equipment: [{ id: "a", facility: "hospital" }, { id: "b", facility: "complex" }, { id: "c" }],
+    orders: [{ id: "o1", equipmentId: "a" }, { id: "o2", equipmentId: "b" }, { id: "o3", facility: "complex" }, { id: "o4" }],
+    plans: [], pmLogs: [{ id: "l1", equipmentId: "b" }], types: []
+  };
+  const h = M.ffScopeData(data, "hospital"), c = M.ffScopeData(data, "complex"), u = M.ffScopeData(data, "unassigned");
+  assert.deepStrictEqual(h.equipment.map((e) => e.id), ["a"]);
+  assert.deepStrictEqual(h.orders.map((o) => o.id), ["o1"]);
+  assert.deepStrictEqual(c.equipment.map((e) => e.id), ["b"]);
+  assert.deepStrictEqual(c.orders.map((o) => o.id), ["o2", "o3"]);
+  assert.deepStrictEqual(c.pmLogs.map((l) => l.id), ["l1"]);
+  assert.deepStrictEqual(u.equipment.map((e) => e.id), ["c"]);
+  assert.deepStrictEqual(u.orders.map((o) => o.id), ["o4"]);
+});
+t("ffCatalogCounts تفصل وحدات الجهتين بنوع الكتالوج", () => {
+  const types = M.FF_CATALOG_SEED.filter((c) => c.ffGroup === "extinguishers");
+  const units = [
+    { id: "u1", catalogTypeId: "ff-cx-extinguishers", type: "Fire Extinguishers — Complex" },
+    { id: "u2", catalogTypeId: "ff-type-ext-6kg-dp-portable", type: "x" }
+  ];
+  const r = M.ffCatalogCounts(types, units, []);
+  assert.strictEqual(r["ff-cx-extinguishers"].registered, 1);
+  assert.strictEqual(r["ff-type-ext-6kg-dp-portable"].registered, 1);
+  assert.strictEqual(r["ff-type-ext-5kg-co2-portable"].registered, 0);
+});
+t("ffMode: المحمولة والأوتوماتيكية محددة فقط حيث ورد في المصدر", () => {
+  const by = (id) => M.FF_CATALOG_SEED.find((c) => c.id === id);
+  assert.strictEqual(by("ff-type-ext-6kg-dp-portable").ffMode, "portable");
+  assert.strictEqual(by("ff-type-ext-12kg-dp-top-auto").ffMode, "automatic");
+  assert.strictEqual(by("ff-cx-extinguishers").ffMode, null);
 });
 t("حالة UNVERIFIED معرّفة وغير محسوبة عاملة أو متوقفة", () => {
   assert.ok(M.EQUIPMENT_STATUSES.includes("UNVERIFIED"));
