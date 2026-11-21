@@ -2052,7 +2052,9 @@ content="default"
     .fuelx-overlay .fuel-move { font-weight: 700; }
     .fuelx-overlay .fuel-move.is-up { color: #047857; }
     .fuelx-overlay .fuel-move.is-down { color: #b91c1c; }
-    #fuelTanksPage .fuel-detail-btn { margin-top: 8px; width: 100%; }
+    #fuelTanksPage .fuel-tank-name.is-link { cursor: pointer; text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 4px; }
+    #fuelTanksPage .fuel-tank-name.is-link:hover, #fuelTanksPage .fuel-tank-name.is-link:focus-visible { color: var(--fuel-green); outline: none; }
+    #fuelTanksPage .fuel-name-hint { font-size: .85em; text-decoration: none; display: inline-block; }
     #fuelTanksPage #fuelDlForm { margin-bottom: 14px; }
     #fuelTanksPage .fuel-dl-wrap { overflow-x: auto; background: #fff; border: 1px solid var(--fuel-border); border-radius: 14px; }
     #fuelTanksPage .fuel-dl-table { width: 100%; min-width: 760px; border-collapse: collapse; font-size: 13.5px; text-align: center; }

@@ -6828,7 +6828,10 @@ function renderFuelTanksCards(statesArg) {
             '<div class="fuel-tank-card-header">' +
                 '<span class="fuel-tank-no">' + def.no + '</span>' +
                 '<div class="fuel-tank-header-text">' +
-                    '<div class="fuel-tank-name">' + escapeHTML(fuelTankFullName(def)) + '</div>' +
+                    '<div class="fuel-tank-name is-link" role="button" tabindex="0" title="اضغط لعرض سجل الحركات والصرف اليومي" ' +
+                        'onclick="openFuelTankDetail(\'' + def.id + '\')" ' +
+                        'onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();openFuelTankDetail(\'' + def.id + '\');}">' +
+                        escapeHTML(fuelTankFullName(def)) + ' <span class="fuel-name-hint">📊</span></div>' +
                     '<div class="fuel-tank-capline">السعة الكلية: <b>' + formatFuelLiters(st.nominalL) + '</b></div>' +
                 '</div>' +
                 '<span class="fuel-badge is-' + statusClass + '">' + escapeHTML(statusLabel) + '</span>' +
@@ -6856,9 +6859,7 @@ function renderFuelTanksCards(statesArg) {
                 ? ''
                 : '<button type="button" class="fuel-btn" onclick="selectFuelTankForReading(\'' + def.id + '\')">' +
                     (st.status === "no_geometry" ? "⚙️ إعداد الأبعاد وإدخال قراءة" : "📝 تحديث القراءة") +
-                  '</button>' +
-                  '<button type="button" class="fuel-btn is-secondary fuel-detail-btn" onclick="openFuelTankDetail(\'' + def.id + '\')">' +
-                    '📊 السجل والصرف اليومي</button>');
+                  '</button>');
 
         grid.appendChild(card);
     });
