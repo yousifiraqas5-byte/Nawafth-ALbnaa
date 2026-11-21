@@ -7355,7 +7355,7 @@ function renderFuelHistory() {
 // ============================================================
 
 const FUEL_DETAIL_LIMIT = 300;
-const FUEL_CONSUMPTION_WINDOW_DAYS = 30;
+const FUEL_CONSUMPTION_WINDOW_DAYS = 7;   // معدل الصرف يُحسب من آخر أسبوع
 
 async function loadFuelTankReadings(tankId) {
     // فلتر بحقل واحد فقط (لا يحتاج فهرساً مركباً) ثم الترتيب في المتصفح
@@ -7440,7 +7440,7 @@ function renderFuelTankDetail(def, rowsRaw, failed) {
     let dailyTxt = "—", dailyNote = "", leftTxt = "—", leftNote = "";
     if (cons.status === "ok") {
         dailyTxt = formatFuelNumber(cons.dailyL) + '<small> لتر/يوم</small>';
-        dailyNote = 'معدل آخر ' + FUEL_CONSUMPTION_WINDOW_DAYS + ' يوماً (صُرف ' + formatFuelNumber(cons.consumedL) +
+        dailyNote = 'معدل آخر ' + FUEL_CONSUMPTION_WINDOW_DAYS + ' أيام (صُرف ' + formatFuelNumber(cons.consumedL) +
             ' لتر خلال ' + (Math.round(cons.spanDays * 10) / 10) + ' يوم)';
         if (cons.daysLeft !== null) {
             leftTxt = (cons.daysLeft >= 10 ? formatFuelNumber(cons.daysLeft) : String(cons.daysLeft)) + '<small> يوم</small>';
