@@ -226,4 +226,20 @@ console.log("الصرف اليومي");
   });
 }
 
+console.log("المنطقة المحرّمة");
+t("البويلر 1 و2: 1,350 لتر محرّمة والصالح = المتوفر − 1,350", () => {
+  const now = new Date();
+  ["boiler1", "boiler2"].forEach((id) => {
+    const st = F.deriveTankState(def(id), { reading: { value: 100, unit: "cm", method: "level_height" }, updatedAt: now }, F.DEFAULT_SETTINGS, now);
+    near(st.volumeL, 9000, 1); assert.strictEqual(st.deadL, 1350); near(st.usableL, 7650, 1);
+  });
+});
+t("أقل من المنطقة المحرّمة: الصالح صفر وبقية الخزانات بلا منطقة محرّمة", () => {
+  const now = new Date();
+  const low = F.deriveTankState(def("boiler1"), { reading: { value: 10, unit: "cm", method: "level_height" }, updatedAt: now }, F.DEFAULT_SETTINGS, now);
+  assert.strictEqual(low.usableL, 0);
+  const other = F.deriveTankState(def("complexGenerator"), { reading: { value: 115, unit: "cm", method: "top_distance" }, updatedAt: now }, F.DEFAULT_SETTINGS, now);
+  assert.strictEqual(other.deadL, 0);
+});
+
 console.log(`\n${passed} اختباراً نجح` + (process.exitCode ? " — مع إخفاقات" : ""));

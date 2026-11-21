@@ -59,11 +59,15 @@
         {
             id: "boiler1", no: 3, name: "الخزان 3", note: "خزان بويلر رقم 1",
             nominalL: 13500, shape: "rect", lengthM: 3, widthM: 3, heightM: 1.5,
+            // منطقة محرّمة: أول 1,350 لتر من القاع تحت أنبوب البويلر (غير صالحة للسحب)
+            deadL: 1350,
             method: "level_height", legacyQuantityOk: true
         },
         {
             id: "boiler2", no: 4, name: "الخزان 4", note: "خزان بويلر رقم 2",
             nominalL: 13500, shape: "rect", lengthM: 3, widthM: 3, heightM: 1.5,
+            // منطقة محرّمة: أول 1,350 لتر من القاع تحت أنبوب البويلر (غير صالحة للسحب)
+            deadL: 1350,
             method: "level_height", legacyQuantityOk: true
         },
         // الخزانات 1-3: أبعاد مستطيلة (الطول × العرض × الارتفاع الداخلي، بالمتر).
@@ -278,7 +282,8 @@
             volumeL: null, emptyL: null, percent: null, levelM: null,
             rawValue: null, unit: null,
             updatedAt: toDate(doc.updatedAt), updatedBy: doc.updatedBy || null,
-            stale: false, overflowL: 0, ageDays: null
+            stale: false, overflowL: 0, ageDays: null,
+            deadL: isNum(def.deadL) && def.deadL > 0 ? def.deadL : 0, usableL: null
         };
 
         // خزان ممتلئ دائماً بقرار المستخدم: كمية ثابتة بلا قراءات
@@ -328,6 +333,7 @@
         state.volumeL = volume;
         state.overflowL = volume > def.nominalL + 0.5 ? round(volume - def.nominalL, 1) : 0;
         state.emptyL = Math.max(0, round(def.nominalL - volume, 1));
+        state.usableL = Math.max(0, round(volume - state.deadL, 1));
         state.percent = (volume / def.nominalL) * 100;
 
         if (state.updatedAt) {

@@ -7433,7 +7433,8 @@ function renderFuelTankDetail(def, rowsRaw, failed) {
     });
 
     const consPoints = rows.map(function (h) { return { at: h.createdAt, volumeL: h.volumeL }; });
-    const consVolume = ok ? state.volumeL : null;
+    // الأيام المتبقية تُحسب من الكمية الصالحة للاستخدام (بعد استثناء المنطقة المحرّمة إن وُجدت)
+    const consVolume = ok ? state.usableL : null;
     let cons = FuelCalc.computeConsumption(consPoints, consVolume, new Date(),
         { windowDays: FUEL_CONSUMPTION_WINDOW_DAYS });
     // لا قراءات كافية في آخر أسبوع -> نجرّب آخر شهر
@@ -7466,12 +7467,16 @@ function renderFuelTankDetail(def, rowsRaw, failed) {
         '<div class="fuelx-tiles">' +
             '<div class="fuelx-tile"><span class="fuelx-tl">الكمية المتبقية</span>' +
                 '<span class="fuelx-tv">' + (ok ? formatFuelNumber(state.volumeL) + '<small> لتر</small>' : "—") + '</span>' +
-                '<span class="fuelx-tn">' + (ok ? formatFuelPercent(state.percent) + ' من السعة' : 'لا توجد قراءة') + '</span></div>' +
+                '<span class="fuelx-tn">' + (ok ? formatFuelPercent(state.percent) + ' من السعة' +
+                    (state.deadL > 0 ? ' · الصالح للاستخدام: <b>' + formatFuelNumber(state.usableL) + ' لتر</b>' : '') : 'لا توجد قراءة') + '</span></div>' +
             '<div class="fuelx-tile"><span class="fuelx-tl">الصرف اليومي</span>' +
                 '<span class="fuelx-tv">' + dailyTxt + '</span><span class="fuelx-tn">' + escapeHTML(dailyNote) + '</span></div>' +
             '<div class="fuelx-tile"><span class="fuelx-tl">تكفي لمدة</span>' +
                 '<span class="fuelx-tv">' + leftTxt + '</span><span class="fuelx-tn">' + escapeHTML(leftNote) + '</span></div>' +
         '</div>' +
+        (state.deadL > 0
+            ? '<p class="fuelx-dead">⚠️ <b>منطقة محرّمة:</b> أول ' + formatFuelNumber(state.deadL) +
+              ' لتر من قاع الخزان تقع تحت أنبوب البويلر ولا تُسحب. لذلك تُحسب الأيام المتبقية من الكمية الصالحة للاستخدام فقط.</p>' : '') +
         (cons.suppliedL > 0
             ? '<p class="fuelx-muted">ملاحظة: الزيادات (حمولات واصلة، ' + formatFuelNumber(cons.suppliedL) + ' لتر) لا تُحسب صرفاً.</p>' : '');
 
