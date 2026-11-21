@@ -6856,7 +6856,9 @@ function renderFuelTanksCards(statesArg) {
                 ? ''
                 : '<button type="button" class="fuel-btn" onclick="selectFuelTankForReading(\'' + def.id + '\')">' +
                     (st.status === "no_geometry" ? "⚙️ إعداد الأبعاد وإدخال قراءة" : "📝 تحديث القراءة") +
-                  '</button>');
+                  '</button>' +
+                  '<button type="button" class="fuel-btn is-secondary fuel-detail-btn" onclick="openFuelTankDetail(\'' + def.id + '\')">' +
+                    '📊 السجل والصرف اليومي</button>');
 
         grid.appendChild(card);
     });
@@ -7346,6 +7348,167 @@ function renderFuelHistory() {
         '<tbody>' + body + '</tbody></table></div>' +
         (fuelHistory.length >= FUEL_HISTORY_LIMIT || rows.length >= FUEL_HISTORY_SHOWN
             ? '<p class="fuel-muted">يعرض آخر ' + FUEL_HISTORY_SHOWN + ' حركة (السجل الكامل محفوظ في قاعدة البيانات).</p>' : '');
+}
+
+// ============================================================
+// تفاصيل خزان واحد: سجل الحركات + الصرف اليومي + الأيام المتبقية
+// ============================================================
+
+const FUEL_DETAIL_LIMIT = 300;
+const FUEL_CONSUMPTION_WINDOW_DAYS = 30;
+
+async function loadFuelTankReadings(tankId) {
+    // فلتر بحقل واحد فقط (لا يحتاج فهرساً مركباً) ثم الترتيب في المتصفح
+    try {
+        const db = getFirestoreDB();
+        if (!db) throw new Error("no db");
+        const fs = await import(FUEL_FIRESTORE_URL);
+        const q = fs.query(
+            fs.collection(db, FUEL_READINGS_COLLECTION),
+            fs.where("tankId", "==", tankId),
+            fs.limit(FUEL_DETAIL_LIMIT)
+        );
+        const snap = await withFuelTimeout(fs.getDocs(q), 15000);
+        const rows = [];
+        snap.forEach(function (d) { rows.push(Object.assign({ id: d.id }, d.data())); });
+        return { rows: rows, failed: false };
+    } catch (e) {
+        console.error("تعذر تحميل سجل الخزان:", e);
+        return {
+            rows: fuelHistory.filter(function (h) { return h.tankId === tankId; }),
+            failed: true
+        };
+    }
+}
+
+function closeFuelTankDetail() {
+    const el = document.getElementById("fuelxOverlay");
+    if (el) el.remove();
+    document.removeEventListener("keydown", fuelDetailEscHandler);
+}
+
+function fuelDetailEscHandler(e) {
+    if (e.key === "Escape") closeFuelTankDetail();
+}
+
+async function openFuelTankDetail(tankId) {
+    if (!fuelEngineReady()) return;
+    const def = fuelFindDef(tankId);
+    if (!def) return;
+
+    closeFuelTankDetail();
+    const overlay = document.createElement("div");
+    overlay.id = "fuelxOverlay";
+    overlay.className = "fuelx-overlay";
+    overlay.addEventListener("click", function (e) { if (e.target === overlay) closeFuelTankDetail(); });
+    overlay.innerHTML =
+        '<div class="fuelx-modal" role="dialog" aria-modal="true">' +
+            '<div class="fuelx-head"><div><div class="fuelx-title">' + escapeHTML(fuelTankFullName(def)) + '</div>' +
+            '<div class="fuelx-sub">السعة الكلية: <b>' + formatFuelLiters(def.nominalL) + '</b></div></div>' +
+            '<button type="button" class="fuelx-close" aria-label="إغلاق" onclick="closeFuelTankDetail()">✕</button></div>' +
+            '<div class="fuelx-body" id="fuelxBody"><p class="fuelx-muted">جارٍ تحميل السجل…</p></div>' +
+        '</div>';
+    document.body.appendChild(overlay);
+    document.addEventListener("keydown", fuelDetailEscHandler);
+
+    const result = await loadFuelTankReadings(tankId);
+    // قد يكون المستخدم أغلق النافذة أو فتح غيرها أثناء التحميل
+    if (!document.getElementById("fuelxOverlay") || overlay !== document.getElementById("fuelxOverlay")) return;
+    renderFuelTankDetail(def, result.rows, result.failed);
+}
+
+function renderFuelTankDetail(def, rowsRaw, failed) {
+    const body = document.getElementById("fuelxBody");
+    if (!body) return;
+
+    const state = FuelCalc.deriveTankState(def, fuelDocs[def.id], fuelSettings, new Date());
+    const ok = state.status === "ok";
+
+    // الأحدث أولاً
+    const rows = rowsRaw.slice().sort(function (a, b) {
+        const ta = FuelCalc.toDate(a.createdAt), tb = FuelCalc.toDate(b.createdAt);
+        return (tb ? tb.getTime() : 0) - (ta ? ta.getTime() : 0);
+    });
+
+    const cons = FuelCalc.computeConsumption(
+        rows.map(function (h) { return { at: h.createdAt, volumeL: h.volumeL }; }),
+        ok ? state.volumeL : null, new Date(),
+        { windowDays: FUEL_CONSUMPTION_WINDOW_DAYS }
+    );
+
+    // ---- بطاقات الأرقام الثلاث ----
+    let dailyTxt = "—", dailyNote = "", leftTxt = "—", leftNote = "";
+    if (cons.status === "ok") {
+        dailyTxt = formatFuelNumber(cons.dailyL) + '<small> لتر/يوم</small>';
+        dailyNote = 'معدل آخر ' + FUEL_CONSUMPTION_WINDOW_DAYS + ' يوماً (صُرف ' + formatFuelNumber(cons.consumedL) +
+            ' لتر خلال ' + (Math.round(cons.spanDays * 10) / 10) + ' يوم)';
+        if (cons.daysLeft !== null) {
+            leftTxt = (cons.daysLeft >= 10 ? formatFuelNumber(cons.daysLeft) : String(cons.daysLeft)) + '<small> يوم</small>';
+            leftNote = 'تقريباً حتى ' + formatFuelTankDate(cons.emptyDate);
+        }
+    } else if (cons.status === "no_consumption") {
+        dailyNote = "لا يوجد نقص بين القراءات (لا صرف مسجّل)";
+        leftNote = "لا يمكن التقدير بلا صرف";
+    } else {
+        dailyNote = "تحتاج قراءتين على الأقل بينهما نصف يوم أو أكثر وفيهما نقص";
+        leftNote = "يظهر بعد توفر قراءات كافية";
+    }
+
+    const tiles =
+        '<div class="fuelx-tiles">' +
+            '<div class="fuelx-tile"><span class="fuelx-tl">الكمية المتبقية</span>' +
+                '<span class="fuelx-tv">' + (ok ? formatFuelNumber(state.volumeL) + '<small> لتر</small>' : "—") + '</span>' +
+                '<span class="fuelx-tn">' + (ok ? formatFuelPercent(state.percent) + ' من السعة' : 'لا توجد قراءة') + '</span></div>' +
+            '<div class="fuelx-tile"><span class="fuelx-tl">الصرف اليومي</span>' +
+                '<span class="fuelx-tv">' + dailyTxt + '</span><span class="fuelx-tn">' + escapeHTML(dailyNote) + '</span></div>' +
+            '<div class="fuelx-tile"><span class="fuelx-tl">تكفي لمدة</span>' +
+                '<span class="fuelx-tv">' + leftTxt + '</span><span class="fuelx-tn">' + escapeHTML(leftNote) + '</span></div>' +
+        '</div>' +
+        (cons.suppliedL > 0
+            ? '<p class="fuelx-muted">ملاحظة: الزيادات (حمولات واصلة، ' + formatFuelNumber(cons.suppliedL) + ' لتر) لا تُحسب صرفاً.</p>' : '');
+
+    // ---- جدول الحركات ----
+    let table;
+    if (failed && !rows.length) {
+        table = '<p class="fuelx-muted">تعذر تحميل سجل هذا الخزان. تحقق من الاتصال ومن نشر قواعد Firestore.</p>';
+    } else if (!rows.length) {
+        table = '<p class="fuelx-muted">لا توجد حركات مسجلة لهذا الخزان بعد. كل قراءة تُدخلها ستظهر هنا.</p>';
+    } else {
+        const head = '<thead><tr><th>التاريخ والوقت</th><th>القراءة</th><th>الحركة</th><th>الصرف اليومي</th><th>الكمية بعد القراءة</th><th>أدخلها</th></tr></thead>';
+        const trs = rows.map(function (h, i) {
+            const prev = rows[i + 1];
+            let move, rate = '<span class="fuelx-muted">—</span>';
+            if (typeof h.deltaL !== "number") {
+                move = '<span class="fuel-move is-first">أول قراءة</span>';
+            } else if (h.deltaL > 0) {
+                move = '<span class="fuel-move is-up">▲ زيادة +' + formatFuelNumber(h.deltaL) + ' لتر</span>';
+            } else if (h.deltaL < 0) {
+                move = '<span class="fuel-move is-down">▼ نقص −' + formatFuelNumber(Math.abs(h.deltaL)) + ' لتر</span>';
+                const t1 = FuelCalc.toDate(h.createdAt), t0 = prev ? FuelCalc.toDate(prev.createdAt) : null;
+                if (t1 && t0) {
+                    const days = (t1.getTime() - t0.getTime()) / 86400000;
+                    if (days >= 0.25) rate = formatFuelNumber(Math.abs(h.deltaL) / days) + ' لتر/يوم';
+                }
+            } else {
+                move = '<span class="fuel-move">بلا تغيير</span>';
+            }
+            const methodLabel = FuelCalc.METHODS[h.method] ? FuelCalc.METHODS[h.method].short : "";
+            const reading = escapeHTML(h.value) + ' ' + fuelUnitLabel(h.unit) +
+                (methodLabel ? ' <span class="fuelx-muted">(' + escapeHTML(methodLabel) + ')</span>' : '');
+            return '<tr>' +
+                '<td data-label="التاريخ والوقت">' + escapeHTML(formatFuelDateTime(h.createdAt)) + '</td>' +
+                '<td data-label="القراءة">' + reading + '</td>' +
+                '<td data-label="الحركة">' + move + '</td>' +
+                '<td data-label="الصرف اليومي">' + rate + '</td>' +
+                '<td data-label="الكمية بعد القراءة"><b>' + (typeof h.volumeL === "number" ? formatFuelLiters(h.volumeL) : "—") + '</b></td>' +
+                '<td data-label="أدخلها">' + escapeHTML(h.createdBy || "—") + '</td>' +
+            '</tr>';
+        }).join("");
+        table = '<div class="fuelx-wrap"><table class="fuelx-table">' + head + '<tbody>' + trs + '</tbody></table></div>' +
+            (rows.length >= FUEL_DETAIL_LIMIT ? '<p class="fuelx-muted">يعرض آخر ' + FUEL_DETAIL_LIMIT + ' حركة.</p>' : '');
+    }
+
+    body.innerHTML = tiles + '<h4 class="fuelx-h">سجل الحركات</h4>' + table;
 }
 
 // ============================================================

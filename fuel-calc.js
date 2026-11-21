@@ -409,6 +409,58 @@
         return out;
     }
 
+    // ---------- الصرف اليومي والأيام المتبقية ----------
+    // readings: [{ at: Date|Timestamp, volumeL: number }] بأي ترتيب.
+    // الصرف = مجموع النقص بين قراءتين متتاليتين. الفترات التي حصلت فيها زيادة
+    // (تجهيز/وصول حمولة) تُستبعد كمية ومدة، لأن الصرف الحقيقي فيها مجهول.
+    function computeConsumption(readings, currentVolumeL, now, opts) {
+        opts = opts || {};
+        var windowDays = isNum(opts.windowDays) && opts.windowDays > 0 ? opts.windowDays : 30;
+        var minSpanDays = isNum(opts.minSpanDays) && opts.minSpanDays > 0 ? opts.minSpanDays : 0.5;
+        now = now || new Date();
+
+        var pts = (readings || []).map(function (r) {
+            return { t: toDate(r && r.at), v: r ? r.volumeL : null };
+        }).filter(function (p) { return p.t && isNum(p.v); })
+          .sort(function (a, b) { return a.t.getTime() - b.t.getTime(); });
+
+        // نبقي قراءة واحدة قبل بداية النافذة كنقطة ارتكاز
+        var startMs = now.getTime() - windowDays * 86400000;
+        var firstIn = pts.findIndex(function (p) { return p.t.getTime() >= startMs; });
+        if (firstIn === -1) pts = pts.slice(-1);
+        else if (firstIn > 0) pts = pts.slice(firstIn - 1);
+
+        var consumedL = 0, spanDays = 0, suppliedL = 0, intervals = 0;
+        for (var i = 1; i < pts.length; i++) {
+            var days = (pts[i].t.getTime() - pts[i - 1].t.getTime()) / 86400000;
+            var delta = pts[i].v - pts[i - 1].v;
+            if (days <= 0) continue;
+            if (delta > 0) { suppliedL += delta; continue; }
+            consumedL += -delta;
+            spanDays += days;
+            intervals++;
+        }
+
+        var out = {
+            readingsCount: pts.length, intervals: intervals,
+            consumedL: round(consumedL, 1), suppliedL: round(suppliedL, 1),
+            spanDays: round(spanDays, 2), windowDays: windowDays,
+            dailyL: null, daysLeft: null, emptyDate: null,
+            status: "insufficient"      // insufficient | no_consumption | ok
+        };
+        if (spanDays < minSpanDays || intervals < 1) return out;
+
+        if (consumedL <= 0) { out.status = "no_consumption"; return out; }
+
+        out.status = "ok";
+        out.dailyL = round(consumedL / spanDays, 1);
+        if (isNum(currentVolumeL) && currentVolumeL >= 0) {
+            out.daysLeft = round(currentVolumeL / out.dailyL, 1);
+            out.emptyDate = new Date(now.getTime() + out.daysLeft * 86400000);
+        }
+        return out;
+    }
+
     return {
         DEFAULT_SETTINGS: DEFAULT_SETTINGS,
         METHODS: METHODS,
@@ -430,6 +482,7 @@
         deriveTankState: deriveTankState,
         computeTotals: computeTotals,
         buildAlerts: buildAlerts,
+        computeConsumption: computeConsumption,
         toDate: toDate
     };
 });

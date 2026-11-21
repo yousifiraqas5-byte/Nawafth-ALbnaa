@@ -201,4 +201,29 @@ t("الإعدادات: قيم غير صالحة ترجع للافتراضي", ()
   assert.strictEqual(m.lowPercent, 20); assert.strictEqual(m.highPercent, 80); assert.strictEqual(m.staleDays, 7);
 });
 
+console.log("الصرف اليومي");
+{
+  const now = new Date("2026-11-20T12:00:00Z");
+  const d = (n) => new Date(now.getTime() - n * 86400000);
+  t("صرف منتظم: 1000 لتر/يوم والكمية المتبقية 5000 تكفي 5 أيام", () => {
+    const r = F.computeConsumption([{ at: d(3), volumeL: 8000 }, { at: d(2), volumeL: 7000 }, { at: d(1), volumeL: 6000 }, { at: d(0), volumeL: 5000 }], 5000, now);
+    assert.strictEqual(r.status, "ok"); assert.strictEqual(r.dailyL, 1000); assert.strictEqual(r.daysLeft, 5);
+  });
+  t("الزيادة (حمولة) تُستبعد ولا تُحسب صرفاً", () => {
+    const r = F.computeConsumption([{ at: d(3), volumeL: 8000 }, { at: d(2), volumeL: 6000 }, { at: d(1), volumeL: 12000 }, { at: d(0), volumeL: 11000 }], 11000, now);
+    assert.strictEqual(r.consumedL, 3000); assert.strictEqual(r.suppliedL, 6000); assert.strictEqual(r.dailyL, 1500);
+  });
+  t("قراءة واحدة: لا تكفي", () => {
+    assert.strictEqual(F.computeConsumption([{ at: d(0), volumeL: 100 }], 100, now).status, "insufficient");
+  });
+  t("بلا نقص: لا يوجد استهلاك", () => {
+    const r = F.computeConsumption([{ at: d(2), volumeL: 500 }, { at: d(0), volumeL: 500 }], 500, now);
+    assert.strictEqual(r.status, "no_consumption"); assert.strictEqual(r.daysLeft, null);
+  });
+  t("الترتيب غير مهم", () => {
+    const r = F.computeConsumption([{ at: d(0), volumeL: 900 }, { at: d(2), volumeL: 1100 }], 900, now);
+    assert.strictEqual(r.dailyL, 100); assert.strictEqual(r.daysLeft, 9);
+  });
+}
+
 console.log(`\n${passed} اختباراً نجح` + (process.exitCode ? " — مع إخفاقات" : ""));
