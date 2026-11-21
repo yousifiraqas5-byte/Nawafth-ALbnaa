@@ -7356,7 +7356,8 @@ function renderFuelHistory() {
 // ============================================================
 
 const FUEL_DETAIL_LIMIT = 300;
-const FUEL_CONSUMPTION_WINDOW_DAYS = 7;   // معدل الصرف يُحسب من آخر أسبوع
+const FUEL_CONSUMPTION_WINDOW_DAYS = 7;        // الأصل: آخر أسبوع
+const FUEL_CONSUMPTION_FALLBACK_DAYS = 30;     // إن لم تكفِ قراءات الأسبوع: آخر شهر
 
 async function loadFuelTankReadings(tankId) {
     // فلتر بحقل واحد فقط (لا يحتاج فهرساً مركباً) ثم الترتيب في المتصفح
@@ -7431,17 +7432,23 @@ function renderFuelTankDetail(def, rowsRaw, failed) {
         return (tb ? tb.getTime() : 0) - (ta ? ta.getTime() : 0);
     });
 
-    const cons = FuelCalc.computeConsumption(
-        rows.map(function (h) { return { at: h.createdAt, volumeL: h.volumeL }; }),
-        ok ? state.volumeL : null, new Date(),
-        { windowDays: FUEL_CONSUMPTION_WINDOW_DAYS }
-    );
+    const consPoints = rows.map(function (h) { return { at: h.createdAt, volumeL: h.volumeL }; });
+    const consVolume = ok ? state.volumeL : null;
+    let cons = FuelCalc.computeConsumption(consPoints, consVolume, new Date(),
+        { windowDays: FUEL_CONSUMPTION_WINDOW_DAYS });
+    // لا قراءات كافية في آخر أسبوع -> نجرّب آخر شهر
+    if (cons.status === "insufficient") {
+        const month = FuelCalc.computeConsumption(consPoints, consVolume, new Date(),
+            { windowDays: FUEL_CONSUMPTION_FALLBACK_DAYS });
+        if (month.status !== "insufficient") cons = month;
+    }
+    const windowLabel = cons.windowDays === FUEL_CONSUMPTION_WINDOW_DAYS ? "آخر أسبوع" : "آخر شهر";
 
     // ---- بطاقات الأرقام الثلاث ----
     let dailyTxt = "—", dailyNote = "", leftTxt = "—", leftNote = "";
     if (cons.status === "ok") {
         dailyTxt = formatFuelNumber(cons.dailyL) + '<small> لتر/يوم</small>';
-        dailyNote = 'معدل آخر ' + FUEL_CONSUMPTION_WINDOW_DAYS + ' أيام (صُرف ' + formatFuelNumber(cons.consumedL) +
+        dailyNote = 'معدل ' + windowLabel + ' (صُرف ' + formatFuelNumber(cons.consumedL) +
             ' لتر خلال ' + (Math.round(cons.spanDays * 10) / 10) + ' يوم)';
         if (cons.daysLeft !== null) {
             leftTxt = (cons.daysLeft >= 10 ? formatFuelNumber(cons.daysLeft) : String(cons.daysLeft)) + '<small> يوم</small>';
